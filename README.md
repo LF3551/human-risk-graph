@@ -119,7 +119,17 @@ pytest tests/ -v
 
 # Run tests with coverage
 pytest tests/ --cov=src --cov-report=html
+
+# Code formatting
+black src/ tests/ --line-length 100
+
+# Linting
+flake8 src/ tests/
+
+# Run experiments
+python experiments/generate_data.py
 python experiments/run_experiments.py
+python experiments/visualize.py
 ```
 
 ## Key Features
