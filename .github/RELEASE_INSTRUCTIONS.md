@@ -1,4 +1,4 @@
-# Creating GitHub Release v0.1.0
+v0.1.0 - Initial Public Release# Creating GitHub Release v0.1.0
 
 The git tag has been pushed to GitHub. Now create the official Release:
 
