@@ -3,6 +3,9 @@
 </p>
 
 <p align="center">
+  <a href="https://doi.org/10.5281/zenodo.18288056">
+    <img src="https://zenodo.org/badge/DOI/10.5281/zenodo.18288056.svg" alt="DOI">
+  </a>
   <a href="https://github.com/LF3551/human-risk-graph/releases">
     <img src="https://img.shields.io/github/v/release/LF3551/human-risk-graph" alt="Latest Release">
   </a>
@@ -207,6 +210,26 @@ python experiments/visualize.py
 This repository provides a **reference implementation** of the HRG model.
 It is intended for research, architecture analysis, and discussion —
 not as a production-ready security tool.
+
+## Citation
+
+If you use this software in your research or work, please cite:
+
+```bibtex
+@software{aleinikov_2026_hrg,
+  author       = {Aleinikov, Aleksei},
+  title        = {Human Risk Graph: A Quantitative Model for Organizational Security Risk},
+  year         = 2026,
+  publisher    = {Zenodo},
+  version      = {v0.1.1},
+  doi          = {10.5281/zenodo.18288056},
+  url          = {https://doi.org/10.5281/zenodo.18288056}
+}
+```
+
+Or use this text citation:
+
+> Aleinikov, A. (2026). Human Risk Graph: A Quantitative Model for Organizational Security Risk (v0.1.1). Zenodo. https://doi.org/10.5281/zenodo.18288056
 
 ## License
 
