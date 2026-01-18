@@ -76,6 +76,33 @@ pip install -e .
 pip install -e ".[dev]"  # Development tools
 ```
 
+### Data Format
+
+Create a JSON file describing your organization structure:
+
+```json
+{
+  "people": [
+    { "id": "A", "role": "SRE", "criticality": 0.9 },
+    { "id": "B", "role": "Security Engineer", "criticality": 0.8 },
+    { "id": "C", "role": "Manager", "criticality": 0.7 },
+    { "id": "D", "role": "Developer", "criticality": 0.4 }
+  ],
+  "dependencies": [
+    { "from": "A", "to": "B", "type": "approval", "weight": 0.8 },
+    { "from": "C", "to": "A", "type": "bypass", "weight": 0.9 }
+  ]
+}
+```
+
+**Fields:**
+- `people.id` — unique identifier
+- `people.role` — job title (optional)
+- `people.criticality` — importance level (0.0-1.0)
+- `dependencies.from/to` — person IDs
+- `dependencies.type` — relationship type (approval, bypass, etc.)
+- `dependencies.weight` — dependency strength (0.0-1.0)
+
 ### CLI Usage
 
 The easiest way to use HRG is through the command-line interface:
@@ -93,6 +120,33 @@ hrg analyze data/example_organization.json --format html --output my_report.html
 # Generate interactive graph visualization only
 hrg visualize data/example_organization.json
 ```
+
+### Example Output
+
+```
+🔍 Analyzing: data/example_organization.json
+⚙️  Running Human Risk Graph analysis...
+✅ Generated: example_organization_report.json
+✅ Generated: example_organization_graph.html
+
+============================================================
+📊 ANALYSIS SUMMARY
+============================================================
+Composite HRG Score: 0.090
+  • Bus Factor Score: 0.225
+  • Decision Concentration: 0.000
+  • Bypass Risk Score: 0.000
+
+⚠️  Critical People (Articulation Points): 1
+   - A
+
+✅ Analysis complete! Generated 2 file(s).
+```
+
+**Generated files:**
+- JSON report with detailed metrics
+- Interactive HTML graph visualization
+- Optional Markdown and HTML reports
 
 ### Python API Usage
 
