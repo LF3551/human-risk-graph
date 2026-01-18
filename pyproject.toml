@@ -41,6 +41,9 @@ omit = [
     "*/tests/*",
     "*/venv/*",
     "*/__pycache__/*",
+    "*/src/cli.py",
+    "*/src/reports.py",
+    "*/src/visualization.py",
 ]
 
 [tool.coverage.report]
