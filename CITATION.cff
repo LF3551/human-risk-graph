@@ -1,0 +1,48 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "Human Risk Graph: A Quantitative Model for Organizational Security Risk"
+version: 0.1.1
+date-released: 2026-01-18
+url: "https://github.com/LF3551/human-risk-graph"
+repository-code: "https://github.com/LF3551/human-risk-graph"
+license: Apache-2.0
+doi: 10.5281/zenodo.18288056
+
+authors:
+  - family-names: "Aleinikov"
+    given-names: "Aleksei"
+    email: adk3551@gmail.com
+    affiliation: "Independent Researcher"
+    orcid: "https://orcid.org/0009-0003-8866-3131"
+
+abstract: "Human Risk Graph (HRG) is a quantitative model for measuring organizational security risk caused by human dependencies, decision concentration, and bus-factor effects. Unlike traditional security models that focus only on technical assets, HRG treats people as part of the attack surface and models how organizational decisions and emergency processes introduce systemic risk."
+
+keywords:
+  - cybersecurity
+  - risk-analysis
+  - graph-theory
+  - organizational-security
+  - bus-factor
+  - CISSP
+  - human-risk
+  - security-metrics
+  - network-analysis
+  - quantitative-risk
+
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.18288056
+    description: "Zenodo DOI for all versions"
+
+preferred-citation:
+  type: software
+  title: "Human Risk Graph: A Quantitative Model for Organizational Security Risk"
+  authors:
+    - family-names: "Aleinikov"
+      given-names: "Aleksei"
+      orcid: "https://orcid.org/0009-0003-8866-3131"
+  year: 2026
+  version: 0.1.1
+  doi: 10.5281/zenodo.18288056
+  url: "https://github.com/LF3551/human-risk-graph"
