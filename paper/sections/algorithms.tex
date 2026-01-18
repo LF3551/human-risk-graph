@@ -1,0 +1,20 @@
+% Placeholder for algorithms section
+We present efficient algorithms for computing HRG metrics with polynomial time complexity.
+
+\subsection{Bus Factor Algorithm}
+
+Computing $BF(G)$ requires finding articulation points. We use Tarjan's algorithm.
+
+\textbf{Time Complexity}: $O(|V| + |E|)$
+
+\subsection{Decision Concentration Algorithm}
+
+Computing $DC(G)$ requires collecting approval weights and computing the Gini coefficient.
+
+\textbf{Time Complexity}: $O(|E| + |V| \log |V|)$ (dominated by sorting)
+
+\subsection{Bypass Risk Algorithm}
+
+Computing $BR(G)$ requires enumerating critical paths and checking for bypass edges.
+
+\textbf{Time Complexity}: $O(|V| \cdot |E|)$ using breadth-first search with path tracking.

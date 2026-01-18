@@ -1,0 +1,31 @@
+Organizations increasingly depend on small numbers of individuals for critical decisions, emergency approvals, and access control. When key personnel are unavailable---whether due to vacation, illness, departure, or malicious action---operations may be disrupted and security controls may be bypassed. Unlike technical vulnerabilities, which are extensively studied and modeled, \textit{human dependencies} remain largely unquantified in security risk assessment.
+
+Consider a typical scenario: a Site Reliability Engineer (SRE) with elevated production access becomes unavailable. If that person is the only one who can approve emergency changes, the organization faces a choice between operational paralysis and bypassing normal controls. Both outcomes introduce security risk. This situation represents a \textit{human single point of failure}, analogous to technical SPOFs but arising from organizational structure rather than system architecture.
+
+Traditional security models such as Role-Based Access Control (RBAC) \cite{sandhu1996rbac}, Attribute-Based Access Control (ABAC) \cite{hu2013abac}, and insider threat detection frameworks \cite{cappelli2012insider} focus on individual actions and permissions. They do not capture \textit{systemic risk} arising from the topology of human dependencies. Graph-based security models exist for network intrusion \cite{noel2004attack} and access control \cite{crampton2005graph}, but no formal model addresses organizational structure as an attack surface.
+
+We introduce the \textbf{Human Risk Graph} (HRG), a directed weighted graph where nodes represent people and edges represent dependency relationships (approvals, escalations, bypasses). HRG computes three core metrics:
+
+\begin{itemize}
+\item \textbf{Bus Factor Score (BF)}: Measures fragility to loss of key individuals using articulation point analysis
+\item \textbf{Decision Concentration Score (DC)}: Quantifies authority distribution using the Gini coefficient
+\item \textbf{Bypass Risk Score (BR)}: Assesses the prevalence of emergency control circumvention paths
+\end{itemize}
+
+The composite HRG score provides a single quantitative measure of organizational security risk from human factors, enabling comparison across teams, divisions, or entire enterprises.
+
+\subsection{Contributions}
+
+This paper makes the following contributions:
+
+\begin{enumerate}
+\item A formal graph-theoretic model for organizational security risk with rigorous definitions and proofs of key properties
+\item Three novel risk metrics (BF, DC, BR) with polynomial-time algorithms and complexity analysis
+\item A reference implementation in Python with comprehensive test coverage
+\item Experimental validation on synthetic and real organizational topologies
+\item Practical guidance for interpreting risk scores and implementing mitigations
+\end{enumerate}
+
+\subsection{Organization}
+
+Section 2 reviews related work in insider threat modeling, organizational risk, and graph-based security. Section 3 presents the formal HRG model with definitions and theorems. Section 4 details the three risk metrics and their computation. Section 5 provides algorithm pseudocode and complexity analysis. Section 6 describes our experimental methodology and datasets. Section 7 presents results and discussion. Section 8 addresses limitations and future work. Section 9 concludes.

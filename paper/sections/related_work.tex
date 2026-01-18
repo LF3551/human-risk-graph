@@ -1,0 +1,29 @@
+Several research areas relate to HRG: insider threat detection, organizational risk modeling, graph-based security, and bus factor in software engineering.
+
+\subsection{Insider Threat Detection}
+
+Cappelli et al. \cite{cappelli2012insider} developed the CERT insider threat model based on case studies of malicious insiders. Their work focuses on behavioral indicators and psychological factors rather than organizational structure. Kandias et al. \cite{kandias2010insider} proposed an insider threat assessment framework using user profiling, but it does not model dependencies between users.
+
+Probst et al. \cite{probst2010detecting} used anomaly detection on user behavior to identify potential insider threats. These approaches are reactive, detecting threats after suspicious behavior occurs. HRG is proactive, identifying structural vulnerabilities before exploitation.
+
+\subsection{Organizational Risk and Resilience}
+
+The concept of ``bus factor'' originates from software engineering \cite{avelino2016bus}, measuring how many developers must be lost before a project fails. Rigby and Hassan \cite{rigby2013busfactor} analyzed bus factor in open source projects. However, these studies focus on knowledge concentration in software development, not security risk.
+
+Perrow \cite{perrow1984normal} introduced Normal Accident Theory, arguing that complex systems inevitably produce accidents due to tight coupling and interactive complexity. Our work extends this to organizational security, modeling human dependencies as a complex system.
+
+\subsection{Graph-Based Security Models}
+
+Attack graphs \cite{noel2004attack} model multi-step network intrusions as directed graphs where nodes are system states and edges are exploits. Sheyner et al. \cite{sheyner2002attack} developed automated attack graph generation. While conceptually similar, attack graphs model technical vulnerabilities, not human dependencies.
+
+Crampton and Loizou \cite{crampton2005graph} used graph theory to analyze administrative scope in RBAC. Their work focuses on role assignment and delegation, not organizational risk. Li and Wang \cite{li2007access} proposed trust graphs for access control in distributed systems, but these model authorization relationships, not operational dependencies.
+
+\subsection{Access Control and Authorization}
+
+RBAC \cite{sandhu1996rbac} and ABAC \cite{hu2013abac} provide frameworks for managing permissions. RBAC assigns permissions based on organizational roles; ABAC uses attributes and policies. Neither model emergency bypass mechanisms or decision dependencies explicitly. HRG complements these models by quantifying risk in the organizational structure that RBAC/ABAC policies are applied to.
+
+Park and Sandhu \cite{park2004rbac} extended RBAC with temporal constraints and separation of duty. These extensions address some human factors but do not provide quantitative risk metrics or analyze organizational topology.
+
+\subsection{Gap in Literature}
+
+No existing work provides a formal, quantitative model for security risk arising from organizational structure and human dependencies. HRG fills this gap by treating people as components of the attack surface and providing computable metrics for systemic risk assessment.

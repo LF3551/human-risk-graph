@@ -1,0 +1,23 @@
+# Git attributes for proper handling
+
+# Python source files
+*.py text eol=lf
+
+# Markdown and documentation
+*.md text eol=lf
+*.tex text eol=lf
+*.bib text eol=lf
+
+# JSON data files
+*.json text eol=lf
+
+# CSV results
+*.csv text eol=lf
+
+# Images - treat as binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+
+# PDF - treat as binary
+*.pdf binary

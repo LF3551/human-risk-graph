@@ -1,0 +1,5 @@
+bus_factor,decision_concentration,bypass_risk,composite_score,risk_level,critical_nodes,articulation_points,num_nodes,num_edges,graph_density,num_critical_nodes,num_articulation_points,topology,dataset
+0.251,0.06542022407147231,0.0,0.1200260672214417,Low,"['P4', 'P8', 'P12', 'P13', 'P14', 'P16', 'P20']","['P18', 'P5', 'P11', 'P2', 'P9', 'P10', 'P6', 'P8']",20,21,0.05526315789473684,7,8,hierarchical,synthetic_hierarchical.json
+0.0,0.21162230754213573,0.24778761061946902,0.13782297544848143,Low,"['P4', 'P8', 'P12', 'P13', 'P14', 'P16', 'P20']",[],20,36,0.09473684210526316,7,0,random,synthetic_random.json
+0.172,0.12894779905089182,0.0,0.10748433971526755,Low,"['P4', 'P8', 'P12', 'P13', 'P14', 'P16', 'P20']","['P13', 'P12', 'P4', 'P6', 'P3']",20,10,0.02631578947368421,7,5,flat,synthetic_flat.json
+0.044,0.037419129218394825,0.0,0.02882573876551845,Low,"['P4', 'P8', 'P12', 'P13', 'P14', 'P16', 'P20']",['P16'],20,19,0.05,7,1,star,synthetic_star.json

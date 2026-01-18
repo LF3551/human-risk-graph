@@ -1,0 +1,58 @@
+We formalize the Human Risk Graph as a directed weighted graph with node and edge attributes.
+
+\begin{definition}[Human Risk Graph]
+A Human Risk Graph is a 4-tuple $G = (V, E, W, C)$ where:
+\begin{itemize}
+\item $V$ is a finite set of vertices representing people
+\item $E \subseteq V \times V$ is a set of directed edges representing dependencies
+\item $W: E \to [0,1]$ is an edge weight function representing dependency strength
+\item $C: V \to [0,1]$ is a vertex criticality function representing individual importance
+\end{itemize}
+\end{definition}
+
+\begin{definition}[Edge Types]
+Each edge $e \in E$ has an associated type $\tau(e) \in T$ where $T = \{\text{approval}, \text{escalation}, \text{bypass}\}$:
+\begin{itemize}
+\item \textbf{approval}: person $u$ must approve decisions by person $v$
+\item \textbf{escalation}: person $u$ can escalate to person $v$
+\item \textbf{bypass}: person $u$ can override controls normally enforced by $v$
+\end{itemize}
+\end{definition}
+
+\begin{definition}[Critical Nodes]
+A node $v \in V$ is \textbf{critical} if $C(v) \geq \theta$ where $\theta$ is a criticality threshold (typically $\theta = 0.7$). Let $V_{\text{critical}} \subseteq V$ denote the set of all critical nodes.
+\end{definition}
+
+\subsection{Model Interpretation}
+
+The HRG model captures organizational dependencies at a structural level:
+
+\begin{itemize}
+\item \textbf{Nodes} represent individuals with roles such as SRE, security engineer, manager, director
+\item \textbf{Edges} represent formal or informal dependencies: who must approve whose actions, who can bypass whose controls
+\item \textbf{Weights} represent the strength or frequency of dependencies
+\item \textbf{Criticality} represents the importance of an individual to organizational functions, based on factors such as unique knowledge, access level, or decision authority
+\end{itemize}
+
+\subsection{Graph Properties}
+
+\begin{proposition}
+An HRG $G = (V, E, W, C)$ satisfies the following properties:
+\begin{enumerate}
+\item $|V| < \infty$ (finite organization)
+\item $\forall e \in E, W(e) \in [0,1]$ (normalized weights)
+\item $\forall v \in V, C(v) \in [0,1]$ (normalized criticality)
+\item $G$ may contain cycles (circular dependencies)
+\item $G$ may be disconnected (independent teams)
+\end{enumerate}
+\end{proposition}
+
+\subsection{Articulation Points and Connectivity}
+
+A key concept in HRG analysis is the \textit{articulation point}, borrowed from graph theory.
+
+\begin{definition}[Articulation Point]
+A node $v \in V$ is an \textbf{articulation point} (or cut vertex) if removing $v$ and its incident edges increases the number of connected components in the underlying undirected graph $G_u = (V, E_u)$ where $E_u = \{(u,v) : (u,v) \in E \text{ or } (v,u) \in E\}$.
+\end{definition}
+
+Articulation points represent human single points of failure: individuals whose absence would disconnect parts of the organization or isolate critical functions.

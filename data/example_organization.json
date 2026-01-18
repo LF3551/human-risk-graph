@@ -1,0 +1,12 @@
+{
+  "people": [
+    { "id": "A", "role": "SRE", "criticality": 0.9 },
+    { "id": "B", "role": "Security Engineer", "criticality": 0.8 },
+    { "id": "C", "role": "Manager", "criticality": 0.7 },
+    { "id": "D", "role": "Developer", "criticality": 0.4 }
+  ],
+  "dependencies": [
+    { "from": "A", "to": "B", "type": "approval", "weight": 0.8 },
+    { "from": "C", "to": "A", "type": "bypass", "weight": 0.9 }
+  ]
+}

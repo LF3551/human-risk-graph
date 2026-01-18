@@ -1,0 +1,107 @@
+We define three core risk metrics: Bus Factor Score, Decision Concentration Score, and Bypass Risk Score. Each metric captures a distinct aspect of organizational security risk.
+
+\subsection{Bus Factor Score (BF)}
+
+The Bus Factor Score measures organizational fragility to the loss of key individuals.
+
+\begin{definition}[Bus Factor Score]
+Let $AP(G)$ denote the set of articulation points in $G$. The Bus Factor Score is:
+\begin{equation}
+BF(G) = \frac{1}{|V|} \sum_{v \in AP(G)} C(v)
+\end{equation}
+\end{definition}
+
+\textbf{Interpretation}: $BF(G) \in [0,1]$ where higher values indicate greater fragility. $BF = 0$ means no articulation points exist (resilient structure). $BF = 1$ means all nodes are articulation points with maximum criticality (extremely fragile).
+
+\begin{theorem}[Monotonicity of BF]
+If $C(v)$ increases for some $v \in AP(G)$, then $BF(G)$ increases.
+\end{theorem}
+
+\begin{proof}
+Direct from Definition 1. The sum $\sum_{v \in AP(G)} C(v)$ increases monotonically with $C(v)$ for any $v \in AP(G)$.
+\end{proof}
+
+\begin{theorem}[Star Graph Bound]
+For a star graph $G$ with center $c$, $BF(G) = C(c) / |V|$.
+\end{theorem}
+
+\begin{proof}
+In a star graph, the center $c$ is the only articulation point. Removing $c$ disconnects all other nodes. Thus $AP(G) = \{c\}$ and $BF(G) = C(c) / |V|$.
+\end{proof}
+
+\subsection{Decision Concentration Score (DC)}
+
+The Decision Concentration Score quantifies inequality in the distribution of decision authority using the Gini coefficient.
+
+\begin{definition}[Decision Concentration Score]
+Let $A = \{e \in E : \tau(e) = \text{approval}\}$ be the set of approval edges. For each person $v \in V$, define their approval weight:
+\begin{equation}
+w_v = \sum_{(u,v) \in A} W((u,v))
+\end{equation}
+
+Let $\mathbf{w} = (w_1, w_2, \ldots, w_n)$ be the sorted sequence of approval weights. The Decision Concentration Score is the Gini coefficient:
+\begin{equation}
+DC(G) = \frac{\sum_{i=1}^{n} (2i - n - 1) \cdot w_i}{n \sum_{i=1}^{n} w_i}
+\end{equation}
+\end{definition}
+
+\textbf{Interpretation}: $DC(G) \in [0,1]$ where $DC = 0$ indicates perfectly equal distribution of authority and $DC = 1$ indicates maximum concentration (one person has all authority).
+
+\begin{proposition}[Bounds on DC]
+For any HRG $G$, $0 \leq DC(G) \leq 1$.
+\end{proposition}
+
+\begin{proposition}[DC for Uniform Distribution]
+If all approval weights are equal ($w_1 = w_2 = \cdots = w_n$), then $DC(G) = 0$.
+\end{proposition}
+
+\subsection{Bypass Risk Score (BR)}
+
+The Bypass Risk Score quantifies the fraction of critical paths that can be circumvented through bypass mechanisms.
+
+\begin{definition}[Critical Path]
+A path $P = (v_1, v_2, \ldots, v_k)$ in $G$ is \textbf{critical} if:
+\begin{enumerate}
+\item $v_1 \in V_{\text{critical}}$ or $v_k \in V_{\text{critical}}$
+\item $\exists e \in P$ such that $\tau(e) = \text{approval}$
+\end{enumerate}
+\end{definition}
+
+\begin{definition}[Bypassable Path]
+A critical path $P$ is \textbf{bypassable} if $\exists e \in E$ such that:
+\begin{itemize}
+\item $\tau(e) = \text{bypass}$
+\item $e$ creates a shortcut around a segment of $P$
+\end{itemize}
+\end{definition}
+
+\begin{definition}[Bypass Risk Score]
+Let $CP(G)$ be the set of all critical paths in $G$. The Bypass Risk Score is:
+\begin{equation}
+BR(G) = \frac{|\{P \in CP(G) : P \text{ is bypassable}\}|}{|CP(G)|}
+\end{equation}
+If $CP(G) = \emptyset$, define $BR(G) = 0$.
+\end{definition}
+
+\textbf{Interpretation}: $BR(G) \in [0,1]$ where $BR = 0$ means no critical paths can be bypassed (controls are enforced) and $BR = 1$ means all critical paths have bypass mechanisms (controls are easily circumvented).
+
+\begin{theorem}[Bypass Risk Bound]
+If no bypass edges exist ($\forall e \in E, \tau(e) \neq \text{bypass}$), then $BR(G) = 0$.
+\end{theorem}
+
+\begin{proof}
+Trivial from Definition 5. If no bypass edges exist, no path can be bypassable.
+\end{proof}
+
+\subsection{Composite HRG Score}
+
+The overall risk score is a weighted combination of the three metrics.
+
+\begin{definition}[Composite HRG Score]
+\begin{equation}
+HRG(G) = \alpha \cdot BF(G) + \beta \cdot DC(G) + \gamma \cdot BR(G)
+\end{equation}
+where $\alpha + \beta + \gamma = 1$ and $\alpha, \beta, \gamma \geq 0$.
+\end{definition}
+
+Standard weighting is $\alpha = 0.4$, $\beta = 0.3$, $\gamma = 0.3$, prioritizing bus factor as the most critical risk. Weights can be adjusted based on organizational priorities.

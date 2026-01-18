@@ -1,0 +1,166 @@
+{
+  "people": [
+    {
+      "id": "P1",
+      "role": "Analyst",
+      "criticality": 0.34
+    },
+    {
+      "id": "P2",
+      "role": "Analyst",
+      "criticality": 0.41
+    },
+    {
+      "id": "P3",
+      "role": "Security Engineer",
+      "criticality": 0.56
+    },
+    {
+      "id": "P4",
+      "role": "SRE",
+      "criticality": 0.77
+    },
+    {
+      "id": "P5",
+      "role": "Director",
+      "criticality": 0.63
+    },
+    {
+      "id": "P6",
+      "role": "Manager",
+      "criticality": 0.61
+    },
+    {
+      "id": "P7",
+      "role": "SRE",
+      "criticality": 0.59
+    },
+    {
+      "id": "P8",
+      "role": "Director",
+      "criticality": 0.81
+    },
+    {
+      "id": "P9",
+      "role": "Director",
+      "criticality": 0.67
+    },
+    {
+      "id": "P10",
+      "role": "Analyst",
+      "criticality": 0.58
+    },
+    {
+      "id": "P11",
+      "role": "Manager",
+      "criticality": 0.68
+    },
+    {
+      "id": "P12",
+      "role": "Director",
+      "criticality": 0.7
+    },
+    {
+      "id": "P13",
+      "role": "SRE",
+      "criticality": 0.8
+    },
+    {
+      "id": "P14",
+      "role": "Security Engineer",
+      "criticality": 0.78
+    },
+    {
+      "id": "P15",
+      "role": "Developer",
+      "criticality": 0.41
+    },
+    {
+      "id": "P16",
+      "role": "Security Engineer",
+      "criticality": 0.88
+    },
+    {
+      "id": "P17",
+      "role": "Developer",
+      "criticality": 0.34
+    },
+    {
+      "id": "P18",
+      "role": "Manager",
+      "criticality": 0.63
+    },
+    {
+      "id": "P19",
+      "role": "Developer",
+      "criticality": 0.54
+    },
+    {
+      "id": "P20",
+      "role": "SRE",
+      "criticality": 0.79
+    }
+  ],
+  "dependencies": [
+    {
+      "from": "P18",
+      "to": "P4",
+      "type": "approval",
+      "weight": 0.79
+    },
+    {
+      "from": "P13",
+      "to": "P3",
+      "type": "approval",
+      "weight": 0.67
+    },
+    {
+      "from": "P20",
+      "to": "P12",
+      "type": "approval",
+      "weight": 0.67
+    },
+    {
+      "from": "P3",
+      "to": "P2",
+      "type": "approval",
+      "weight": 0.7
+    },
+    {
+      "from": "P10",
+      "to": "P3",
+      "type": "approval",
+      "weight": 0.76
+    },
+    {
+      "from": "P4",
+      "to": "P13",
+      "type": "approval",
+      "weight": 0.58
+    },
+    {
+      "from": "P12",
+      "to": "P6",
+      "type": "approval",
+      "weight": 0.61
+    },
+    {
+      "from": "P7",
+      "to": "P9",
+      "type": "approval",
+      "weight": 0.71
+    },
+    {
+      "from": "P3",
+      "to": "P6",
+      "type": "approval",
+      "weight": 0.66
+    },
+    {
+      "from": "P8",
+      "to": "P6",
+      "type": "approval",
+      "weight": 0.64
+    }
+  ]
+}

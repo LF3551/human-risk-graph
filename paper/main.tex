@@ -1,0 +1,67 @@
+\documentclass[11pt,a4paper]{article}
+
+% Packages
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{cite}
+
+% Theorem environments
+\newtheorem{definition}{Definition}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+
+% Title
+\title{Human Risk Graph: A Quantitative Model for Organizational Security Risk from Human Dependencies}
+
+\author{
+Aleksei Aleinikov\\
+\texttt{your.email@example.com}
+}
+
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Organizations face security risks not only from technical vulnerabilities but also from human dependencies, decision concentration, and emergency bypass mechanisms. Traditional security models focus primarily on technical attack surfaces, neglecting the organizational structure itself as a source of risk. We introduce the \textit{Human Risk Graph} (HRG), a graph-theoretic model that quantifies organizational security risk arising from human factors. HRG represents people as nodes and dependency relationships as edges, computing three core metrics: Bus Factor Score (organizational fragility), Decision Concentration Score (authority distribution), and Bypass Risk Score (control circumvention). We formalize the model mathematically, prove key properties, present efficient algorithms with complexity analysis, and validate the approach through experiments on synthetic and real-world organizational structures. Our results demonstrate that HRG effectively identifies human single points of failure and provides actionable insights for security risk mitigation. The model has applications in insider threat assessment, business continuity planning, and security architecture evaluation.
+\end{abstract}
+
+\section{Introduction}
+\input{sections/introduction}
+
+\section{Related Work}
+\input{sections/related_work}
+
+\section{Human Risk Graph Model}
+\input{sections/model}
+
+\section{Risk Metrics}
+\input{sections/metrics}
+
+\section{Algorithms and Complexity}
+\input{sections/algorithms}
+
+\section{Experiments}
+\input{sections/experiments}
+
+\section{Results and Discussion}
+\input{sections/results}
+
+\section{Limitations and Future Work}
+\input{sections/limitations}
+
+\section{Conclusion}
+\input{sections/conclusion}
+
+\bibliographystyle{plain}
+\bibliography{bibliography}
+
+\end{document}
