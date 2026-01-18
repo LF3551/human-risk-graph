@@ -32,6 +32,9 @@ setup(
         "networkx>=3.0",
         "numpy>=1.24.0",
         "scipy>=1.10.0",
+        "click>=8.1.0",
+        "pyvis>=0.3.2",
+        "matplotlib>=3.7.0",
     ],
     extras_require={
         "dev": [
@@ -39,10 +42,16 @@ setup(
             "pytest-cov>=4.1.0",
             "black>=23.0.0",
             "mypy>=1.0.0",
+            "flake8>=6.0.0",
+            "bandit>=1.7.0",
         ],
         "experiments": [
             "pandas>=2.0.0",
-            "matplotlib>=3.7.0",
+        ],
+    },
+    entry_points={
+        "console_scripts": [
+            "hrg=src.cli:main",
         ],
     },
 )

@@ -2,6 +2,24 @@
   <img src="logo.png" alt="Human Risk Graph" width="600">
 </p>
 
+<p align="center">
+  <a href="https://github.com/LF3551/human-risk-graph/actions/workflows/ci.yml">
+    <img src="https://github.com/LF3551/human-risk-graph/actions/workflows/ci.yml/badge.svg" alt="CI/CD Pipeline">
+  </a>
+  <a href="https://codecov.io/gh/LF3551/human-risk-graph">
+    <img src="https://codecov.io/gh/LF3551/human-risk-graph/branch/main/graph/badge.svg" alt="Coverage">
+  </a>
+  <a href="https://github.com/LF3551/human-risk-graph/blob/main/LICENSE">
+    <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License">
+  </a>
+  <a href="https://www.python.org/downloads/">
+    <img src="https://img.shields.io/badge/python-3.8%2B-blue.svg" alt="Python 3.8+">
+  </a>
+  <a href="https://github.com/psf/black">
+    <img src="https://img.shields.io/badge/code%20style-black-000000.svg" alt="Code style: black">
+  </a>
+</p>
+
 # Human Risk Graph (HRG)
 
 Human Risk Graph (HRG) is a quantitative model for measuring organizational
@@ -40,18 +58,61 @@ risk metrics that highlight human single points of failure.
 
 ## Quick Start
 
+### Installation
+
 ```bash
-# Install dependencies
-pip install -r requirements.txt
+# Install from source
+git clone https://github.com/LF3551/human-risk-graph.git
+cd human-risk-graph
+pip install -e .
 
-# Run example analysis
-python examples/run_example.py
+# Or install specific extras
+pip install -e ".[dev]"  # Development tools
+```
 
+### CLI Usage
+
+The easiest way to use HRG is through the command-line interface:
+
+```bash
+# Analyze an organization (generates JSON, Markdown, and HTML reports)
+hrg analyze data/example_organization.json
+
+# Generate only HTML report
+hrg analyze data/example_organization.json --format html
+
+# Specify output file
+hrg analyze data/example_organization.json --format html --output my_report.html
+
+# Generate interactive graph visualization only
+hrg visualize data/example_organization.json
+```
+
+### Python API Usage
+
+```python
+from src.hrg import HumanRiskGraph
+
+# Load your organization data
+people = [...]
+dependencies = [...]
+
+# Create and analyze
+hrg = HumanRiskGraph(people, dependencies)
+results = hrg.calculate()
+
+print(f"Composite Risk Score: {results['composite_score']:.3f}")
+print(f"Critical People: {results['critical_people']}")
+```
+
+## Development
+
+```bash
 # Run tests
 pytest tests/ -v
 
-# Generate synthetic data and run experiments
-python experiments/generate_data.py
+# Run tests with coverage
+pytest tests/ --cov=src --cov-report=html
 python experiments/run_experiments.py
 ```
 

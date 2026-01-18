@@ -1,0 +1,24 @@
+{
+  "metadata": {
+    "input_file": "/Users/alekseialeinikov/Documents/SCRIPTS/human-risk-graph/data/example_organization.json",
+    "analysis_date": "2026-01-18T10:11:21.572269",
+    "organization_size": 4,
+    "dependencies_count": 2
+  },
+  "results": {
+    "bus_factor": 0.225,
+    "decision_concentration": 0.0,
+    "bypass_risk": 0.0,
+    "composite_score": 0.09000000000000001,
+    "risk_level": "Low",
+    "critical_nodes": [
+      "A",
+      "B",
+      "C"
+    ],
+    "articulation_points": [
+      "A"
+    ]
+  },
+  "generated_at": "2026-01-18T10:11:21.572279"
+}
