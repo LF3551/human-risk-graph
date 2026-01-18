@@ -29,6 +29,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install pytest pytest-cov flake8 black mypy
+        pip install -e .
     
     - name: Lint with flake8
       run: |
@@ -39,7 +40,8 @@ jobs:
     
     - name: Check code formatting with black
       run: |
-        black --check src/ tests/
+        black --check src/ tests/ --line-length 100
+      continue-on-error: false
     
     - name: Type check with mypy
       run: |

@@ -9,7 +9,7 @@ This module implements the three core HRG metrics:
 
 import numpy as np
 import networkx as nx
-from typing import Dict, List
+from typing import Dict
 from .graph_analysis import find_articulation_points, find_critical_paths, is_path_bypassable
 
 

@@ -6,7 +6,7 @@ Human Risk Graphs.
 """
 
 import networkx as nx
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple
 from .metrics import (
     bus_factor_score,
     decision_concentration_score,
@@ -17,7 +17,6 @@ from .metrics import (
 from .graph_analysis import (
     find_articulation_points,
     compute_betweenness_centrality,
-    compute_degree_centrality,
 )
 
 

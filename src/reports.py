@@ -171,19 +171,15 @@ def generate_html_report(results: Dict[str, Any], metadata: Dict[str, Any]) -> s
 
     # Determine risk level styling
     if score > 0.7:
-        risk_class = "critical"
         risk_label = "CRITICAL"
         risk_color = "#dc3545"
     elif score > 0.4:
-        risk_class = "high"
         risk_label = "HIGH"
         risk_color = "#ffc107"
     elif score > 0.2:
-        risk_class = "moderate"
         risk_label = "MODERATE"
         risk_color = "#17a2b8"
     else:
-        risk_class = "low"
         risk_label = "LOW"
         risk_color = "#28a745"
 
@@ -199,7 +195,7 @@ def generate_html_report(results: Dict[str, Any], metadata: Dict[str, Any]) -> s
             padding: 0;
             box-sizing: border-box;
         }}
-        
+
         body {{
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
@@ -207,7 +203,7 @@ def generate_html_report(results: Dict[str, Any], metadata: Dict[str, Any]) -> s
             line-height: 1.6;
             padding: 20px;
         }}
-        
+
         .container {{
             max-width: 1200px;
             margin: 0 auto;
@@ -216,28 +212,28 @@ def generate_html_report(results: Dict[str, Any], metadata: Dict[str, Any]) -> s
             padding: 40px;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
         }}
-        
+
         header {{
             border-bottom: 2px solid #4a4e69;
             padding-bottom: 20px;
             margin-bottom: 30px;
         }}
-        
+
         h1 {{
             color: #00d4ff;
             font-size: 2.5em;
             margin-bottom: 10px;
         }}
-        
+
         .metadata {{
             color: #9ba4b5;
             font-size: 0.9em;
         }}
-        
+
         .metadata span {{
             margin-right: 20px;
         }}
-        
+
         .summary {{
             background: rgba(74, 78, 105, 0.3);
             border-left: 4px solid {risk_color};
@@ -245,14 +241,14 @@ def generate_html_report(results: Dict[str, Any], metadata: Dict[str, Any]) -> s
             margin: 30px 0;
             border-radius: 8px;
         }}
-        
+
         .risk-score {{
             font-size: 3em;
             font-weight: bold;
             color: {risk_color};
             margin: 20px 0;
         }}
-        
+
         .risk-label {{
             display: inline-block;
             background: {risk_color};
@@ -263,14 +259,14 @@ def generate_html_report(results: Dict[str, Any], metadata: Dict[str, Any]) -> s
             font-size: 0.9em;
             margin-bottom: 15px;
         }}
-        
+
         .metrics {{
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 20px;
             margin: 30px 0;
         }}
-        
+
         .metric-card {{
             background: rgba(74, 78, 105, 0.2);
             padding: 20px;
@@ -278,34 +274,34 @@ def generate_html_report(results: Dict[str, Any], metadata: Dict[str, Any]) -> s
             border: 1px solid #4a4e69;
             transition: transform 0.2s;
         }}
-        
+
         .metric-card:hover {{
             transform: translateY(-5px);
             border-color: #00d4ff;
         }}
-        
+
         .metric-name {{
             color: #9ba4b5;
             font-size: 0.9em;
             margin-bottom: 10px;
         }}
-        
+
         .metric-value {{
             font-size: 2em;
             font-weight: bold;
             color: #00d4ff;
         }}
-        
+
         .metric-weight {{
             color: #6c757d;
             font-size: 0.85em;
             margin-top: 5px;
         }}
-        
+
         .section {{
             margin: 40px 0;
         }}
-        
+
         h2 {{
             color: #00d4ff;
             font-size: 1.8em;
@@ -313,12 +309,12 @@ def generate_html_report(results: Dict[str, Any], metadata: Dict[str, Any]) -> s
             padding-bottom: 10px;
             border-bottom: 1px solid #4a4e69;
         }}
-        
+
         .critical-list {{
             list-style: none;
             padding: 0;
         }}
-        
+
         .critical-list li {{
             background: rgba(247, 127, 0, 0.1);
             border-left: 3px solid #f77f00;
@@ -327,24 +323,24 @@ def generate_html_report(results: Dict[str, Any], metadata: Dict[str, Any]) -> s
             border-radius: 4px;
             font-family: 'Courier New', monospace;
         }}
-        
+
         .path-list {{
             background: rgba(74, 78, 105, 0.2);
             padding: 15px;
             border-radius: 8px;
             margin: 10px 0;
         }}
-        
+
         .path-item {{
             padding: 8px 0;
             border-bottom: 1px solid #4a4e69;
             font-family: 'Courier New', monospace;
         }}
-        
+
         .path-item:last-child {{
             border-bottom: none;
         }}
-        
+
         .recommendations {{
             background: rgba(0, 212, 255, 0.1);
             border-left: 4px solid #00d4ff;
@@ -352,21 +348,21 @@ def generate_html_report(results: Dict[str, Any], metadata: Dict[str, Any]) -> s
             border-radius: 8px;
             margin: 20px 0;
         }}
-        
+
         .recommendations h3 {{
             color: #00d4ff;
             margin-bottom: 15px;
         }}
-        
+
         .recommendations ul {{
             margin-left: 20px;
             color: #e4e4e7;
         }}
-        
+
         .recommendations li {{
             margin: 8px 0;
         }}
-        
+
         footer {{
             margin-top: 50px;
             padding-top: 20px;
@@ -375,7 +371,7 @@ def generate_html_report(results: Dict[str, Any], metadata: Dict[str, Any]) -> s
             color: #6c757d;
             font-size: 0.9em;
         }}
-        
+
         .badge {{
             display: inline-block;
             background: #4a4e69;
@@ -385,13 +381,13 @@ def generate_html_report(results: Dict[str, Any], metadata: Dict[str, Any]) -> s
             font-size: 0.85em;
             margin-left: 10px;
         }}
-        
+
         @media print {{
             body {{
                 background: white;
                 color: black;
             }}
-            
+
             .container {{
                 box-shadow: none;
             }}
@@ -408,7 +404,7 @@ def generate_html_report(results: Dict[str, Any], metadata: Dict[str, Any]) -> s
                 <span>🔗 {metadata['dependencies_count']} dependencies</span>
             </div>
         </header>
-        
+
         <div class="summary">
             <div class="risk-label">{risk_label} RISK</div>
             <div class="risk-score">{score:.3f}</div>
@@ -416,20 +412,20 @@ def generate_html_report(results: Dict[str, Any], metadata: Dict[str, Any]) -> s
                 Composite Human Risk Graph Score
             </p>
         </div>
-        
+
         <div class="metrics">
             <div class="metric-card">
                 <div class="metric-name">🚌 Bus Factor Risk</div>
                 <div class="metric-value">{results['bus_factor']:.3f}</div>
                 <div class="metric-weight">Weight: 40%</div>
             </div>
-            
+
             <div class="metric-card">
                 <div class="metric-name">🎯 Decision Concentration</div>
                 <div class="metric-value">{results['decision_concentration']:.3f}</div>
                 <div class="metric-weight">Weight: 35%</div>
             </div>
-            
+
             <div class="metric-card">
                 <div class="metric-name">⚡ Bypass Risk</div>
                 <div class="metric-value">{results['bypass_risk']:.3f}</div>
@@ -444,7 +440,7 @@ def generate_html_report(results: Dict[str, Any], metadata: Dict[str, Any]) -> s
         <div class="section">
             <h2>⚠️ Critical People <span class="badge">{len(results['articulation_points'])} identified</span></h2>
             <p style="color: #9ba4b5; margin-bottom: 15px;">
-                These individuals are <strong>single points of failure</strong> (articulation points). 
+                These individuals are <strong>single points of failure</strong> (articulation points).
                 Their removal would disconnect the organizational graph.
             </p>
             <ul class="critical-list">
@@ -518,9 +514,9 @@ def generate_html_report(results: Dict[str, Any], metadata: Dict[str, Any]) -> s
 
     html += """
         </div>
-        
+
         <footer>
-            <p>Report generated by <a href="https://github.com/LF3551/human-risk-graph" 
+            <p>Report generated by <a href="https://github.com/LF3551/human-risk-graph"
                style="color: #00d4ff; text-decoration: none;">Human Risk Graph</a></p>
             <p style="margin-top: 10px;">A quantitative model for organizational security risk from human dependencies</p>
         </footer>

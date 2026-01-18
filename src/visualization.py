@@ -86,16 +86,12 @@ def generate_graph_visualization(hrg, results, output_file):
         # Determine node color based on risk level
         if person_id in critical_people:
             color = "#f77f00"  # Orange - critical (articulation point)
-            border_color = "#ff0000"
         elif node_score > 0.7:
             color = "#fcbf49"  # Yellow - high risk
-            border_color = "#f77f00"
         elif node_score > 0.4:
             color = "#0abfbc"  # Teal - medium risk
-            border_color = "#00d4ff"
         else:
             color = "#00d4ff"  # Cyan - low risk
-            border_color = "#0abfbc"
 
         # Node size based on centrality
         centrality = degree_centrality.get(person_id, 0)
@@ -166,7 +162,7 @@ def generate_graph_visualization(hrg, results, output_file):
 
     # Add legend to the visualization
     legend_html = """
-    <div style="position: absolute; top: 10px; right: 10px; background: rgba(26, 26, 46, 0.9); 
+    <div style="position: absolute; top: 10px; right: 10px; background: rgba(26, 26, 46, 0.9);
                 padding: 15px; border-radius: 8px; border: 2px solid #4a4e69; color: white;
                 font-family: Arial, sans-serif; font-size: 14px; z-index: 1000;">
         <h3 style="margin: 0 0 10px 0; color: #00d4ff;">Human Risk Graph</h3>

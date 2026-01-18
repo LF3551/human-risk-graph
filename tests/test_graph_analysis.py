@@ -2,11 +2,9 @@
 Unit tests for graph analysis functions.
 """
 
-import pytest
 import networkx as nx
 from src.graph_analysis import (
     find_articulation_points,
-    find_bridges,
     compute_betweenness_centrality,
     compute_graph_density,
 )
