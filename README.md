@@ -3,6 +3,9 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/LF3551/human-risk-graph/releases/tag/v0.1.0">
+    <img src="https://img.shields.io/badge/version-0.1.0-blue.svg" alt="Version 0.1.0">
+  </a>
   <a href="https://github.com/LF3551/human-risk-graph/actions/workflows/ci.yml">
     <img src="https://github.com/LF3551/human-risk-graph/actions/workflows/ci.yml/badge.svg" alt="CI/CD Pipeline">
   </a>
@@ -17,6 +20,9 @@
   </a>
   <a href="https://github.com/psf/black">
     <img src="https://img.shields.io/badge/code%20style-black-000000.svg" alt="Code style: black">
+  </a>
+  <a href="https://github.com/LF3551/human-risk-graph/releases">
+    <img src="https://img.shields.io/github/downloads/LF3551/human-risk-graph/total.svg" alt="Downloads">
   </a>
 </p>
 
