@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="logo.png" alt="Human Risk Graph" width="600">
+</p>
+
 # Human Risk Graph (HRG)
 
 Human Risk Graph (HRG) is a quantitative model for measuring organizational
