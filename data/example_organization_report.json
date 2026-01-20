@@ -1,7 +1,7 @@
 {
   "metadata": {
     "input_file": "/Users/alekseialeinikov/Documents/SCRIPTS/human-risk-graph/data/example_organization.json",
-    "analysis_date": "2026-01-18T10:11:21.572269",
+    "analysis_date": "2026-01-20T18:17:05.621620",
     "organization_size": 4,
     "dependencies_count": 2
   },
@@ -20,5 +20,5 @@
       "A"
     ]
   },
-  "generated_at": "2026-01-18T10:11:21.572279"
+  "generated_at": "2026-01-20T18:17:05.621635"
 }

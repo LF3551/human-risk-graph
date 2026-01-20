@@ -1,6 +1,6 @@
 # Human Risk Graph Analysis Report
 
-**Generated:** 2026-01-18 10:11:21
+**Generated:** 2026-01-20 18:17:05
 **Input File:** `/Users/alekseialeinikov/Documents/SCRIPTS/human-risk-graph/data/example_organization.json`
 **Organization Size:** 4 people
 **Dependencies:** 2
