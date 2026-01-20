@@ -2,8 +2,8 @@ cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 type: software
 title: "Human Risk Graph: A Quantitative Model for Organizational Security Risk"
-version: 0.1.1
-date-released: 2026-01-18
+version: 0.1.2
+date-released: 2026-01-20
 url: "https://github.com/LF3551/human-risk-graph"
 repository-code: "https://github.com/LF3551/human-risk-graph"
 license: Apache-2.0
@@ -43,6 +43,6 @@ preferred-citation:
       given-names: "Aleksei"
       orcid: "https://orcid.org/0009-0003-8866-3131"
   year: 2026
-  version: 0.1.1
+  version: 0.1.2
   doi: 10.5281/zenodo.18288056
   url: "https://github.com/LF3551/human-risk-graph"
