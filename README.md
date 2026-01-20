@@ -224,7 +224,7 @@ If you use this software in your research or work, please cite:
   title        = {Human Risk Graph: A Quantitative Model for Organizational Security Risk},
   year         = 2026,
   publisher    = {Zenodo},
-  version      = {v0.1.1},
+  version      = {v0.1.2},
   doi          = {10.5281/zenodo.18288056},
   url          = {https://doi.org/10.5281/zenodo.18288056}
 }
@@ -232,7 +232,7 @@ If you use this software in your research or work, please cite:
 
 Or use this text citation:
 
-> Aleinikov, A. (2026). Human Risk Graph: A Quantitative Model for Organizational Security Risk (v0.1.1). Zenodo. https://doi.org/10.5281/zenodo.18288056
+> Aleinikov, A. (2026). Human Risk Graph: A Quantitative Model for Organizational Security Risk (v0.1.2). Zenodo. https://doi.org/10.5281/zenodo.18288056
 
 ## License
 
