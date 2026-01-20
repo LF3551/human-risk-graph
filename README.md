@@ -3,11 +3,14 @@
 </p>
 
 <p align="center">
+  <a href="https://pypi.org/project/human-risk-graph/">
+    <img src="https://img.shields.io/pypi/v/human-risk-graph" alt="PyPI">
+  </a>
+  <a href="https://pypi.org/project/human-risk-graph/">
+    <img src="https://img.shields.io/pypi/dm/human-risk-graph" alt="PyPI Downloads">
+  </a>
   <a href="https://doi.org/10.5281/zenodo.18288056">
     <img src="https://img.shields.io/badge/DOI-10.5281%2Fzenodo.18288056-blue" alt="DOI">
-  </a>
-  <a href="https://github.com/LF3551/human-risk-graph/releases">
-    <img src="https://img.shields.io/github/v/release/LF3551/human-risk-graph" alt="Latest Release">
   </a>
   <a href="https://github.com/LF3551/human-risk-graph/actions/workflows/ci.yml">
     <img src="https://github.com/LF3551/human-risk-graph/actions/workflows/ci.yml/badge.svg" alt="CI/CD Pipeline">
@@ -19,13 +22,10 @@
     <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License">
   </a>
   <a href="https://www.python.org/downloads/">
-    <img src="https://img.shields.io/badge/python-3.8%2B-blue.svg" alt="Python 3.8+">
+    <img src="https://img.shields.io/pypi/pyversions/human-risk-graph" alt="Python Versions">
   </a>
   <a href="https://github.com/psf/black">
     <img src="https://img.shields.io/badge/code%20style-black-000000.svg" alt="Code style: black">
-  </a>
-  <a href="https://github.com/LF3551/human-risk-graph/releases">
-    <img src="https://img.shields.io/github/downloads/LF3551/human-risk-graph/total.svg" alt="Downloads">
   </a>
 </p>
 
@@ -70,13 +70,16 @@ risk metrics that highlight human single points of failure.
 ### Installation
 
 ```bash
-# Install from source
+# Install from PyPI (recommended)
+pip install human-risk-graph
+
+# Or install from source
 git clone https://github.com/LF3551/human-risk-graph.git
 cd human-risk-graph
 pip install -e .
 
-# Or install specific extras
-pip install -e ".[dev]"  # Development tools
+# With development tools
+pip install -e ".[dev]"
 ```
 
 ### Data Format

@@ -8,12 +8,13 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="human-risk-graph",
-    version="0.1.0",
+    version="0.1.1",
     author="Aleksei Aleinikov",
+    author_email="adk3551@gmail.com",
     description="A quantitative model for measuring organizational security risk caused by human dependencies",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/alekseialeinikov/human-risk-graph",
+    url="https://github.com/LF3551/human-risk-graph",
     packages=find_packages(),
     classifiers=[
         "Development Status :: 3 - Alpha",
