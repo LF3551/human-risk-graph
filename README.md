@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="logo.png" alt="Human Risk Graph" width="600">
+  <img src="https://raw.githubusercontent.com/LF3551/human-risk-graph/main/logo.png" alt="Human Risk Graph" width="600">
 </p>
 
 <p align="center">
