@@ -46,6 +46,16 @@ htmlcov/
 # experiments/plots/*.png        # COMMENTED OUT - keep plots visible
 # experiments/data/synthetic_*.json  # COMMENTED OUT - keep data visible
 
+# Private/Personal data (NEVER push to public repo!)
+my_data/
+data/my_*.json
+data/*_private.json
+data/*_confidential.json
+*_report.json
+*_report.md
+*_report.html
+*_graph.html
+
 # LaTeX
 paper/*.aux
 paper/*.log
