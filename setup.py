@@ -8,7 +8,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="human-risk-graph",
-    version="0.1.1",
+    version="0.1.2",
     author="Aleksei Aleinikov",
     author_email="adk3551@gmail.com",
     description="A quantitative model for measuring organizational security risk caused by human dependencies",
