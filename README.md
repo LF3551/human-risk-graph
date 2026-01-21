@@ -203,10 +203,16 @@ python experiments/visualize.py
 
 ## Use Cases
 
+**Best suited for:** Organizations with 50+ employees, formal security processes, or compliance requirements.
+
 - Security architecture analysis
-- Business continuity planning
+- Business continuity planning (SOC2, ISO27001 audits)
 - Insider threat assessment
+- M&A due diligence (key person risk)
 - Organizational risk modeling
+
+**Note:** For small teams (<20 people), managers typically have direct visibility into dependencies. 
+HRG provides the most value when organizational complexity exceeds intuitive understanding.
 
 ## Status
 
