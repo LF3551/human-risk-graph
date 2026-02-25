@@ -1,0 +1,88 @@
+name: Release Automation
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  software-heritage:
+    name: Archive on Software Heritage
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Save to Software Heritage
+      run: |
+        RESPONSE=$(curl -s -o /tmp/swh_response.json -w "%{http_code}" \
+          -X POST \
+          "https://archive.softwareheritage.org/api/1/origin/save/git/url/https://github.com/${{ github.repository }}/")
+        echo "HTTP status: $RESPONSE"
+        cat /tmp/swh_response.json
+        if [[ "$RESPONSE" == "200" || "$RESPONSE" == "201" ]]; then
+          echo "✅ Software Heritage save request accepted"
+        else
+          echo "⚠️  Unexpected status $RESPONSE — check response above"
+          exit 1
+        fi
+
+  zenodo:
+    name: Archive on Zenodo
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Trigger Zenodo deposit via API
+      env:
+        ZENODO_TOKEN: ${{ secrets.ZENODO_TOKEN }}
+      run: |
+        if [[ -z "$ZENODO_TOKEN" ]]; then
+          echo "⚠️  ZENODO_TOKEN secret not set — skipping Zenodo deposit"
+          echo "ℹ️  Either add the secret or enable Zenodo GitHub integration at:"
+          echo "   https://zenodo.org/account/settings/github/"
+          exit 0
+        fi
+
+        TAG="${{ github.ref_name }}"
+        REPO="${{ github.repository }}"
+        TITLE="${{ github.event.release.name }}"
+        BODY="${{ github.event.release.body }}"
+
+        echo "📦 Creating new Zenodo deposit for $TAG..."
+
+        # Read existing .zenodo.json metadata if present
+        if [[ -f ".zenodo.json" ]]; then
+          METADATA=$(cat .zenodo.json)
+        else
+          METADATA='{}'
+        fi
+
+        # Create a new deposit
+        DEPOSIT=$(curl -s -X POST \
+          "https://zenodo.org/api/deposit/depositions" \
+          -H "Authorization: Bearer $ZENODO_TOKEN" \
+          -H "Content-Type: application/json" \
+          -d "$METADATA")
+
+        DEPOSIT_ID=$(echo "$DEPOSIT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['id'])")
+        BUCKET_URL=$(echo "$DEPOSIT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['links']['bucket'])")
+        echo "Deposit ID: $DEPOSIT_ID"
+
+        # Build source archive URL from the release
+        ARCHIVE_URL="https://github.com/$REPO/archive/refs/tags/$TAG.zip"
+        ARCHIVE_NAME="${{ github.event.repository.name }}-$TAG.zip"
+
+        # Download and upload the release archive
+        curl -sL "$ARCHIVE_URL" -o "/tmp/$ARCHIVE_NAME"
+        curl -s -X PUT \
+          "$BUCKET_URL/$ARCHIVE_NAME" \
+          -H "Authorization: Bearer $ZENODO_TOKEN" \
+          --upload-file "/tmp/$ARCHIVE_NAME"
+
+        # Publish the deposit
+        PUBLISH=$(curl -s -X POST \
+          "https://zenodo.org/api/deposit/depositions/$DEPOSIT_ID/actions/publish" \
+          -H "Authorization: Bearer $ZENODO_TOKEN")
+
+        DOI=$(echo "$PUBLISH" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('doi','n/a'))")
+        echo "✅ Zenodo deposit published — DOI: $DOI"
