@@ -45,8 +45,6 @@ jobs:
 
         TAG="${{ github.ref_name }}"
         REPO="${{ github.repository }}"
-        TITLE="${{ github.event.release.name }}"
-        BODY="${{ github.event.release.body }}"
 
         echo "📦 Creating new Zenodo deposit for $TAG..."
 
