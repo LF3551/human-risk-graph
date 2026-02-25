@@ -35,57 +35,74 @@ jobs:
     - name: Trigger Zenodo deposit via API
       env:
         ZENODO_TOKEN: ${{ secrets.ZENODO_TOKEN }}
+        GITHUB_TAG: ${{ github.ref_name }}
+        GITHUB_REPO: ${{ github.repository }}
+        GITHUB_REPONAME: ${{ github.event.repository.name }}
       run: |
-        if [[ -z "$ZENODO_TOKEN" ]]; then
-          echo "⚠️  ZENODO_TOKEN secret not set — skipping Zenodo deposit"
-          echo "ℹ️  Either add the secret or enable Zenodo GitHub integration at:"
-          echo "   https://zenodo.org/account/settings/github/"
-          exit 0
-        fi
+        python3 << 'PYEOF'
+        import os, json, sys, urllib.request, urllib.error
 
-        TAG="${{ github.ref_name }}"
-        REPO="${{ github.repository }}"
+        token     = os.environ.get("ZENODO_TOKEN", "")
+        tag       = os.environ["GITHUB_TAG"]
+        repo      = os.environ["GITHUB_REPO"]
+        repo_name = os.environ["GITHUB_REPONAME"]
 
-        echo "📦 Creating new Zenodo deposit for $TAG..."
+        if not token:
+            print("⚠️  ZENODO_TOKEN not set — skipping")
+            sys.exit(0)
 
-        # Read existing .zenodo.json metadata if present and wrap in {"metadata": ...}
-        if [[ -f ".zenodo.json" ]]; then
-          METADATA=$(python3 -c "import json,sys; d=json.load(open('.zenodo.json')); print(json.dumps({'metadata': d}))")
-        else
-          METADATA='{"metadata": {"upload_type": "software"}}'
-        fi
+        headers_json = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
-        # Create a new deposit
-        DEPOSIT=$(curl -s -X POST \
-          "https://zenodo.org/api/deposit/depositions" \
-          -H "Authorization: Bearer $ZENODO_TOKEN" \
-          -H "Content-Type: application/json" \
-          -d "$METADATA")
+        # Build clean metadata — strip empty lists/dicts
+        raw  = json.load(open(".zenodo.json")) if os.path.exists(".zenodo.json") else {}
+        meta = {k: v for k, v in raw.items() if v not in ([], {}, None, "")}
+        meta["version"] = tag
+        payload = json.dumps({"metadata": meta}).encode()
 
-        DEPOSIT_ID=$(echo "$DEPOSIT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['id'])" 2>&1)
-        if [[ -z "$DEPOSIT_ID" || "$DEPOSIT_ID" == *"Error"* || "$DEPOSIT_ID" == *"Traceback"* ]]; then
-          echo "❌ Zenodo API error response:"
-          echo "$DEPOSIT"
-          exit 1
-        fi
-        BUCKET_URL=$(echo "$DEPOSIT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['links']['bucket'])")
-        echo "Deposit ID: $DEPOSIT_ID"
+        # 1. Create deposit
+        req = urllib.request.Request(
+            "https://zenodo.org/api/deposit/depositions",
+            data=payload, headers=headers_json, method="POST")
+        try:
+            with urllib.request.urlopen(req) as r:
+                deposit = json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            print(f"❌ Create deposit failed: HTTP {e.code}\n{e.read().decode()}")
+            sys.exit(1)
 
-        # Build source archive URL from the release
-        ARCHIVE_URL="https://github.com/$REPO/archive/refs/tags/$TAG.zip"
-        ARCHIVE_NAME="${{ github.event.repository.name }}-$TAG.zip"
+        deposit_id = deposit["id"]
+        bucket_url = deposit["links"]["bucket"]
+        print(f"✅ Deposit created: id={deposit_id}")
 
-        # Download and upload the release archive
-        curl -sL "$ARCHIVE_URL" -o "/tmp/$ARCHIVE_NAME"
-        curl -s -X PUT \
-          "$BUCKET_URL/$ARCHIVE_NAME" \
-          -H "Authorization: Bearer $ZENODO_TOKEN" \
-          --upload-file "/tmp/$ARCHIVE_NAME"
+        # 2. Download & upload source archive
+        archive_name = f"{repo_name}-{tag}.zip"
+        archive_url  = f"https://github.com/{repo}/archive/refs/tags/{tag}.zip"
+        tmp_path     = f"/tmp/{archive_name}"
 
-        # Publish the deposit
-        PUBLISH=$(curl -s -X POST \
-          "https://zenodo.org/api/deposit/depositions/$DEPOSIT_ID/actions/publish" \
-          -H "Authorization: Bearer $ZENODO_TOKEN")
+        req_dl = urllib.request.Request(archive_url, headers={"User-Agent": "python"})
+        with urllib.request.urlopen(req_dl) as r, open(tmp_path, "wb") as f:
+            f.write(r.read())
 
-        DOI=$(echo "$PUBLISH" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('doi','n/a'))")
-        echo "✅ Zenodo deposit published — DOI: $DOI"
+        with open(tmp_path, "rb") as f:
+            data = f.read()
+        req_up = urllib.request.Request(
+            f"{bucket_url}/{archive_name}", data=data,
+            headers={"Authorization": f"Bearer {token}",
+                     "Content-Type": "application/octet-stream"},
+            method="PUT")
+        urllib.request.urlopen(req_up)
+        print(f"✅ Archive uploaded: {archive_name}")
+
+        # 3. Publish
+        req_pub = urllib.request.Request(
+            f"https://zenodo.org/api/deposit/depositions/{deposit_id}/actions/publish",
+            data=b"", headers={"Authorization": f"Bearer {token}"}, method="POST")
+        try:
+            with urllib.request.urlopen(req_pub) as r:
+                result = json.loads(r.read())
+            doi = result.get("doi") or result.get("conceptdoi", "n/a")
+            print(f"✅ Published — DOI: {doi}")
+        except urllib.error.HTTPError as e:
+            print(f"❌ Publish failed: HTTP {e.code}\n{e.read().decode()}")
+            sys.exit(1)
+        PYEOF
