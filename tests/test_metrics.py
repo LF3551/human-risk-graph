@@ -7,6 +7,7 @@ import networkx as nx
 from src.metrics import (
     bus_factor_score,
     decision_concentration_score,
+    decision_concentration_entropy,
     bypass_risk_score,
     composite_hrg_score,
     interpret_risk_level,
@@ -68,6 +69,46 @@ class TestDecisionConcentrationScore:
 
         score = decision_concentration_score(graph, edge_types, weights)
         assert 0.0 <= score <= 0.1  # Nearly equal distribution
+
+
+class TestDecisionConcentrationEntropy:
+    def test_entropy_no_approvals(self):
+        """Entropy-based concentration should be zero with no approvals."""
+        graph = nx.DiGraph()
+        graph.add_edge("A", "B")
+        edge_types = {("A", "B"): "escalation"}
+        weights = {("A", "B"): 0.5}
+
+        assert decision_concentration_entropy(graph, edge_types, weights) == 0.0
+
+    def test_entropy_zero_weight_sum(self):
+        """Entropy-based concentration should be zero when approval weights sum to zero."""
+        graph = nx.DiGraph()
+        graph.add_edge("A", "B")
+        edge_types = {("A", "B"): "approval"}
+        weights = {("A", "B"): 0.0}
+
+        assert decision_concentration_entropy(graph, edge_types, weights) == 0.0
+
+    def test_entropy_single_approver(self):
+        """Single approver should result in max concentration for entropy variant."""
+        graph = nx.DiGraph()
+        graph.add_edge("A", "B")
+        edge_types = {("A", "B"): "approval"}
+        weights = {("A", "B"): 1.0}
+
+        score = decision_concentration_entropy(graph, edge_types, weights)
+        assert score == 1.0
+
+    def test_entropy_equal_distribution(self):
+        """Equal approval distribution should have low entropy concentration."""
+        graph = nx.DiGraph()
+        graph.add_edges_from([("A", "C"), ("B", "D")])
+        edge_types = {("A", "C"): "approval", ("B", "D"): "approval"}
+        weights = {("A", "C"): 0.5, ("B", "D"): 0.5}
+
+        score = decision_concentration_entropy(graph, edge_types, weights)
+        assert 0.0 <= score < 0.1
 
 
 class TestBypassRiskScore:

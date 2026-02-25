@@ -1,24 +1,83 @@
 {
   "metadata": {
     "input_file": "/Users/alekseialeinikov/Documents/SCRIPTS/human-risk-graph/data/example_organization.json",
-    "analysis_date": "2026-01-20T18:17:05.621620",
-    "organization_size": 4,
-    "dependencies_count": 2
+    "analysis_date": "2026-02-25T23:41:07.975116",
+    "organization_size": 10,
+    "dependencies_count": 14,
+    "person_lookup": {
+      "luca.rossi": {
+        "name": "Luca Rossi",
+        "role": "Principal SRE",
+        "criticality": 0.92
+      },
+      "anna.mueller": {
+        "name": "Anna Mueller",
+        "role": "Security Lead",
+        "criticality": 0.85
+      },
+      "marie.dubois": {
+        "name": "Marie Dubois",
+        "role": "Engineering Manager",
+        "criticality": 0.78
+      },
+      "carlos.garcia": {
+        "name": "Carlos Garcia",
+        "role": "Platform Architect",
+        "criticality": 0.74
+      },
+      "elena.popescu": {
+        "name": "Elena Popescu",
+        "role": "Incident Manager",
+        "criticality": 0.69
+      },
+      "peter.novak": {
+        "name": "Peter Novak",
+        "role": "Backend Lead",
+        "criticality": 0.66
+      },
+      "sofia.papadopoulos": {
+        "name": "Sofia Papadopoulos",
+        "role": "Compliance Officer",
+        "criticality": 0.63
+      },
+      "johan.lindberg": {
+        "name": "Johan Lindberg",
+        "role": "DevOps Engineer",
+        "criticality": 0.58
+      },
+      "ines.silva": {
+        "name": "Ines Silva",
+        "role": "Product Security Engineer",
+        "criticality": 0.55
+      },
+      "tomas.kowalski": {
+        "name": "Tomas Kowalski",
+        "role": "Software Engineer",
+        "criticality": 0.5
+      }
+    },
+    "dependency_type_counts": {
+      "approval": 8,
+      "escalation": 3,
+      "bypass": 3
+    }
   },
   "results": {
-    "bus_factor": 0.225,
-    "decision_concentration": 0.0,
-    "bypass_risk": 0.0,
-    "composite_score": 0.09000000000000001,
+    "bus_factor": 0.11299999999999999,
+    "decision_concentration": 0.35121951219512193,
+    "bypass_risk": 0.39436619718309857,
+    "composite_score": 0.2688757128134661,
     "risk_level": "Low",
     "critical_nodes": [
-      "A",
-      "B",
-      "C"
+      "luca.rossi",
+      "anna.mueller",
+      "marie.dubois",
+      "carlos.garcia"
     ],
     "articulation_points": [
-      "A"
+      "ines.silva",
+      "johan.lindberg"
     ]
   },
-  "generated_at": "2026-01-20T18:17:05.621635"
+  "generated_at": "2026-02-25T23:41:07.975127"
 }

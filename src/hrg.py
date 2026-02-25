@@ -74,6 +74,7 @@ class HumanRiskGraph:
                 dep["from"],
                 dep["to"],
                 edge_type=dep.get("type", "unknown"),
+                type=dep.get("type", "unknown"),
                 weight=dep.get("weight", 0.5),
             )
 
@@ -156,11 +157,17 @@ class HumanRiskGraph:
 
         articulation_pts = find_articulation_points(self.graph)
         betweenness = compute_betweenness_centrality(self.graph)
+        criticality = self.criticality.get(node_id, 0.0)
+        centrality = betweenness.get(node_id, 0.0)
+
+        # Weighted local node-risk heuristic, normalized to [0, 1].
+        node_risk_score = min(1.0, 0.7 * criticality + 0.3 * centrality)
 
         return {
-            "criticality": self.criticality.get(node_id, 0.0),
+            "criticality": criticality,
             "is_articulation_point": node_id in articulation_pts,
-            "betweenness_centrality": betweenness.get(node_id, 0.0),
+            "betweenness_centrality": centrality,
+            "node_risk_score": node_risk_score,
             "in_degree": self.graph.in_degree(node_id),
             "out_degree": self.graph.out_degree(node_id),
         }

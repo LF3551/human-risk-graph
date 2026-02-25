@@ -9,6 +9,47 @@ from datetime import datetime
 from typing import Dict, Any
 
 
+def _format_person_display(person_id: str, metadata: Dict[str, Any]) -> str:
+    """Format person ID into human-readable display using metadata lookup."""
+    person_lookup = metadata.get("person_lookup", {})
+    person_info = person_lookup.get(person_id, {})
+
+    name = person_info.get("name") or person_id
+    role = person_info.get("role")
+
+    if role:
+        return f"{name} ({role})"
+    return name
+
+
+def _get_metric_level(score: float) -> str:
+    """Convert metric score into qualitative level."""
+    if score >= 0.7:
+        return "High"
+    if score >= 0.3:
+        return "Moderate"
+    return "Low"
+
+
+def _get_primary_risk_driver(results: Dict[str, Any]) -> str:
+    """Return the metric that contributes most to perceived risk."""
+    metric_scores = {
+        "Bus Factor Risk": results.get("bus_factor", 0.0),
+        "Decision Concentration": results.get("decision_concentration", 0.0),
+        "Bypass Risk": results.get("bypass_risk", 0.0),
+    }
+    return max(metric_scores, key=metric_scores.get)
+
+
+def _score_breakdown(results: Dict[str, Any]) -> Dict[str, float]:
+    """Return weighted contributions of each metric to the composite score."""
+    return {
+        "bus_factor_contribution": results.get("bus_factor", 0.0) * 0.4,
+        "decision_contribution": results.get("decision_concentration", 0.0) * 0.3,
+        "bypass_contribution": results.get("bypass_risk", 0.0) * 0.3,
+    }
+
+
 def generate_json_report(results: Dict[str, Any], metadata: Dict[str, Any]) -> str:
     """
     Generate JSON report.
@@ -55,28 +96,80 @@ def generate_markdown_report(results: Dict[str, Any], metadata: Dict[str, Any]) 
     )
     md.append("")
 
-    # Risk interpretation
+    # Risk interpretation (aligned with metrics.interpret_risk_level)
     score = results["composite_score"]
-    if score > 0.7:
-        risk_level = "🔴 **CRITICAL**"
-        interpretation = (
-            "The organization has severe human dependency risks that require immediate attention."
-        )
-    elif score > 0.4:
-        risk_level = "🟡 **HIGH**"
-        interpretation = (
-            "The organization has significant human dependency risks that should be addressed."
-        )
-    elif score > 0.2:
-        risk_level = "🟢 **MODERATE**"
-        interpretation = "The organization has manageable human dependency risks."
-    else:
-        risk_level = "✅ **LOW**"
-        interpretation = "The organization has low human dependency risks."
+    risk_level_raw = results.get("risk_level")
+    if not risk_level_raw:
+        if score < 0.3:
+            risk_level_raw = "Low"
+        elif score < 0.5:
+            risk_level_raw = "Moderate"
+        elif score < 0.7:
+            risk_level_raw = "High"
+        else:
+            risk_level_raw = "Critical"
+
+    risk_label_map = {
+        "Low": "✅ **LOW**",
+        "Moderate": "🟢 **MODERATE**",
+        "High": "🟡 **HIGH**",
+        "Critical": "🔴 **CRITICAL**",
+    }
+    interpretation_map = {
+        "Low": "The organization has low human dependency risks.",
+        "Moderate": "The organization has manageable human dependency risks.",
+        "High": "The organization has significant human dependency risks that should be addressed.",
+        "Critical": "The organization has severe human dependency risks that require immediate attention.",
+    }
+
+    risk_level = risk_label_map.get(risk_level_raw, "✅ **LOW**")
+    interpretation = interpretation_map.get(
+        risk_level_raw, "The organization has low human dependency risks."
+    )
 
     md.append(f"**Risk Level:** {risk_level}")
     md.append("")
     md.append(interpretation)
+    md.append("")
+
+    # Key findings for non-technical readers
+    primary_driver = _get_primary_risk_driver(results)
+    critical_people_count = len(results.get("articulation_points", []))
+    dep_type_counts = metadata.get("dependency_type_counts", {})
+    dep_profile = ", ".join(
+        f"{dep_type}: {count}" for dep_type, count in sorted(dep_type_counts.items())
+    ) or "No typed dependencies provided"
+
+    md.append("## 🔎 Key Findings")
+    md.append("")
+    md.append(f"- **Primary Risk Driver:** {primary_driver}")
+    md.append(f"- **Critical People Identified:** {critical_people_count}")
+    md.append(f"- **Dependency Profile:** {dep_profile}")
+    md.append("")
+
+    breakdown = _score_breakdown(results)
+    critical_node_count = len(results.get("critical_nodes", []))
+    org_size = metadata.get("organization_size", 0)
+    critical_share = (critical_node_count / org_size) if org_size else 0.0
+
+    md.append("## 🧠 Why This Score")
+    md.append("")
+    md.append(
+        f"- Composite score is a weighted sum: **0.4×Bus + 0.3×Decision + 0.3×Bypass = {results['composite_score']:.3f}**"
+    )
+    md.append(
+        f"- Bus contribution: **{breakdown['bus_factor_contribution']:.3f}**, Decision contribution: **{breakdown['decision_contribution']:.3f}**, Bypass contribution: **{breakdown['bypass_contribution']:.3f}**"
+    )
+    md.append(
+        f"- Critical nodes above threshold: **{critical_node_count}/{org_size} ({critical_share:.0%})**"
+    )
+    md.append("")
+
+    md.append("## 📘 How To Read Metrics")
+    md.append("")
+    md.append("- **Bus Factor Risk:** higher means stronger dependency on a few people.")
+    md.append("- **Decision Concentration:** higher means approval power is concentrated.")
+    md.append("- **Bypass Risk:** higher means controls are easier to bypass on critical paths.")
     md.append("")
 
     # Metrics Breakdown
@@ -88,12 +181,20 @@ def generate_markdown_report(results: Dict[str, Any], metadata: Dict[str, Any]) 
         f"| **Bus Factor Risk** | {results['bus_factor']:.3f} | 40% | Risk from key person dependencies |"
     )
     md.append(
-        f"| **Decision Concentration** | {results['decision_concentration']:.3f} | 35% | Authority centralization risk |"
+        f"| **Decision Concentration** | {results['decision_concentration']:.3f} | 30% | Authority centralization risk |"
     )
-    md.append(f"| **Bypass Risk** | {results['bypass_risk']:.3f} | 25% | Control override risk |")
+    md.append(f"| **Bypass Risk** | {results['bypass_risk']:.3f} | 30% | Control override risk |")
     md.append(
         f"| **Composite Score** | {results['composite_score']:.3f} | 100% | Overall organizational risk |"
     )
+    md.append("")
+
+    md.append("**Metric interpretation:**")
+    md.append(f"- Bus Factor Risk: **{_get_metric_level(results['bus_factor'])}**")
+    md.append(
+        f"- Decision Concentration: **{_get_metric_level(results['decision_concentration'])}**"
+    )
+    md.append(f"- Bypass Risk: **{_get_metric_level(results['bypass_risk'])}**")
     md.append("")
 
     # Critical People
@@ -106,7 +207,13 @@ def generate_markdown_report(results: Dict[str, Any], metadata: Dict[str, Any]) 
         md.append("")
 
         for person in results["articulation_points"]:
-            md.append(f"- `{person}`")
+            display_person = _format_person_display(person, metadata)
+            person_info = metadata.get("person_lookup", {}).get(person, {})
+            criticality = person_info.get("criticality")
+            if criticality is not None:
+                md.append(f"- `{display_person}` — criticality: {criticality:.2f}")
+            else:
+                md.append(f"- `{display_person}`")
 
         md.append("")
         md.append(f"**Total Critical People:** {len(results['articulation_points'])}")
@@ -116,33 +223,36 @@ def generate_markdown_report(results: Dict[str, Any], metadata: Dict[str, Any]) 
     md.append("## 💡 Recommendations")
     md.append("")
 
-    if score > 0.5:
-        md.append("### 🚨 Immediate Actions")
+    md.append("### Priority Actions")
+    md.append("")
+
+    if results.get("articulation_points"):
+        md.append("1. **Reduce key-person dependency (Bus Factor):**")
+        md.append("   - Cross-train backup owners for critical responsibilities")
+        md.append("   - Document approval and emergency procedures")
+        md.append("   - Define succession coverage for critical roles")
         md.append("")
-        if results.get("articulation_points"):
-            md.append("1. **Reduce Bus Factor Risk:**")
-            md.append("   - Cross-train team members to reduce dependency on critical individuals")
-            md.append("   - Document critical processes and decision-making procedures")
-            md.append("   - Implement succession planning for critical roles")
-            md.append("")
 
-        if results["decision_concentration"] > 0.5:
-            md.append("2. **Distribute Decision Authority:**")
-            md.append("   - Delegate decision-making power to more team members")
-            md.append("   - Implement matrix management structures")
-            md.append("   - Create decision-making committees")
-            md.append("")
+    if results["decision_concentration"] >= 0.3:
+        md.append("2. **Distribute decision authority:**")
+        md.append("   - Introduce secondary approvers for sensitive workflows")
+        md.append("   - Rotate ownership of high-impact decisions")
+        md.append("")
 
-        if results["bypass_risk"] > 0.5:
-            md.append("3. **Strengthen Access Controls:**")
-            md.append("   - Review and audit emergency bypass procedures")
-            md.append("   - Implement multi-party approval for critical operations")
-            md.append("   - Add monitoring for control overrides")
-            md.append("")
-    else:
-        md.append("- Continue monitoring organizational changes")
-        md.append("- Maintain current risk management practices")
-        md.append("- Regular reassessment as organization evolves")
+    if results["bypass_risk"] >= 0.3:
+        md.append("3. **Tighten bypass governance:**")
+        md.append("   - Add compensating controls for emergency bypasses")
+        md.append("   - Alert and review all bypass events weekly")
+        md.append("")
+
+    if (
+        not results.get("articulation_points")
+        and results["decision_concentration"] < 0.3
+        and results["bypass_risk"] < 0.3
+    ):
+        md.append("1. **Maintain current posture:**")
+        md.append("   - Continue periodic reassessment as organization evolves")
+        md.append("   - Re-run analysis after major org or process changes")
         md.append("")
 
     # Footer
@@ -170,13 +280,13 @@ def generate_html_report(results: Dict[str, Any], metadata: Dict[str, Any]) -> s
     score = results["composite_score"]
 
     # Determine risk level styling
-    if score > 0.7:
+    if score >= 0.7:
         risk_label = "CRITICAL"
         risk_color = "#dc3545"
-    elif score > 0.4:
+    elif score >= 0.5:
         risk_label = "HIGH"
         risk_color = "#ffc107"
-    elif score > 0.2:
+    elif score >= 0.3:
         risk_label = "MODERATE"
         risk_color = "#17a2b8"
     else:
@@ -413,6 +523,41 @@ def generate_html_report(results: Dict[str, Any], metadata: Dict[str, Any]) -> s
             </p>
         </div>
 
+        <div class="section">
+            <h2>🔎 Key Findings</h2>
+            <div class="recommendations">
+                <ul>
+                    <li><strong>Primary Risk Driver:</strong> {_get_primary_risk_driver(results)}</li>
+                    <li><strong>Critical People Identified:</strong> {len(results.get('articulation_points', []))}</li>
+                    <li><strong>Dependency Profile:</strong> {", ".join(f"{k}: {v}" for k, v in sorted(metadata.get('dependency_type_counts', {}).items())) or "No typed dependencies provided"}</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🧠 Why This Score</h2>
+            <div class="recommendations">
+                <ul>
+                    <li><strong>Formula:</strong> 0.4 × Bus + 0.3 × Decision + 0.3 × Bypass = {results['composite_score']:.3f}</li>
+                    <li><strong>Bus contribution:</strong> {_score_breakdown(results)['bus_factor_contribution']:.3f}</li>
+                    <li><strong>Decision contribution:</strong> {_score_breakdown(results)['decision_contribution']:.3f}</li>
+                    <li><strong>Bypass contribution:</strong> {_score_breakdown(results)['bypass_contribution']:.3f}</li>
+                    <li><strong>Critical nodes:</strong> {len(results.get('critical_nodes', []))}/{metadata.get('organization_size', 0)}</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📘 How To Read Metrics</h2>
+            <div class="recommendations">
+                <ul>
+                    <li><strong>Bus Factor Risk:</strong> higher means stronger dependency on a few people.</li>
+                    <li><strong>Decision Concentration:</strong> higher means approval power is concentrated.</li>
+                    <li><strong>Bypass Risk:</strong> higher means controls are easier to bypass on critical paths.</li>
+                </ul>
+            </div>
+        </div>
+
         <div class="metrics">
             <div class="metric-card">
                 <div class="metric-name">🚌 Bus Factor Risk</div>
@@ -423,13 +568,13 @@ def generate_html_report(results: Dict[str, Any], metadata: Dict[str, Any]) -> s
             <div class="metric-card">
                 <div class="metric-name">🎯 Decision Concentration</div>
                 <div class="metric-value">{results['decision_concentration']:.3f}</div>
-                <div class="metric-weight">Weight: 35%</div>
+                <div class="metric-weight">Weight: 30%</div>
             </div>
 
             <div class="metric-card">
                 <div class="metric-name">⚡ Bypass Risk</div>
                 <div class="metric-value">{results['bypass_risk']:.3f}</div>
-                <div class="metric-weight">Weight: 25%</div>
+                <div class="metric-weight">Weight: 30%</div>
             </div>
         </div>
 """
@@ -446,7 +591,13 @@ def generate_html_report(results: Dict[str, Any], metadata: Dict[str, Any]) -> s
             <ul class="critical-list">
 """
         for person in results["articulation_points"]:
-            html += f"                <li>{person}</li>\n"
+            display_person = _format_person_display(person, metadata)
+            person_info = metadata.get("person_lookup", {}).get(person, {})
+            criticality = person_info.get("criticality")
+            if criticality is not None:
+                html += f"                <li>{display_person} — criticality: {criticality:.2f}</li>\n"
+            else:
+                html += f"                <li>{display_person}</li>\n"
 
         html += """            </ul>
         </div>
@@ -458,56 +609,58 @@ def generate_html_report(results: Dict[str, Any], metadata: Dict[str, Any]) -> s
             <h2>💡 Recommendations</h2>
 """
 
-    if score > 0.5:
-        html += """
+    html += """
             <div class="recommendations">
-                <h3>🚨 Immediate Actions Required</h3>
+                <h3>Priority Actions</h3>
                 <ul>
 """
-        if results.get("articulation_points"):
-            html += """
-                    <li><strong>Reduce Bus Factor Risk:</strong>
-                        <ul>
-                            <li>Cross-train team members to reduce dependency on critical individuals</li>
-                            <li>Document critical processes and decision-making procedures</li>
-                            <li>Implement succession planning for critical roles</li>
-                        </ul>
-                    </li>
-"""
 
-        if results["decision_concentration"] > 0.5:
-            html += """
-                    <li><strong>Distribute Decision Authority:</strong>
-                        <ul>
-                            <li>Delegate decision-making power to more team members</li>
-                            <li>Implement matrix management structures</li>
-                            <li>Create decision-making committees</li>
-                        </ul>
-                    </li>
-"""
-
-        if results["bypass_risk"] > 0.5:
-            html += """
-                    <li><strong>Strengthen Access Controls:</strong>
-                        <ul>
-                            <li>Review and audit emergency bypass procedures</li>
-                            <li>Implement multi-party approval for critical operations</li>
-                            <li>Add monitoring for control overrides</li>
-                        </ul>
-                    </li>
-"""
-
+    if results.get("articulation_points"):
         html += """
-                </ul>
-            </div>
+                    <li><strong>Reduce key-person dependency (Bus Factor):</strong>
+                        <ul>
+                            <li>Cross-train backup owners for critical responsibilities</li>
+                            <li>Document approval and emergency procedures</li>
+                            <li>Define succession coverage for critical roles</li>
+                        </ul>
+                    </li>
 """
-    else:
+
+    if results["decision_concentration"] >= 0.3:
         html += """
-            <div class="recommendations">
-                <ul>
-                    <li>Continue monitoring organizational changes</li>
-                    <li>Maintain current risk management practices</li>
-                    <li>Regular reassessment as organization evolves</li>
+                    <li><strong>Distribute decision authority:</strong>
+                        <ul>
+                            <li>Introduce secondary approvers for sensitive workflows</li>
+                            <li>Rotate ownership of high-impact decisions</li>
+                        </ul>
+                    </li>
+"""
+
+    if results["bypass_risk"] >= 0.3:
+        html += """
+                    <li><strong>Tighten bypass governance:</strong>
+                        <ul>
+                            <li>Add compensating controls for emergency bypasses</li>
+                            <li>Alert and review all bypass events weekly</li>
+                        </ul>
+                    </li>
+"""
+
+    if (
+        not results.get("articulation_points")
+        and results["decision_concentration"] < 0.3
+        and results["bypass_risk"] < 0.3
+    ):
+        html += """
+                    <li><strong>Maintain current posture:</strong>
+                        <ul>
+                            <li>Continue periodic reassessment as organization evolves</li>
+                            <li>Re-run analysis after major org or process changes</li>
+                        </ul>
+                    </li>
+"""
+
+    html += """
                 </ul>
             </div>
 """

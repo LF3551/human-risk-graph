@@ -214,48 +214,84 @@
         <header>
             <h1>🔒 Human Risk Graph Analysis Report</h1>
             <div class="metadata">
-                <span>📅 2026-01-20 18:17:05</span>
-                <span>👥 4 people</span>
-                <span>🔗 2 dependencies</span>
+                <span>📅 2026-02-25 23:41:07</span>
+                <span>👥 10 people</span>
+                <span>🔗 14 dependencies</span>
             </div>
         </header>
 
         <div class="summary">
             <div class="risk-label">LOW RISK</div>
-            <div class="risk-score">0.090</div>
+            <div class="risk-score">0.269</div>
             <p style="color: #e4e4e7; font-size: 1.1em;">
                 Composite Human Risk Graph Score
             </p>
         </div>
 
+        <div class="section">
+            <h2>🔎 Key Findings</h2>
+            <div class="recommendations">
+                <ul>
+                    <li><strong>Primary Risk Driver:</strong> Bypass Risk</li>
+                    <li><strong>Critical People Identified:</strong> 2</li>
+                    <li><strong>Dependency Profile:</strong> approval: 8, bypass: 3, escalation: 3</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🧠 Why This Score</h2>
+            <div class="recommendations">
+                <ul>
+                    <li><strong>Formula:</strong> 0.4 × Bus + 0.3 × Decision + 0.3 × Bypass = 0.269</li>
+                    <li><strong>Bus contribution:</strong> 0.045</li>
+                    <li><strong>Decision contribution:</strong> 0.105</li>
+                    <li><strong>Bypass contribution:</strong> 0.118</li>
+                    <li><strong>Critical nodes:</strong> 4/10</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📘 How To Read Metrics</h2>
+            <div class="recommendations">
+                <ul>
+                    <li><strong>Bus Factor Risk:</strong> higher means stronger dependency on a few people.</li>
+                    <li><strong>Decision Concentration:</strong> higher means approval power is concentrated.</li>
+                    <li><strong>Bypass Risk:</strong> higher means controls are easier to bypass on critical paths.</li>
+                </ul>
+            </div>
+        </div>
+
         <div class="metrics">
             <div class="metric-card">
                 <div class="metric-name">🚌 Bus Factor Risk</div>
-                <div class="metric-value">0.225</div>
+                <div class="metric-value">0.113</div>
                 <div class="metric-weight">Weight: 40%</div>
             </div>
 
             <div class="metric-card">
                 <div class="metric-name">🎯 Decision Concentration</div>
-                <div class="metric-value">0.000</div>
-                <div class="metric-weight">Weight: 35%</div>
+                <div class="metric-value">0.351</div>
+                <div class="metric-weight">Weight: 30%</div>
             </div>
 
             <div class="metric-card">
                 <div class="metric-name">⚡ Bypass Risk</div>
-                <div class="metric-value">0.000</div>
-                <div class="metric-weight">Weight: 25%</div>
+                <div class="metric-value">0.394</div>
+                <div class="metric-weight">Weight: 30%</div>
             </div>
         </div>
 
         <div class="section">
-            <h2>⚠️ Critical People <span class="badge">1 identified</span></h2>
+            <h2>⚠️ Critical People <span class="badge">2 identified</span></h2>
             <p style="color: #9ba4b5; margin-bottom: 15px;">
                 These individuals are <strong>single points of failure</strong> (articulation points).
                 Their removal would disconnect the organizational graph.
             </p>
             <ul class="critical-list">
-                <li>A</li>
+                <li>Ines Silva (Product Security Engineer) — criticality: 0.55</li>
+                <li>Johan Lindberg (DevOps Engineer) — criticality: 0.58</li>
             </ul>
         </div>
 
@@ -263,10 +299,31 @@
             <h2>💡 Recommendations</h2>
 
             <div class="recommendations">
+                <h3>Priority Actions</h3>
                 <ul>
-                    <li>Continue monitoring organizational changes</li>
-                    <li>Maintain current risk management practices</li>
-                    <li>Regular reassessment as organization evolves</li>
+
+                    <li><strong>Reduce key-person dependency (Bus Factor):</strong>
+                        <ul>
+                            <li>Cross-train backup owners for critical responsibilities</li>
+                            <li>Document approval and emergency procedures</li>
+                            <li>Define succession coverage for critical roles</li>
+                        </ul>
+                    </li>
+
+                    <li><strong>Distribute decision authority:</strong>
+                        <ul>
+                            <li>Introduce secondary approvers for sensitive workflows</li>
+                            <li>Rotate ownership of high-impact decisions</li>
+                        </ul>
+                    </li>
+
+                    <li><strong>Tighten bypass governance:</strong>
+                        <ul>
+                            <li>Add compensating controls for emergency bypasses</li>
+                            <li>Alert and review all bypass events weekly</li>
+                        </ul>
+                    </li>
+
                 </ul>
             </div>
 

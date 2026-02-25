@@ -73,6 +73,9 @@ def generate_graph_visualization(hrg, results, output_file):
     G = hrg.graph
     degree_centrality = nx.degree_centrality(G)
     max_degree = max(degree_centrality.values()) if degree_centrality else 1
+    if max_degree <= 0:
+        max_degree = 1
+    person_lookup = {person["id"]: person for person in hrg.people}
 
     # Add nodes with risk-based coloring
     for person in hrg.people:
@@ -81,7 +84,7 @@ def generate_graph_visualization(hrg, results, output_file):
 
         # Analyze this specific node
         node_analysis = hrg.analyze_node(person_id)
-        node_score = node_analysis.get("node_risk_score", 0)
+        node_score = node_analysis.get("node_risk_score", node_analysis.get("criticality", 0))
 
         # Determine node color based on risk level
         if person_id in critical_people:
@@ -101,6 +104,8 @@ def generate_graph_visualization(hrg, results, output_file):
         title = f"<b>{name}</b><br>"
         title += f"ID: {person_id}<br>"
         title += f"Risk Score: {node_score:.3f}<br>"
+        title += f"Criticality: {node_analysis.get('criticality', 0):.3f}<br>"
+        title += f"Betweenness: {node_analysis.get('betweenness_centrality', 0):.3f}<br>"
 
         if "role" in person:
             title += f"Role: {person['role']}<br>"
@@ -131,7 +136,11 @@ def generate_graph_visualization(hrg, results, output_file):
 
     # Add edges
     for u, v, data in G.edges(data=True):
-        edge_type = data.get("type", "dependency")
+        edge_type = data.get("edge_type", data.get("type", "dependency"))
+        edge_weight = data.get("weight", 0.0)
+
+        from_name = person_lookup.get(u, {}).get("name", u)
+        to_name = person_lookup.get(v, {}).get("name", v)
 
         # Edge styling based on type
         if edge_type == "critical_path":
@@ -140,12 +149,22 @@ def generate_graph_visualization(hrg, results, output_file):
             title = "Critical Path"
         elif edge_type == "bypass":
             color = "#fcbf49"
-            width = 2
+            width = 2.4
             title = "Bypass Route"
+        elif edge_type == "approval":
+            color = "#00d4ff"
+            width = 2
+            title = "Approval Dependency"
+        elif edge_type == "escalation":
+            color = "#b388ff"
+            width = 1.8
+            title = "Escalation Path"
         else:
             color = "#4a4e69"
             width = 1.5
             title = "Dependency"
+
+        title += f"<br>From: {from_name}<br>To: {to_name}<br>Type: {edge_type}<br>Weight: {edge_weight:.2f}"
 
         # Add context to tooltip if available
         if "context" in data:
@@ -157,6 +176,7 @@ def generate_graph_visualization(hrg, results, output_file):
             title=title,
             color=color,
             width=width,
+            dashes=True if edge_type == "bypass" else False,
             arrows={"to": {"enabled": True, "scaleFactor": 0.5}},
         )
 
@@ -179,6 +199,18 @@ def generate_graph_visualization(hrg, results, output_file):
             <span style="color: #00d4ff;">●</span> Low Risk
         </div>
         <hr style="border-color: #4a4e69; margin: 10px 0;">
+        <div style="margin-bottom: 6px;"><b>Edge Types</b></div>
+        <div style="margin-bottom: 6px;"><span style="color:#00d4ff;">—</span> Approval</div>
+        <div style="margin-bottom: 6px;"><span style="color:#b388ff;">—</span> Escalation</div>
+        <div style="margin-bottom: 6px;"><span style="color:#fcbf49;">- -</span> Bypass</div>
+        <hr style="border-color: #4a4e69; margin: 10px 0;">
+        <div style="font-size: 12px; color: #cbd5e1; margin-bottom: 8px;">
+            <b>Network:</b> {nodes} people, {edges} dependencies<br>
+            <b>Critical nodes:</b> {critical_count}
+        </div>
+        <div style="font-size: 12px; color: #9ba4b5; margin-bottom: 10px;">
+            Tip: drag nodes, zoom with wheel, hover any node/edge for details.
+        </div>
         <div style="font-size: 12px; color: #9ba4b5;">
             <b>Metrics:</b><br>
             Composite Score: {composite:.3f}<br>
@@ -188,6 +220,9 @@ def generate_graph_visualization(hrg, results, output_file):
         </div>
     </div>
     """.format(
+        nodes=len(G.nodes()),
+        edges=len(G.edges()),
+        critical_count=len(critical_people),
         composite=results["composite_score"],
         bus_factor=results["bus_factor"],
         decision=results["decision_concentration"],

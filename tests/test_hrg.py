@@ -53,6 +53,8 @@ class TestHumanRiskGraph:
         assert analysis["criticality"] == 0.9
         assert "is_articulation_point" in analysis
         assert "betweenness_centrality" in analysis
+        assert "node_risk_score" in analysis
+        assert 0.0 <= analysis["node_risk_score"] <= 1.0
 
     def test_analyze_invalid_node(self):
         """Test that analyzing invalid node raises error."""
@@ -97,3 +99,24 @@ class TestHumanRiskGraph:
 
         # A is critical (0.9 >= 0.7), so this edge should be critical
         assert len(critical_deps) > 0
+
+    def test_simulate_node_removal_singleton_graph(self):
+        """Removing the only node should produce empty disconnected set branch."""
+        people = [{"id": "A", "role": "SRE", "criticality": 0.9}]
+        dependencies = []
+
+        hrg = HumanRiskGraph(people, dependencies)
+        impact = hrg.simulate_node_removal("A")
+
+        assert impact["disconnected_nodes"] == []
+
+    def test_export_graph_returns_copy(self):
+        """Exported graph should be a copy, not the same mutable object."""
+        people = [{"id": "A", "role": "SRE", "criticality": 0.9}]
+        dependencies = []
+
+        hrg = HumanRiskGraph(people, dependencies)
+        exported = hrg.export_graph()
+        exported.add_node("X")
+
+        assert "X" not in hrg.graph.nodes()

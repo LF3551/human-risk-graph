@@ -1,40 +1,75 @@
 # Human Risk Graph Analysis Report
 
-**Generated:** 2026-01-20 18:17:05
+**Generated:** 2026-02-25 23:41:07
 **Input File:** `/Users/alekseialeinikov/Documents/SCRIPTS/human-risk-graph/data/example_organization.json`
-**Organization Size:** 4 people
-**Dependencies:** 2
+**Organization Size:** 10 people
+**Dependencies:** 14
 
 ## 📊 Executive Summary
 
-The organization's **Composite HRG Score** is **0.090**.
+The organization's **Composite HRG Score** is **0.269**.
 
 **Risk Level:** ✅ **LOW**
 
 The organization has low human dependency risks.
 
+## 🔎 Key Findings
+
+- **Primary Risk Driver:** Bypass Risk
+- **Critical People Identified:** 2
+- **Dependency Profile:** approval: 8, bypass: 3, escalation: 3
+
+## 🧠 Why This Score
+
+- Composite score is a weighted sum: **0.4×Bus + 0.3×Decision + 0.3×Bypass = 0.269**
+- Bus contribution: **0.045**, Decision contribution: **0.105**, Bypass contribution: **0.118**
+- Critical nodes above threshold: **4/10 (40%)**
+
+## 📘 How To Read Metrics
+
+- **Bus Factor Risk:** higher means stronger dependency on a few people.
+- **Decision Concentration:** higher means approval power is concentrated.
+- **Bypass Risk:** higher means controls are easier to bypass on critical paths.
+
 ## 📈 Risk Metrics
 
 | Metric | Score | Weight | Description |
 |--------|-------|--------|-------------|
-| **Bus Factor Risk** | 0.225 | 40% | Risk from key person dependencies |
-| **Decision Concentration** | 0.000 | 35% | Authority centralization risk |
-| **Bypass Risk** | 0.000 | 25% | Control override risk |
-| **Composite Score** | 0.090 | 100% | Overall organizational risk |
+| **Bus Factor Risk** | 0.113 | 40% | Risk from key person dependencies |
+| **Decision Concentration** | 0.351 | 30% | Authority centralization risk |
+| **Bypass Risk** | 0.394 | 30% | Control override risk |
+| **Composite Score** | 0.269 | 100% | Overall organizational risk |
+
+**Metric interpretation:**
+- Bus Factor Risk: **Low**
+- Decision Concentration: **Moderate**
+- Bypass Risk: **Moderate**
 
 ## ⚠️ Critical People (Articulation Points)
 
 These individuals are **single points of failure**. Their removal would disconnect the organizational graph:
 
-- `A`
+- `Ines Silva (Product Security Engineer)` — criticality: 0.55
+- `Johan Lindberg (DevOps Engineer)` — criticality: 0.58
 
-**Total Critical People:** 1
+**Total Critical People:** 2
 
 ## 💡 Recommendations
 
-- Continue monitoring organizational changes
-- Maintain current risk management practices
-- Regular reassessment as organization evolves
+### Priority Actions
+
+1. **Reduce key-person dependency (Bus Factor):**
+   - Cross-train backup owners for critical responsibilities
+   - Document approval and emergency procedures
+   - Define succession coverage for critical roles
+
+2. **Distribute decision authority:**
+   - Introduce secondary approvers for sensitive workflows
+   - Rotate ownership of high-impact decisions
+
+3. **Tighten bypass governance:**
+   - Add compensating controls for emergency bypasses
+   - Alert and review all bypass events weekly
 
 ---
 

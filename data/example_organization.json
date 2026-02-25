@@ -1,12 +1,30 @@
 {
   "people": [
-    { "id": "A", "role": "SRE", "criticality": 0.9 },
-    { "id": "B", "role": "Security Engineer", "criticality": 0.8 },
-    { "id": "C", "role": "Manager", "criticality": 0.7 },
-    { "id": "D", "role": "Developer", "criticality": 0.4 }
+    { "id": "luca.rossi", "name": "Luca Rossi", "role": "Principal SRE", "criticality": 0.92 },
+    { "id": "anna.mueller", "name": "Anna Mueller", "role": "Security Lead", "criticality": 0.85 },
+    { "id": "marie.dubois", "name": "Marie Dubois", "role": "Engineering Manager", "criticality": 0.78 },
+    { "id": "carlos.garcia", "name": "Carlos Garcia", "role": "Platform Architect", "criticality": 0.74 },
+    { "id": "elena.popescu", "name": "Elena Popescu", "role": "Incident Manager", "criticality": 0.69 },
+    { "id": "peter.novak", "name": "Peter Novak", "role": "Backend Lead", "criticality": 0.66 },
+    { "id": "sofia.papadopoulos", "name": "Sofia Papadopoulos", "role": "Compliance Officer", "criticality": 0.63 },
+    { "id": "johan.lindberg", "name": "Johan Lindberg", "role": "DevOps Engineer", "criticality": 0.58 },
+    { "id": "ines.silva", "name": "Ines Silva", "role": "Product Security Engineer", "criticality": 0.55 },
+    { "id": "tomas.kowalski", "name": "Tomas Kowalski", "role": "Software Engineer", "criticality": 0.50 }
   ],
   "dependencies": [
-    { "from": "A", "to": "B", "type": "approval", "weight": 0.8 },
-    { "from": "C", "to": "A", "type": "bypass", "weight": 0.9 }
+    { "from": "luca.rossi", "to": "anna.mueller", "type": "approval", "weight": 0.95 },
+    { "from": "luca.rossi", "to": "marie.dubois", "type": "approval", "weight": 0.85 },
+    { "from": "anna.mueller", "to": "carlos.garcia", "type": "approval", "weight": 0.55 },
+    { "from": "marie.dubois", "to": "elena.popescu", "type": "approval", "weight": 0.45 },
+    { "from": "carlos.garcia", "to": "peter.novak", "type": "approval", "weight": 0.35 },
+    { "from": "anna.mueller", "to": "sofia.papadopoulos", "type": "approval", "weight": 0.40 },
+    { "from": "carlos.garcia", "to": "johan.lindberg", "type": "approval", "weight": 0.30 },
+    { "from": "johan.lindberg", "to": "ines.silva", "type": "approval", "weight": 0.25 },
+    { "from": "peter.novak", "to": "sofia.papadopoulos", "type": "escalation", "weight": 0.50 },
+    { "from": "sofia.papadopoulos", "to": "johan.lindberg", "type": "escalation", "weight": 0.40 },
+    { "from": "ines.silva", "to": "tomas.kowalski", "type": "escalation", "weight": 0.30 },
+    { "from": "luca.rossi", "to": "carlos.garcia", "type": "bypass", "weight": 0.90 },
+    { "from": "marie.dubois", "to": "carlos.garcia", "type": "bypass", "weight": 0.80 },
+    { "from": "elena.popescu", "to": "anna.mueller", "type": "bypass", "weight": 0.60 }
   ]
 }

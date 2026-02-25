@@ -5,6 +5,27 @@ All notable changes to Human Risk Graph will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] - 2026-02-25
+
+### ✨ Improved
+
+- Enhanced report readability with additional explanatory sections:
+  - "Why This Score" (weighted metric contribution breakdown)
+  - "How To Read Metrics" (plain-language interpretation)
+  - richer key findings and dependency profile context
+- Improved graph visualization UX:
+  - edge-type-aware styling (approval, escalation, bypass)
+  - richer node/edge tooltips and in-graph guidance legend
+  - clearer network summary for non-technical readers
+- Upgraded example dataset to a larger European-style organization sample
+  with richer dependencies that better exercise all metrics.
+
+### ✅ Testing
+
+- Expanded automated tests and increased coverage to 98%.
+- Added additional tests for graph analysis branches, entropy metric logic,
+  and HRG object behaviors.
+
 ## [0.1.0] - 2026-01-18
 
 ### 🎉 Initial Release

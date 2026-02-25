@@ -19,7 +19,7 @@ from src.visualization import generate_graph_visualization
 
 
 @click.group()
-@click.version_option(version="0.1.3")
+@click.version_option(version="0.1.4")
 def cli():
     """Human Risk Graph - Organizational Security Risk Analysis Tool."""
     pass
@@ -80,11 +80,27 @@ def analyze(input_file, format, output, visualize):
     output_dir = input_path.parent if not output else Path(output).parent
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    person_lookup = {
+        person["id"]: {
+            "name": person.get("name", person["id"]),
+            "role": person.get("role", ""),
+            "criticality": person.get("criticality", 0.0),
+        }
+        for person in data["people"]
+    }
+
+    dependency_type_counts = {}
+    for dep in data["dependencies"]:
+        dep_type = dep.get("type", "unknown")
+        dependency_type_counts[dep_type] = dependency_type_counts.get(dep_type, 0) + 1
+
     metadata = {
         "input_file": str(input_path.absolute()),
         "analysis_date": datetime.now().isoformat(),
         "organization_size": len(data["people"]),
         "dependencies_count": len(data["dependencies"]),
+        "person_lookup": person_lookup,
+        "dependency_type_counts": dependency_type_counts,
     }
 
     # Generate reports
@@ -139,7 +155,13 @@ def analyze(input_file, format, output, visualize):
     if critical:
         click.echo(f"\n⚠️  Critical People (Articulation Points): {len(critical)}")
         for person in critical[:5]:
-            click.echo(f"   - {person}")
+            person_info = person_lookup.get(person, {})
+            display_name = person_info.get("name", person)
+            role = person_info.get("role", "")
+            if role:
+                click.echo(f"   - {display_name} ({role})")
+            else:
+                click.echo(f"   - {display_name}")
         if len(critical) > 5:
             click.echo(f"   ... and {len(critical) - 5} more")
 
