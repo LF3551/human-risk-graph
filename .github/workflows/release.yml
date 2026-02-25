@@ -48,11 +48,11 @@ jobs:
 
         echo "📦 Creating new Zenodo deposit for $TAG..."
 
-        # Read existing .zenodo.json metadata if present
+        # Read existing .zenodo.json metadata if present and wrap in {"metadata": ...}
         if [[ -f ".zenodo.json" ]]; then
-          METADATA=$(cat .zenodo.json)
+          METADATA=$(python3 -c "import json,sys; d=json.load(open('.zenodo.json')); print(json.dumps({'metadata': d}))")
         else
-          METADATA='{}'
+          METADATA='{"metadata": {"upload_type": "software"}}'
         fi
 
         # Create a new deposit
@@ -62,7 +62,12 @@ jobs:
           -H "Content-Type: application/json" \
           -d "$METADATA")
 
-        DEPOSIT_ID=$(echo "$DEPOSIT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['id'])")
+        DEPOSIT_ID=$(echo "$DEPOSIT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['id'])" 2>&1)
+        if [[ -z "$DEPOSIT_ID" || "$DEPOSIT_ID" == *"Error"* || "$DEPOSIT_ID" == *"Traceback"* ]]; then
+          echo "❌ Zenodo API error response:"
+          echo "$DEPOSIT"
+          exit 1
+        fi
         BUCKET_URL=$(echo "$DEPOSIT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['links']['bucket'])")
         echo "Deposit ID: $DEPOSIT_ID"
 
