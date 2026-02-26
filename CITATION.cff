@@ -7,7 +7,7 @@ date-released: 2026-02-25
 url: "https://github.com/LF3551/human-risk-graph"
 repository-code: "https://github.com/LF3551/human-risk-graph"
 license: Apache-2.0
-doi: 10.5281/zenodo.18316882
+doi: 10.5281/zenodo.18783118
 
 authors:
   - family-names: "Aleinikov"
@@ -32,7 +32,7 @@ keywords:
 
 identifiers:
   - type: doi
-    value: 10.5281/zenodo.18316882
+    value: 10.5281/zenodo.18783118
     description: "Zenodo DOI for all versions"
 
 preferred-citation:
@@ -44,5 +44,5 @@ preferred-citation:
       orcid: "https://orcid.org/0009-0003-8866-3131"
   year: 2026
   version: 0.1.8
-  doi: 10.5281/zenodo.18316882
+  doi: 10.5281/zenodo.18783118
   url: "https://github.com/LF3551/human-risk-graph"

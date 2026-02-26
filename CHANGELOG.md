@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🔧 Infrastructure
 
-- Fixed Zenodo automation: new releases now create a new version of existing record (10.5281/zenodo.18316882) instead of creating duplicate records
+- Fixed Zenodo automation: new releases now create a new version of existing record (10.5281/zenodo.18783118) instead of creating duplicate records
 
 ## [0.1.6] - 2026-02-26
 

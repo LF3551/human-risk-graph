@@ -9,8 +9,8 @@
   <a href="https://pypi.org/project/human-risk-graph/">
     <img src="https://img.shields.io/pypi/dm/human-risk-graph" alt="PyPI Downloads">
   </a>
-  <a href="https://doi.org/10.5281/zenodo.18316882">
-    <img src="https://img.shields.io/badge/DOI-10.5281%2Fzenodo.18316882-blue" alt="DOI">
+  <a href="https://doi.org/10.5281/zenodo.18783118">
+    <img src="https://img.shields.io/badge/DOI-10.5281%2Fzenodo.18783118-blue" alt="DOI">
   </a>
   <a href="https://github.com/LF3551/human-risk-graph/actions/workflows/ci.yml">
     <img src="https://github.com/LF3551/human-risk-graph/actions/workflows/ci.yml/badge.svg" alt="CI/CD Pipeline">
@@ -231,14 +231,14 @@ If you use this software in your research or work, please cite:
   year         = 2026,
   publisher    = {Zenodo},
   version      = {v0.1.8},
-  doi          = {10.5281/zenodo.18316882},
-  url          = {https://doi.org/10.5281/zenodo.18316882}
+  doi          = {10.5281/zenodo.18783118},
+  url          = {https://doi.org/10.5281/zenodo.18783118}
 }
 ```
 
 Or use this text citation:
 
-> Aleinikov, A. (2026). Human Risk Graph: A Quantitative Model for Organizational Security Risk (v0.1.8). Zenodo. https://doi.org/10.5281/zenodo.18316882
+> Aleinikov, A. (2026). Human Risk Graph: A Quantitative Model for Organizational Security Risk (v0.1.8). Zenodo. https://doi.org/10.5281/zenodo.18783118
 
 ## License
 
