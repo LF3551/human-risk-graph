@@ -4,7 +4,8 @@
   "creators": [
     {
       "name": "Aleinikov, Aleksei",
-      "affiliation": "Independent Researcher"
+      "affiliation": "Independent Researcher",
+      "orcid": "0009-0003-8866-3131"
     }
   ],
   "license": "Apache-2.0",
@@ -27,7 +28,7 @@
   ],
   "contributors": [],
   "references": [],
-  "version": "0.1.9",
+  "version": "0.1.10",
   "language": "eng",
   "upload_type": "software"
 }
