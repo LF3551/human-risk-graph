@@ -24,104 +24,28 @@ jobs:
           exit 1
         fi
 
-  zenodo:
-    name: Archive on Zenodo
+  publish-pypi:
+    name: Publish to PyPI
     runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Trigger Zenodo deposit via API
-      env:
-        ZENODO_TOKEN: ${{ secrets.ZENODO_TOKEN }}
-        GITHUB_TAG: ${{ github.ref_name }}
-        GITHUB_REPO: ${{ github.repository }}
-        GITHUB_REPONAME: ${{ github.event.repository.name }}
-        ZENODO_RECORD_ID: "18316882"
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Build package
       run: |
-        python3 << 'PYEOF'
-        import os, json, sys, urllib.request, urllib.error
+        python -m pip install --upgrade pip build
+        python -m build
 
-        token     = os.environ.get("ZENODO_TOKEN", "")
-        tag       = os.environ["GITHUB_TAG"]
-        repo      = os.environ["GITHUB_REPO"]
-        repo_name = os.environ["GITHUB_REPONAME"]
-        record_id = os.environ["ZENODO_RECORD_ID"]
-
-        if not token:
-            print("⚠️  ZENODO_TOKEN not set — skipping")
-            sys.exit(0)
-
-        auth = {"Authorization": f"Bearer {token}"}
-        json_headers = {**auth, "Content-Type": "application/json"}
-
-        # 1. Create new version of existing record
-        req = urllib.request.Request(
-            f"https://zenodo.org/api/deposit/depositions/{record_id}/actions/newversion",
-            data=b"", headers=auth, method="POST")
-        try:
-            with urllib.request.urlopen(req) as r:
-                data = json.loads(r.read())
-        except urllib.error.HTTPError as e:
-            print(f"❌ New version failed: HTTP {e.code}\n{e.read().decode()}")
-            sys.exit(1)
-
-        # The new draft is at the latest_draft link
-        draft_url = data["links"]["latest_draft"]
-        draft_id  = draft_url.rstrip("/").split("/")[-1]
-        print(f"✅ New version draft created: id={draft_id}")
-
-        # 2. Update metadata (version field)
-        raw  = json.load(open(".zenodo.json")) if os.path.exists(".zenodo.json") else {}
-        meta = {k: v for k, v in raw.items() if v not in ([], {}, None, "")}
-        meta["version"] = tag
-        req_meta = urllib.request.Request(
-            f"https://zenodo.org/api/deposit/depositions/{draft_id}",
-            data=json.dumps({"metadata": meta}).encode(),
-            headers=json_headers, method="PUT")
-        try:
-            urllib.request.urlopen(req_meta)
-            print(f"✅ Metadata updated to version {tag}")
-        except urllib.error.HTTPError as e:
-            print(f"⚠️  Metadata update failed: HTTP {e.code}\n{e.read().decode()}")
-
-        # 3. Get bucket URL for file upload
-        with urllib.request.urlopen(
-                urllib.request.Request(
-                    f"https://zenodo.org/api/deposit/depositions/{draft_id}",
-                    headers=auth)) as r:
-            draft = json.loads(r.read())
-        bucket_url = draft["links"]["bucket"]
-
-        # 4. Download & upload source archive
-        archive_name = f"{repo_name}-{tag}.zip"
-        archive_url  = f"https://github.com/{repo}/archive/refs/tags/{tag}.zip"
-        tmp_path     = f"/tmp/{archive_name}"
-
-        with urllib.request.urlopen(
-                urllib.request.Request(archive_url, headers={"User-Agent": "python"})) as r, \
-             open(tmp_path, "wb") as f:
-            f.write(r.read())
-
-        with open(tmp_path, "rb") as f:
-            file_data = f.read()
-        urllib.request.urlopen(urllib.request.Request(
-            f"{bucket_url}/{archive_name}", data=file_data,
-            headers={**auth, "Content-Type": "application/octet-stream"},
-            method="PUT"))
-        print(f"✅ Archive uploaded: {archive_name}")
-
-        # 5. Publish
-        req_pub = urllib.request.Request(
-            f"https://zenodo.org/api/deposit/depositions/{draft_id}/actions/publish",
-            data=b"", headers=auth, method="POST")
-        try:
-            with urllib.request.urlopen(req_pub) as r:
-                result = json.loads(r.read())
-            doi = result.get("doi") or result.get("conceptdoi", "n/a")
-            print(f"✅ Published — DOI: {doi}")
-        except urllib.error.HTTPError as e:
-            print(f"❌ Publish failed: HTTP {e.code}\n{e.read().decode()}")
-            sys.exit(1)
-        PYEOF
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: ${{ secrets.PYPI_TOKEN }}
