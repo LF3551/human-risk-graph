@@ -5,6 +5,17 @@ All notable changes to Human Risk Graph will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2026-02-26
+
+### 🔒 Security
+
+- Fixed OpenSSF Scorecard workflow: replaced tag SHA with commit SHA for `ossf/scorecard-action@v2.4.3`
+- Fixed Token-Permissions: added `permissions: read-all` at workflow level in all CI workflows
+- Fixed GPG commit signing: added `aleksei.aleinikov.gr@gmail.com` UID to signing key
+- Added Dependabot for automated dependency updates (pip + github-actions)
+- Added `SECURITY.md` with vulnerability disclosure policy
+- Added Sigstore artifact signing to release workflow
+
 ## [0.2.1] - 2026-02-26
 
 ### 🔧 Infrastructure

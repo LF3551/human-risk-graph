@@ -19,7 +19,7 @@ from src.visualization import generate_graph_visualization
 
 
 @click.group()
-@click.version_option(version="0.2.1")
+@click.version_option(version="0.2.2")
 def cli():
     """Human Risk Graph - Organizational Security Risk Analysis Tool."""
     pass
