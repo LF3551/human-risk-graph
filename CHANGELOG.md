@@ -5,6 +5,12 @@ All notable changes to Human Risk Graph will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.7] - 2026-02-26
+
+### 🔧 Infrastructure
+
+- Fixed Zenodo automation: new releases now create a new version of existing record (10.5281/zenodo.18316882) instead of creating duplicate records
+
 ## [0.1.6] - 2026-02-26
 
 ### 🔧 Infrastructure
