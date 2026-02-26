@@ -27,6 +27,9 @@
   <a href="https://github.com/psf/black">
     <img src="https://img.shields.io/badge/code%20style-black-000000.svg" alt="Code style: black">
   </a>
+  <a href="https://scorecard.dev/viewer/?uri=github.com/LF3551/human-risk-graph">
+    <img src="https://api.scorecard.dev/projects/github.com/LF3551/human-risk-graph/badge" alt="OpenSSF Scorecard">
+  </a>
 </p>
 
 # Human Risk Graph (HRG)
