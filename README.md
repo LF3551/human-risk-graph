@@ -30,6 +30,9 @@
   <a href="https://scorecard.dev/viewer/?uri=github.com/LF3551/human-risk-graph">
     <img src="https://api.scorecard.dev/projects/github.com/LF3551/human-risk-graph/badge" alt="OpenSSF Scorecard">
   </a>
+  <a href="https://bestpractices.coreinfrastructure.org/projects/12048">
+    <img src="https://bestpractices.coreinfrastructure.org/projects/12048/badge" alt="CII Best Practices">
+  </a>
 </p>
 
 # Human Risk Graph (HRG)
