@@ -4,14 +4,13 @@ on:
   release:
     types: [published]
 
-permissions: read-all
+permissions: {}
 
 jobs:
   software-heritage:
     name: Archive on Software Heritage
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
+    permissions: {}
 
     steps:
     - name: Save to Software Heritage
