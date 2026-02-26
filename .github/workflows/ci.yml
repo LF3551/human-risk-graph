@@ -31,7 +31,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        pip install -r requirements.in
         pip install pytest pytest-cov flake8 black mypy
         pip install -e .
     
@@ -94,7 +94,7 @@ jobs:
     
     - name: Check dependencies with safety
       run: |
-        pip install -r requirements.txt
+        pip install -r requirements.in
         safety check --json
       continue-on-error: true
 
