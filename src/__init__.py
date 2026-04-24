@@ -14,7 +14,7 @@ from .metrics import (
     interpret_risk_level,
 )
 
-__version__ = "0.2.4"
+__version__ = "0.2.5"
 __author__ = "Aleksei Aleinikov"
 
 __all__ = [

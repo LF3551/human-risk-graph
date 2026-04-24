@@ -8,7 +8,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="human-risk-graph",
-    version="0.2.4",
+    version="0.2.5",
     author="Aleksei Aleinikov",
     author_email="contact@alekseialeinikov.com",
     description="A quantitative model for measuring organizational security risk caused by human dependencies",
@@ -27,6 +27,9 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.14",
     ],
     python_requires=">=3.8",
     install_requires=[

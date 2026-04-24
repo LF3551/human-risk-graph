@@ -5,6 +5,13 @@ All notable changes to Human Risk Graph will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.5] - 2026-04-24
+
+### ✨ Added
+
+- Added Python 3.12, 3.13, 3.14 support (classifiers, CI matrix, black target-version)
+- Added `tests/test_compatibility.py` — 15 cross-version compatibility tests
+
 ## [0.2.4] - 2026-02-26
 
 ### 📚 Documentation
