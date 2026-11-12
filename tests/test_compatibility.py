@@ -1,7 +1,7 @@
 """
 Python version compatibility tests for HRG.
 
-Verifies that core functionality works correctly across Python 3.9-3.14,
+Verifies that core functionality works correctly across Python 3.10-3.14,
 including features and behaviors that may differ across versions.
 """
 
@@ -19,8 +19,8 @@ class TestPythonVersionInfo:
     """Verify we're running on a supported Python version."""
 
     def test_python_version_supported(self):
-        """HRG supports Python 3.9 through 3.14."""
-        assert PYTHON_VERSION >= (3, 9), f"Python {PYTHON_VERSION} is below minimum 3.9"
+        """HRG supports Python 3.10 through 3.14."""
+        assert PYTHON_VERSION >= (3, 10), f"Python {PYTHON_VERSION} is below minimum 3.10"
 
     def test_version_string_parseable(self):
         """sys.version should be parseable."""
