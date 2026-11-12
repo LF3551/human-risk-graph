@@ -13,13 +13,14 @@ import sys
 from pathlib import Path
 from datetime import datetime
 
+from . import __version__
 from .hrg import HumanRiskGraph
 from .reports import generate_json_report, generate_markdown_report, generate_html_report
 from .visualization import generate_graph_visualization
 
 
 @click.group()
-@click.version_option(version="0.2.5")
+@click.version_option(version=__version__)
 def cli():
     """Human Risk Graph - Organizational Security Risk Analysis Tool."""
     pass

@@ -115,6 +115,9 @@ Create a JSON file describing your organization structure:
 - `dependencies.type` — relationship type (approval, bypass, etc.)
 - `dependencies.weight` — dependency strength (0.0-1.0)
 
+Invalid input (duplicate or unknown IDs, values outside 0.0-1.0) is rejected with an error
+that points to the offending entry.
+
 ### CLI Usage
 
 The easiest way to use HRG is through the command-line interface:
@@ -138,21 +141,24 @@ hrg visualize data/example_organization.json
 ```
 🔍 Analyzing: data/example_organization.json
 ⚙️  Running Human Risk Graph analysis...
-✅ Generated: example_organization_report.json
-✅ Generated: example_organization_graph.html
+✅ Generated: data/example_organization_report.json
+✅ Generated: data/example_organization_report.md
+✅ Generated: data/example_organization_report.html
+✅ Generated: data/example_organization_graph.html
 
 ============================================================
 📊 ANALYSIS SUMMARY
 ============================================================
-Composite HRG Score: 0.090
-  • Bus Factor Score: 0.225
-  • Decision Concentration: 0.000
-  • Bypass Risk Score: 0.000
+Composite HRG Score: 0.269
+  • Bus Factor Score: 0.113
+  • Decision Concentration: 0.351
+  • Bypass Risk Score: 0.394
 
-⚠️  Critical People (Articulation Points): 1
-   - A
+⚠️  Critical People (Articulation Points): 2
+   - Ines Silva (Product Security Engineer)
+   - Johan Lindberg (DevOps Engineer)
 
-✅ Analysis complete! Generated 2 file(s).
+✅ Analysis complete! Generated 4 file(s).
 ```
 
 **Generated files:**
@@ -205,7 +211,6 @@ python experiments/visualize.py
 - **Polynomial-time algorithms** with proven complexity bounds
 - **Comprehensive test coverage**
 - **Research paper** published on Zenodo ([10.5281/zenodo.20260930](https://doi.org/10.5281/zenodo.20260930))
-- **CISSP portfolio** demonstration project
 
 ## Use Cases
 
@@ -222,9 +227,9 @@ HRG provides the most value when organizational complexity exceeds intuitive und
 
 ## Status
 
-This repository provides a **reference implementation** of the HRG model.
-It is intended for research, architecture analysis, and discussion —
-not as a production-ready security tool.
+HRG is in beta (0.x): the metrics and the input format may still change between minor
+releases. Scores support risk discussions and audits; they do not replace a full
+risk assessment.
 
 ## Citation
 

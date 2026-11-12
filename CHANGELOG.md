@@ -5,6 +5,17 @@ All notable changes to Human Risk Graph will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-11-12
+
+### 🐛 Fixed
+
+- Invalid input is rejected with a clear error instead of silently producing a risk score of 0: duplicate or unknown person IDs, malformed entries, and `criticality` or `weight` outside [0, 1]. `HumanRiskGraph` raises `ValueError`; `hrg analyze` and `hrg visualize` exit with status 1.
+- `hrg --version` reported 0.2.5; it now shows the installed package version.
+
+### 📝 Documentation
+
+- README example output matches the current example dataset.
+
 ## [0.3.0] - 2026-11-12
 
 ### ⚠️ Breaking
