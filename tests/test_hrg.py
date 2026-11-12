@@ -120,3 +120,32 @@ class TestHumanRiskGraph:
         exported.add_node("X")
 
         assert "X" not in hrg.graph.nodes()
+
+
+A = {"id": "A", "criticality": 0.9}
+B = {"id": "B"}
+
+
+@pytest.mark.parametrize(
+    "people, dependencies, message",
+    [
+        ({"A": 1}, [], "must be lists"),
+        ([{"role": "SRE"}], [], r"people\[0\] must be an object with an 'id'"),
+        ([A, dict(A)], [], "duplicate id 'A'"),
+        ([{"id": "A", "criticality": 5}], [], r"people\[0\]\.criticality"),
+        ([{"id": "A", "criticality": "high"}], [], r"people\[0\]\.criticality"),
+        ([{"id": "A", "criticality": True}], [], r"people\[0\]\.criticality"),
+        ([{"id": "A", "criticality": float("nan")}], [], r"people\[0\]\.criticality"),
+        ([A], [{"from": "A"}], r"dependencies\[0\] must be an object"),
+        ([A], [{"from": "A", "to": "Z"}], r"dependencies\[0\]\.to: unknown person id 'Z'"),
+        ([A, B], [{"from": "A", "to": "B", "weight": -3}], r"dependencies\[0\]\.weight"),
+    ],
+)
+def test_invalid_input_rejected(people, dependencies, message):
+    with pytest.raises(ValueError, match=message):
+        HumanRiskGraph(people, dependencies)
+
+
+def test_boundary_values_accepted():
+    people = [{"id": "A", "criticality": 0}, {"id": "B", "criticality": 1}]
+    HumanRiskGraph(people, [{"from": "A", "to": "B", "weight": 1}])

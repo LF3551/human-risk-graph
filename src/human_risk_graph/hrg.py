@@ -20,6 +20,35 @@ from .graph_analysis import (
 )
 
 
+def _check_unit_interval(value, where: str) -> None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not 0 <= value <= 1:
+        raise ValueError(f"{where} must be a number between 0 and 1, got {value!r}")
+
+
+def _validate(people, dependencies) -> None:
+    if not isinstance(people, list) or not isinstance(dependencies, list):
+        raise ValueError("'people' and 'dependencies' must be lists")
+
+    ids = set()
+    for i, person in enumerate(people):
+        if not isinstance(person, dict) or "id" not in person:
+            raise ValueError(f"people[{i}] must be an object with an 'id'")
+        if person["id"] in ids:
+            raise ValueError(f"people[{i}]: duplicate id {person['id']!r}")
+        ids.add(person["id"])
+        if "criticality" in person:
+            _check_unit_interval(person["criticality"], f"people[{i}].criticality")
+
+    for i, dep in enumerate(dependencies):
+        if not isinstance(dep, dict) or "from" not in dep or "to" not in dep:
+            raise ValueError(f"dependencies[{i}] must be an object with 'from' and 'to'")
+        for end in ("from", "to"):
+            if dep[end] not in ids:
+                raise ValueError(f"dependencies[{i}].{end}: unknown person id {dep[end]!r}")
+        if "weight" in dep:
+            _check_unit_interval(dep["weight"], f"dependencies[{i}].weight")
+
+
 class HumanRiskGraph:
     """
     Main class for Human Risk Graph analysis.
@@ -53,7 +82,12 @@ class HumanRiskGraph:
                 - to: target person ID (str)
                 - type: 'approval', 'escalation', or 'bypass' (str)
                 - weight: dependency strength [0,1] (float)
+
+        Raises:
+            ValueError: If the input is malformed, for example a duplicate or unknown
+                person ID, or a criticality or weight outside [0, 1].
         """
+        _validate(people, dependencies)
         self.people = people
         self.dependencies = dependencies
 
