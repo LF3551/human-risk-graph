@@ -6,7 +6,18 @@ Generates reports in multiple formats: JSON, Markdown, HTML.
 
 import json
 from datetime import datetime
-from typing import Dict, Any
+from html import escape
+from typing import Dict, Any, List, Optional
+
+from .findings import FRAMEWORKS, Finding
+
+CONTROLS_DISCLAIMER = (
+    "Related controls are informative pointers for audits, not an assessment of compliance."
+)
+
+
+def _controls_text(finding: Finding, framework: str) -> str:
+    return "; ".join(ref for ref, _ in finding.rule.controls.get(framework, ()))
 
 
 def _format_person_display(person_id: str, metadata: Dict[str, Any]) -> str:
@@ -50,29 +61,37 @@ def _score_breakdown(results: Dict[str, Any]) -> Dict[str, float]:
     }
 
 
-def generate_json_report(results: Dict[str, Any], metadata: Dict[str, Any]) -> str:
+def generate_json_report(
+    results: Dict[str, Any], metadata: Dict[str, Any], findings: Optional[List[Finding]] = None
+) -> str:
     """
     Generate JSON report.
 
     Args:
         results: Analysis results from HRG
         metadata: Metadata about the analysis
+        findings: Optional findings from ``collect_findings``
 
     Returns:
         JSON string
     """
     report = {"metadata": metadata, "results": results, "generated_at": datetime.now().isoformat()}
+    if findings is not None:
+        report["findings"] = [f.to_dict() for f in findings]
 
     return json.dumps(report, indent=2, ensure_ascii=False)
 
 
-def generate_markdown_report(results: Dict[str, Any], metadata: Dict[str, Any]) -> str:
+def generate_markdown_report(
+    results: Dict[str, Any], metadata: Dict[str, Any], findings: Optional[List[Finding]] = None
+) -> str:
     """
     Generate Markdown report.
 
     Args:
         results: Analysis results from HRG
         metadata: Metadata about the analysis
+        findings: Optional findings from ``collect_findings``
 
     Returns:
         Markdown string
@@ -219,6 +238,21 @@ def generate_markdown_report(results: Dict[str, Any], metadata: Dict[str, Any]) 
         md.append(f"**Total Critical People:** {len(results['articulation_points'])}")
         md.append("")
 
+    if findings:
+        md.append("## 🧾 Findings and Related Controls")
+        md.append("")
+        md.append(f"_{CONTROLS_DISCLAIMER}_")
+        md.append("")
+        md.append("| Rule | Level | Finding | ISO/IEC 27001:2022 | SOC 2 | DORA |")
+        md.append("|------|-------|---------|--------------------|-------|------|")
+        for f in findings:
+            message = f.message.replace("|", "\\|")
+            md.append(
+                f"| {f.rule_id} | {f.level} | {message} | {_controls_text(f, 'iso27001')} "
+                f"| {_controls_text(f, 'soc2')} | {_controls_text(f, 'dora')} |"
+            )
+        md.append("")
+
     # Recommendations
     md.append("## 💡 Recommendations")
     md.append("")
@@ -266,13 +300,16 @@ def generate_markdown_report(results: Dict[str, Any], metadata: Dict[str, Any]) 
     return "\n".join(md)
 
 
-def generate_html_report(results: Dict[str, Any], metadata: Dict[str, Any]) -> str:
+def generate_html_report(
+    results: Dict[str, Any], metadata: Dict[str, Any], findings: Optional[List[Finding]] = None
+) -> str:
     """
     Generate HTML report with styling.
 
     Args:
         results: Analysis results from HRG
         metadata: Metadata about the analysis
+        findings: Optional findings from ``collect_findings``
 
     Returns:
         HTML string
@@ -492,6 +529,23 @@ def generate_html_report(results: Dict[str, Any], metadata: Dict[str, Any]) -> s
             margin-left: 10px;
         }}
 
+        table.findings {{
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }}
+
+        table.findings th, table.findings td {{
+            border: 1px solid #4a4e69;
+            padding: 8px;
+            text-align: left;
+            vertical-align: top;
+        }}
+
+        table.findings th {{
+            color: #00d4ff;
+        }}
+
         @media print {{
             body {{
                 background: white;
@@ -529,7 +583,7 @@ def generate_html_report(results: Dict[str, Any], metadata: Dict[str, Any]) -> s
                 <ul>
                     <li><strong>Primary Risk Driver:</strong> {_get_primary_risk_driver(results)}</li>
                     <li><strong>Critical People Identified:</strong> {len(results.get('articulation_points', []))}</li>
-                    <li><strong>Dependency Profile:</strong> {", ".join(f"{k}: {v}" for k, v in sorted(metadata.get('dependency_type_counts', {}).items())) or "No typed dependencies provided"}</li>
+                    <li><strong>Dependency Profile:</strong> {escape(", ".join(f"{k}: {v}" for k, v in sorted(metadata.get('dependency_type_counts', {}).items())) or "No typed dependencies provided")}</li>
                 </ul>
             </div>
         </div>
@@ -591,7 +645,7 @@ def generate_html_report(results: Dict[str, Any], metadata: Dict[str, Any]) -> s
             <ul class="critical-list">
 """
         for person in results["articulation_points"]:
-            display_person = _format_person_display(person, metadata)
+            display_person = escape(_format_person_display(person, metadata))
             person_info = metadata.get("person_lookup", {}).get(person, {})
             criticality = person_info.get("criticality")
             if criticality is not None:
@@ -600,6 +654,26 @@ def generate_html_report(results: Dict[str, Any], metadata: Dict[str, Any]) -> s
                 html += f"                <li>{display_person}</li>\n"
 
         html += """            </ul>
+        </div>
+"""
+
+    if findings:
+        html += f"""
+        <div class="section">
+            <h2>🧾 Findings and Related Controls <span class="badge">{len(findings)}</span></h2>
+            <p style="color: #9ba4b5; margin-bottom: 15px;">{CONTROLS_DISCLAIMER}</p>
+            <table class="findings">
+                <tr><th>Rule</th><th>Level</th><th>Finding</th>{"".join(f"<th>{escape(name)}</th>" for name in FRAMEWORKS.values())}</tr>
+"""
+        for f in findings:
+            controls = "".join(
+                f"<td>{escape(_controls_text(f, fw))}</td>" for fw in FRAMEWORKS
+            )
+            html += (
+                f"                <tr><td>{f.rule_id}</td><td>{f.level}</td>"
+                f"<td>{escape(f.message)}</td>{controls}</tr>\n"
+            )
+        html += """            </table>
         </div>
 """
 

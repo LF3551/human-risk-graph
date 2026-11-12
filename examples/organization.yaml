@@ -1,0 +1,48 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/LF3551/human-risk-graph/main/src/human_risk_graph/organization.schema.json
+#
+# Small example in YAML. Analyze with:
+#   hrg analyze examples/organization.yaml
+
+people:
+  - id: alice
+    name: Alice
+    role: Head of Platform
+    criticality: 0.9
+  - id: bob
+    name: Bob
+    role: SRE
+    criticality: 0.7
+  - id: carol
+    name: Carol
+    role: Security Engineer
+    criticality: 0.6
+  - id: dave
+    name: Dave
+    role: Developer
+    criticality: 0.4
+  - id: erin
+    name: Erin
+    role: Developer
+    criticality: 0.3
+
+dependencies:
+  - from: alice
+    to: bob
+    type: approval
+    weight: 0.9
+  - from: alice
+    to: carol
+    type: approval
+    weight: 0.8
+  - from: bob
+    to: dave
+    type: approval
+    weight: 0.5
+  - from: carol
+    to: erin
+    type: escalation
+    weight: 0.4
+  - from: bob
+    to: alice
+    type: bypass
+    weight: 0.7

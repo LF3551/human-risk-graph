@@ -33,6 +33,8 @@ def _validate(people, dependencies) -> None:
     for i, person in enumerate(people):
         if not isinstance(person, dict) or "id" not in person:
             raise ValueError(f"people[{i}] must be an object with an 'id'")
+        if not isinstance(person["id"], str) or not person["id"]:
+            raise ValueError(f"people[{i}].id must be a non-empty string, got {person['id']!r}")
         if person["id"] in ids:
             raise ValueError(f"people[{i}]: duplicate id {person['id']!r}")
         ids.add(person["id"])
