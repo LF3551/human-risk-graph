@@ -1,4 +1,73 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "human-risk-graph"
+dynamic = ["version"]
+description = "A quantitative model for measuring organizational security risk caused by human dependencies"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE.md"]
+authors = [{ name = "Aleksei Aleinikov", email = "contact@alekseialeinikov.com" }]
+requires-python = ">=3.9"
+keywords = [
+    "cybersecurity",
+    "risk-analysis",
+    "graph-theory",
+    "organizational-security",
+    "bus-factor",
+    "security-metrics",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Topic :: Security",
+    "Topic :: Scientific/Engineering",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+dependencies = [
+    "networkx>=3.0",
+    "numpy>=1.24.0",
+    "scipy>=1.10.0",
+    "click>=8.1.0",
+    "pyvis>=0.3.2",
+    "matplotlib>=3.7.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.0.0",
+    "mypy>=1.0.0",
+    "flake8>=6.0.0",
+    "bandit>=1.7.0",
+]
+experiments = ["pandas>=2.0.0"]
+
+[project.scripts]
+hrg = "human_risk_graph.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/LF3551/human-risk-graph"
+Documentation = "https://github.com/LF3551/human-risk-graph/blob/main/docs/model.md"
+Changelog = "https://github.com/LF3551/human-risk-graph/blob/main/CHANGELOG.md"
+Issues = "https://github.com/LF3551/human-risk-graph/issues"
+DOI = "https://doi.org/10.5281/zenodo.18288055"
+
+[tool.setuptools.dynamic]
+version = { attr = "human_risk_graph.__version__" }
+
 [tool.pytest.ini_options]
+pythonpath = ["src"]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
@@ -11,7 +80,7 @@ addopts = [
 
 [tool.black]
 line-length = 100
-target-version = ['py38', 'py39', 'py310', 'py311', 'py312', 'py313', 'py314']
+target-version = ['py39', 'py310', 'py311', 'py312', 'py313', 'py314']
 include = '\.pyi?$'
 extend-exclude = '''
 /(
@@ -36,14 +105,14 @@ disallow_untyped_defs = false
 ignore_missing_imports = true
 
 [tool.coverage.run]
-source = ["src"]
+source = ["human_risk_graph"]
 omit = [
     "*/tests/*",
     "*/venv/*",
     "*/__pycache__/*",
-    "*/src/cli.py",
-    "*/src/reports.py",
-    "*/src/visualization.py",
+    "*/human_risk_graph/cli.py",
+    "*/human_risk_graph/reports.py",
+    "*/human_risk_graph/visualization.py",
 ]
 
 [tool.coverage.report]

@@ -2,7 +2,7 @@
 Unit tests for report generation consistency.
 """
 
-from src.reports import generate_markdown_report, generate_html_report
+from human_risk_graph.reports import generate_markdown_report, generate_html_report
 
 
 def _sample_results():
