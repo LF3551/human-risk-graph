@@ -5,7 +5,7 @@ All notable changes to Human Risk Graph will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.0] - 2026-11-12
 
 ### ⚠️ Breaking
 
@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Release workflow builds the distributions once and publishes, attests and signs the same files; PyPI upload uses Trusted Publishing instead of an API token.
 - CI and the release workflow check that the package, `CITATION.cff`, `.zenodo.json` and the release tag use the same version.
 - README and `CITATION.cff` cite the Zenodo concept DOI `10.5281/zenodo.18288055`, which always resolves to the latest version (previously the v0.1.8 DOI).
+- README, `CITATION.cff` and Zenodo metadata link the paper ([10.5281/zenodo.20260930](https://doi.org/10.5281/zenodo.20260930)).
 
 ### 🐛 Fixed
 

@@ -2,8 +2,8 @@ cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 type: software
 title: "Human Risk Graph: A Quantitative Model for Organizational Security Risk"
-version: 0.2.5
-date-released: 2026-04-24
+version: 0.3.0
+date-released: 2026-11-12
 url: "https://github.com/LF3551/human-risk-graph"
 repository-code: "https://github.com/LF3551/human-risk-graph"
 license: Apache-2.0
@@ -34,6 +34,21 @@ identifiers:
   - type: doi
     value: 10.5281/zenodo.18288055
     description: "Zenodo DOI for all versions"
+  - type: doi
+    value: 10.5281/zenodo.20260930
+    description: "Paper describing the model"
+
+references:
+  - type: article
+    title: "Human Risk Graph: A Quantitative Model for Organizational Security Risk"
+    authors:
+      - family-names: "Aleinikov"
+        given-names: "Aleksei"
+        orcid: "https://orcid.org/0009-0003-8866-3131"
+    year: 2026
+    publisher:
+      name: Zenodo
+    doi: 10.5281/zenodo.20260930
 
 preferred-citation:
   type: software
@@ -43,6 +58,6 @@ preferred-citation:
       given-names: "Aleksei"
       orcid: "https://orcid.org/0009-0003-8866-3131"
   year: 2026
-  version: 0.2.5
+  version: 0.3.0
   doi: 10.5281/zenodo.18288055
   url: "https://github.com/LF3551/human-risk-graph"

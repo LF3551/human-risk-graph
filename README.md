@@ -67,7 +67,7 @@ risk metrics that highlight human single points of failure.
 - `tests/` — comprehensive unit tests
 - `experiments/` — synthetic data generation and benchmarking
 - `examples/` — usage demonstrations
-- `paper/` — LaTeX source for academic paper (arXiv-ready)
+- `paper/` — LaTeX source of the [paper](https://doi.org/10.5281/zenodo.20260930)
 - `docs/` — formal model with mathematical definitions
 - `data/` — example organization datasets
 
@@ -204,7 +204,7 @@ python experiments/visualize.py
 - **Three core metrics**: Bus Factor, Decision Concentration, Bypass Risk
 - **Polynomial-time algorithms** with proven complexity bounds
 - **Comprehensive test coverage**
-- **Research paper** ready for arXiv submission
+- **Research paper** published on Zenodo ([10.5281/zenodo.20260930](https://doi.org/10.5281/zenodo.20260930))
 - **CISSP portfolio** demonstration project
 
 ## Use Cases
@@ -246,6 +246,19 @@ Or use this text citation:
 > Aleinikov, A. (2026). Human Risk Graph: A Quantitative Model for Organizational Security Risk. Zenodo. https://doi.org/10.5281/zenodo.18288055
 
 The DOI above always resolves to the latest release; each release also gets its own version DOI on [Zenodo](https://doi.org/10.5281/zenodo.18288055).
+
+To cite the model itself, use the paper:
+
+```bibtex
+@article{aleinikov_2026_hrg_paper,
+  author       = {Aleinikov, Aleksei},
+  title        = {Human Risk Graph: A Quantitative Model for Organizational Security Risk},
+  year         = 2026,
+  publisher    = {Zenodo},
+  doi          = {10.5281/zenodo.20260930},
+  url          = {https://doi.org/10.5281/zenodo.20260930}
+}
+```
 
 ## License
 
