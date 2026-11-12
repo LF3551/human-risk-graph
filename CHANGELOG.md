@@ -5,6 +5,27 @@ All notable changes to Human Risk Graph will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-11-12
+
+### ✨ Added
+
+- Findings with rule IDs (`HRG001` single point of failure, `HRG002` concentrated approval authority, `HRG003` bypass involving a critical person, `HRG004` score above threshold), each mapped to related ISO/IEC 27001:2022, SOC 2 and DORA controls. They appear in all reports and in the CLI summary. See [docs/compliance.md](docs/compliance.md).
+- `hrg analyze --format sarif` (SARIF 2.1.0, for GitHub code scanning) and `--format junit` (JUnit XML). `--format` can be repeated.
+- `hrg analyze --fail-above SCORE` exits with code 3 when the composite score is above the threshold.
+- `hrg diff OLD NEW` compares two snapshots: metric changes, added, removed and changed people and dependencies, introduced and resolved single points of failure. Text, Markdown or JSON output; `--fail-on-increase` exits with code 3 when the composite score went up.
+- YAML input (`.yaml`, `.yml`) and a JSON Schema for organization files, published in the repository and printed by `hrg schema`.
+
+### 🔧 Changed
+
+- Person IDs must be non-empty strings. In YAML, quote IDs that look like numbers or booleans.
+- `hrg analyze` exits with code 1 when a requested report cannot be written (previously a warning).
+- New dependency: PyYAML.
+
+### 🐛 Fixed
+
+- The HTML report escapes names, roles and dependency types from the input file.
+- README Python API example used a result key that does not exist.
+
 ## [0.3.1] - 2026-11-12
 
 ### 🐛 Fixed

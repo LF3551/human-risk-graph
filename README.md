@@ -90,10 +90,11 @@ pip install -e ".[dev]"
 
 ### Data Format
 
-Create a JSON file describing your organization structure:
+Describe your organization in a JSON or YAML file:
 
 ```json
 {
+  "$schema": "https://raw.githubusercontent.com/LF3551/human-risk-graph/main/src/human_risk_graph/organization.schema.json",
   "people": [
     { "id": "A", "role": "SRE", "criticality": 0.9 },
     { "id": "B", "role": "Security Engineer", "criticality": 0.8 },
@@ -118,6 +119,13 @@ Create a JSON file describing your organization structure:
 Invalid input (duplicate or unknown IDs, values outside 0.0-1.0) is rejected with an error
 that points to the offending entry.
 
+**YAML and editor support:** files ending in `.yaml` or `.yml` are read as YAML
+(see [examples/organization.yaml](examples/organization.yaml)). The
+[JSON Schema](src/human_risk_graph/organization.schema.json) gives completion and
+validation in editors: reference it with `"$schema"` in JSON, or with
+`# yaml-language-server: $schema=<url>` at the top of a YAML file.
+`hrg schema` prints the schema.
+
 ### CLI Usage
 
 The easiest way to use HRG is through the command-line interface:
@@ -132,9 +140,18 @@ hrg analyze data/example_organization.json --format html
 # Specify output file
 hrg analyze data/example_organization.json --format html --output my_report.html
 
+# CI: SARIF and JUnit reports, fail if the composite score is above 0.5
+hrg analyze examples/organization.yaml --format sarif --format junit --no-visualize --fail-above 0.5
+
+# Compare two snapshots (text, markdown or json)
+hrg diff org-q1.yaml org-q2.yaml --format markdown
+
 # Generate interactive graph visualization only
 hrg visualize data/example_organization.json
 ```
+
+Exit codes: `0` success, `1` invalid input or error, `2` usage error,
+`3` composite score above `--fail-above` (or increased, with `hrg diff --fail-on-increase`).
 
 ### Example Output
 
@@ -158,6 +175,14 @@ Composite HRG Score: 0.269
    - Ines Silva (Product Security Engineer)
    - Johan Lindberg (DevOps Engineer)
 
+🧾 Findings: 0 error(s), 6 warning(s)
+   [HRG001] Ines Silva (ines.silva) is a single point of failure (criticality 0.55): removing them disconnects the dependency graph.
+   [HRG001] Johan Lindberg (johan.lindberg) is a single point of failure (criticality 0.58): removing them disconnects the dependency graph.
+   [HRG002] Approval authority is concentrated (Gini 0.35); Luca Rossi (luca.rossi) holds 44% of the approval weight.
+   [HRG003] Bypass from Elena Popescu (elena.popescu) to Anna Mueller (anna.mueller) involves a critical person.
+   [HRG003] Bypass from Luca Rossi (luca.rossi) to Carlos Garcia (carlos.garcia) involves a critical person.
+   [HRG003] Bypass from Marie Dubois (marie.dubois) to Carlos Garcia (carlos.garcia) involves a critical person.
+
 ✅ Analysis complete! Generated 4 file(s).
 ```
 
@@ -165,6 +190,53 @@ Composite HRG Score: 0.269
 - JSON report with detailed metrics
 - Interactive HTML graph visualization
 - Optional Markdown and HTML reports
+
+### Findings and Compliance Mapping
+
+Every finding has a rule ID (`HRG001` single point of failure, `HRG002` concentrated
+approval authority, `HRG003` bypass involving a critical person, `HRG004` score above
+threshold) and related controls in ISO/IEC 27001:2022, SOC 2 and DORA. The mapping is
+informative, not a compliance assessment. See [docs/compliance.md](docs/compliance.md).
+
+### CI Integration
+
+GitHub Actions example: findings appear as code scanning alerts on the organization file,
+and the job fails when the composite score is above 0.5.
+
+```yaml
+name: Human risk
+on:
+  pull_request:
+    paths: [org/organization.yaml]
+permissions:
+  contents: read
+  security-events: write
+jobs:
+  hrg:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - run: pip install human-risk-graph
+      - run: >
+          hrg analyze org/organization.yaml
+          --format sarif --format junit --no-visualize --fail-above 0.5
+      - uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        with:
+          sarif_file: org/organization_report.sarif
+```
+
+The JUnit report (`org/organization_report.junit.xml`) has one test case per rule and
+works with any CI system that shows test results. To show what a change does to the
+scores, compare against the base branch:
+
+```bash
+git show origin/main:org/organization.yaml > /tmp/base.yaml
+hrg diff /tmp/base.yaml org/organization.yaml --format markdown >> "$GITHUB_STEP_SUMMARY"
+```
 
 ### Python API Usage
 
@@ -180,7 +252,7 @@ hrg = HumanRiskGraph(people, dependencies)
 results = hrg.calculate()
 
 print(f"Composite Risk Score: {results['composite_score']:.3f}")
-print(f"Critical People: {results['critical_people']}")
+print(f"Single points of failure: {results['articulation_points']}")
 ```
 
 ## Development
@@ -208,6 +280,9 @@ python experiments/visualize.py
 
 - **Graph-based analysis** using NetworkX
 - **Three core metrics**: Bus Factor, Decision Concentration, Bypass Risk
+- **CI-ready**: SARIF for code scanning, JUnit XML, `--fail-above` risk gate, `hrg diff` between snapshots
+- **Audit-friendly**: findings mapped to ISO/IEC 27001:2022, SOC 2 and DORA controls
+- **JSON or YAML input** with a published JSON Schema for editor completion
 - **Polynomial-time algorithms** with proven complexity bounds
 - **Comprehensive test coverage**
 - **Research paper** published on Zenodo ([10.5281/zenodo.20260930](https://doi.org/10.5281/zenodo.20260930))

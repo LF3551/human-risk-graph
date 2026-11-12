@@ -131,6 +131,8 @@ B = {"id": "B"}
     [
         ({"A": 1}, [], "must be lists"),
         ([{"role": "SRE"}], [], r"people\[0\] must be an object with an 'id'"),
+        ([{"id": 1}], [], r"people\[0\]\.id must be a non-empty string"),
+        ([{"id": ""}], [], r"people\[0\]\.id must be a non-empty string"),
         ([A, dict(A)], [], "duplicate id 'A'"),
         ([{"id": "A", "criticality": 5}], [], r"people\[0\]\.criticality"),
         ([{"id": "A", "criticality": "high"}], [], r"people\[0\]\.criticality"),

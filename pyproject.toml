@@ -18,6 +18,11 @@ keywords = [
     "organizational-security",
     "bus-factor",
     "security-metrics",
+    "sarif",
+    "compliance",
+    "dora",
+    "soc2",
+    "iso27001",
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -39,12 +44,14 @@ dependencies = [
     "click>=8.1.0",
     "pyvis>=0.3.2",
     "matplotlib>=3.7.0",
+    "pyyaml>=6.0",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=7.4.0",
     "pytest-cov>=4.1.0",
+    "jsonschema>=4.0",
     "black>=23.0.0",
     "mypy>=1.0.0",
     "flake8>=6.0.0",
@@ -64,6 +71,9 @@ DOI = "https://doi.org/10.5281/zenodo.18288055"
 
 [tool.setuptools.dynamic]
 version = { attr = "human_risk_graph.__version__" }
+
+[tool.setuptools.package-data]
+human_risk_graph = ["*.json"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

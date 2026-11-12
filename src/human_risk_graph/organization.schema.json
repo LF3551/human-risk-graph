@@ -1,0 +1,78 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/LF3551/human-risk-graph/main/src/human_risk_graph/organization.schema.json",
+  "title": "Human Risk Graph organization",
+  "description": "People and the dependencies between them, as read by `hrg analyze`. Unique IDs and references to existing people are checked by the tool itself.",
+  "type": "object",
+  "required": ["people", "dependencies"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Schema reference for editor support; ignored by the tool."
+    },
+    "people": {
+      "type": "array",
+      "description": "Everyone who takes part in approvals, escalations or bypasses.",
+      "items": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Unique identifier, referenced by dependencies. Quote it in YAML if it looks like a number or a boolean."
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name used in reports."
+          },
+          "role": {
+            "type": "string",
+            "description": "Job title or function."
+          },
+          "criticality": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "default": 0.5,
+            "description": "How important the person is for security-relevant work, from 0 to 1. People at 0.7 or above are treated as critical."
+          }
+        }
+      }
+    },
+    "dependencies": {
+      "type": "array",
+      "description": "Directed relationships between people.",
+      "items": {
+        "type": "object",
+        "required": ["from", "to"],
+        "properties": {
+          "from": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Source person ID. Approval authority is counted for this person."
+          },
+          "to": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Target person ID."
+          },
+          "type": {
+            "description": "Kind of dependency. approval, escalation and bypass drive the metrics; other values are kept but not scored.",
+            "anyOf": [
+              { "enum": ["approval", "escalation", "bypass"] },
+              { "type": "string" }
+            ]
+          },
+          "weight": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "default": 0.5,
+            "description": "Strength of the dependency, from 0 to 1."
+          }
+        }
+      }
+    }
+  }
+}
