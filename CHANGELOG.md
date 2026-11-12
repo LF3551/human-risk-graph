@@ -5,6 +5,24 @@ All notable changes to Human Risk Graph will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### ⚠️ Breaking
+
+- The package is now importable as `human_risk_graph` (`from human_risk_graph import HumanRiskGraph`). Previous wheels installed generic top-level `src` and `tests` packages into `site-packages`; `from src.hrg import ...` no longer works.
+- Dropped Python 3.8 and 3.9 (end of life, no longer available on GitHub-hosted runners); Python 3.10+ is required.
+
+### 🔧 Changed
+
+- Packaging moved from `setup.py` to `pyproject.toml`; the version is read from `human_risk_graph.__version__`.
+- CI test matrix no longer stops on the first failing Python version.
+- Release workflow builds the distributions once and publishes, attests and signs the same files; PyPI upload uses Trusted Publishing instead of an API token.
+- CI and the release workflow check that the package, `CITATION.cff`, `.zenodo.json` and the release tag use the same version.
+- README and `CITATION.cff` cite the Zenodo concept DOI `10.5281/zenodo.18288055`, which always resolves to the latest version (previously the v0.1.8 DOI).
+
+### 🐛 Fixed
+
+- `hrg analyze` / `hrg visualize` no longer create a `lib/` folder in the current directory; the HTML graph is self-contained.
 ## [0.2.5] - 2026-04-24
 
 ### ✨ Added

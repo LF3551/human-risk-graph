@@ -9,8 +9,8 @@
   <a href="https://pypi.org/project/human-risk-graph/">
     <img src="https://img.shields.io/pypi/dm/human-risk-graph" alt="PyPI Downloads">
   </a>
-  <a href="https://doi.org/10.5281/zenodo.18783118">
-    <img src="https://img.shields.io/badge/DOI-10.5281%2Fzenodo.18783118-blue" alt="DOI">
+  <a href="https://doi.org/10.5281/zenodo.18288055">
+    <img src="https://img.shields.io/badge/DOI-10.5281%2Fzenodo.18288055-blue" alt="DOI">
   </a>
   <a href="https://github.com/LF3551/human-risk-graph/actions/workflows/ci.yml">
     <img src="https://github.com/LF3551/human-risk-graph/actions/workflows/ci.yml/badge.svg" alt="CI/CD Pipeline">
@@ -63,7 +63,7 @@ risk metrics that highlight human single points of failure.
 
 ## Repository Structure
 
-- `src/` — core implementation (HRG class, metrics, graph algorithms)
+- `src/human_risk_graph/` — core implementation (HRG class, metrics, graph algorithms)
 - `tests/` — comprehensive unit tests
 - `experiments/` — synthetic data generation and benchmarking
 - `examples/` — usage demonstrations
@@ -163,7 +163,7 @@ Composite HRG Score: 0.090
 ### Python API Usage
 
 ```python
-from src.hrg import HumanRiskGraph
+from human_risk_graph import HumanRiskGraph
 
 # Load your organization data
 people = [...]
@@ -184,7 +184,7 @@ print(f"Critical People: {results['critical_people']}")
 pytest tests/ -v
 
 # Run tests with coverage
-pytest tests/ --cov=src --cov-report=html
+pytest tests/ --cov=human_risk_graph --cov-report=html
 
 # Code formatting
 black src/ tests/ --line-length 100
@@ -236,15 +236,16 @@ If you use this software in your research or work, please cite:
   title        = {Human Risk Graph: A Quantitative Model for Organizational Security Risk},
   year         = 2026,
   publisher    = {Zenodo},
-  version      = {v0.2.5},
-  doi          = {10.5281/zenodo.18783118},
-  url          = {https://doi.org/10.5281/zenodo.18783118}
+  doi          = {10.5281/zenodo.18288055},
+  url          = {https://doi.org/10.5281/zenodo.18288055}
 }
 ```
 
 Or use this text citation:
 
-> Aleinikov, A. (2026). Human Risk Graph: A Quantitative Model for Organizational Security Risk (v0.2.5). Zenodo. https://doi.org/10.5281/zenodo.18783118
+> Aleinikov, A. (2026). Human Risk Graph: A Quantitative Model for Organizational Security Risk. Zenodo. https://doi.org/10.5281/zenodo.18288055
+
+The DOI above always resolves to the latest release; each release also gets its own version DOI on [Zenodo](https://doi.org/10.5281/zenodo.18288055).
 
 ## License
 

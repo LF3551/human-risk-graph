@@ -3,7 +3,7 @@ Unit tests for HumanRiskGraph class.
 """
 
 import pytest
-from src.hrg import HumanRiskGraph
+from human_risk_graph.hrg import HumanRiskGraph
 
 
 class TestHumanRiskGraph:

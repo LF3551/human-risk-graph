@@ -9,11 +9,11 @@ import pandas as pd
 from pathlib import Path
 import sys
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Allow running from a source checkout without installing the package
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from src.hrg import HumanRiskGraph
-from src.graph_analysis import compute_betweenness_centrality
+from human_risk_graph import HumanRiskGraph
+from human_risk_graph.graph_analysis import compute_betweenness_centrality
 
 
 def load_data(filename: str):

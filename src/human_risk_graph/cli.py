@@ -13,9 +13,9 @@ import sys
 from pathlib import Path
 from datetime import datetime
 
-from src.hrg import HumanRiskGraph
-from src.reports import generate_json_report, generate_markdown_report, generate_html_report
-from src.visualization import generate_graph_visualization
+from .hrg import HumanRiskGraph
+from .reports import generate_json_report, generate_markdown_report, generate_html_report
+from .visualization import generate_graph_visualization
 
 
 @click.group()

@@ -12,10 +12,10 @@ import json
 import sys
 from pathlib import Path
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Allow running from a source checkout without installing the package
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from src.hrg import HumanRiskGraph
+from human_risk_graph import HumanRiskGraph
 
 
 def main():

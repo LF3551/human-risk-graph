@@ -31,7 +31,7 @@ All pull requests must pass the CI pipeline (tests, linting, security checks) be
 ### Tests
 - All new features must include unit tests in `tests/`
 - Existing tests must not be broken
-- Run: `pytest tests/ --cov=src`
+- Run: `pytest tests/ --cov=human_risk_graph`
 
 ### Commits
 - Use clear, descriptive commit messages
@@ -56,6 +56,18 @@ source venv/bin/activate
 pip install -e ".[dev]"
 pip install -r requirements.in
 ```
+
+## Releasing (maintainers)
+
+1. In a pull request, bump the version in `src/human_risk_graph/__init__.py`, `CITATION.cff` (`version`, `date-released`, `preferred-citation.version`) and `.zenodo.json`, and add a `CHANGELOG.md` entry. CI fails if these versions differ.
+2. After merging, publish a GitHub Release with tag `vX.Y.Z`.
+3. The release workflow then runs automatically:
+   - checks that the tag matches the project version;
+   - builds the sdist and wheel once;
+   - publishes them to PyPI via Trusted Publishing (no API token);
+   - attests build provenance and attaches the files with Sigstore signatures to the release;
+   - requests a Software Heritage archive.
+4. Zenodo mints a new version DOI from the release via its GitHub integration. The concept DOI [10.5281/zenodo.18288055](https://doi.org/10.5281/zenodo.18288055) always points to the latest version.
 
 ## License
 

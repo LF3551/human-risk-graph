@@ -1,23 +1,15 @@
 """
 Python version compatibility tests for HRG.
 
-Verifies that core functionality works correctly across Python 3.8-3.14,
+Verifies that core functionality works correctly across Python 3.10-3.14,
 including features and behaviors that may differ across versions.
 """
 
 import sys
 import importlib
-import pytest
 import networkx as nx
-from src.hrg import HumanRiskGraph
-from src.metrics import (
-    bus_factor_score,
-    decision_concentration_score,
-    bypass_risk_score,
-    composite_hrg_score,
-    interpret_risk_level,
-)
-from src.graph_analysis import find_articulation_points
+from human_risk_graph.hrg import HumanRiskGraph
+from human_risk_graph.metrics import interpret_risk_level
 
 
 PYTHON_VERSION = sys.version_info[:2]
@@ -27,8 +19,8 @@ class TestPythonVersionInfo:
     """Verify we're running on a supported Python version."""
 
     def test_python_version_supported(self):
-        """HRG supports Python 3.8 through 3.14."""
-        assert PYTHON_VERSION >= (3, 8), f"Python {PYTHON_VERSION} is below minimum 3.8"
+        """HRG supports Python 3.10 through 3.14."""
+        assert PYTHON_VERSION >= (3, 10), f"Python {PYTHON_VERSION} is below minimum 3.10"
 
     def test_version_string_parseable(self):
         """sys.version should be parseable."""
@@ -40,22 +32,22 @@ class TestImportCompatibility:
     """Verify all modules import cleanly on the current Python version."""
 
     def test_import_hrg(self):
-        mod = importlib.import_module("src.hrg")
+        mod = importlib.import_module("human_risk_graph.hrg")
         assert hasattr(mod, "HumanRiskGraph")
 
     def test_import_metrics(self):
-        mod = importlib.import_module("src.metrics")
+        mod = importlib.import_module("human_risk_graph.metrics")
         assert hasattr(mod, "bus_factor_score")
         assert hasattr(mod, "composite_hrg_score")
 
     def test_import_graph_analysis(self):
-        mod = importlib.import_module("src.graph_analysis")
+        mod = importlib.import_module("human_risk_graph.graph_analysis")
         assert hasattr(mod, "find_articulation_points")
 
     def test_import_package(self):
-        import src
-        assert hasattr(src, "__version__")
-        assert hasattr(src, "HumanRiskGraph")
+        import human_risk_graph
+        assert hasattr(human_risk_graph, "__version__")
+        assert hasattr(human_risk_graph, "HumanRiskGraph")
 
 
 class TestTypeHintCompatibility:

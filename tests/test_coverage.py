@@ -3,7 +3,7 @@ Additional tests to improve coverage for graph_analysis and metrics modules.
 """
 
 import networkx as nx
-from src.metrics import decision_concentration_score, bypass_risk_score
+from human_risk_graph.metrics import decision_concentration_score, bypass_risk_score
 
 
 class TestDecisionConcentrationEdgeCases:
@@ -138,4 +138,3 @@ class TestBypassRiskEdgeCases:
 
         score = bypass_risk_score(G, criticality, edge_types, critical_threshold=0.7)
         assert 0 <= score <= 1
-

@@ -3,7 +3,7 @@ Unit tests for graph analysis functions.
 """
 
 import networkx as nx
-from src.graph_analysis import (
+from human_risk_graph.graph_analysis import (
     find_articulation_points,
     find_bridges,
     find_critical_paths,

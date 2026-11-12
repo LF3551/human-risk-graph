@@ -20,7 +20,13 @@ def generate_graph_visualization(hrg, results, output_file):
     """
     # Create pyvis network
     net = Network(
-        height="750px", width="100%", bgcolor="#1a1a2e", font_color="white", directed=True
+        height="750px",
+        width="100%",
+        bgcolor="#1a1a2e",
+        font_color="white",
+        directed=True,
+        # "local" (default) copies a lib/ folder into the current working directory
+        cdn_resources="in_line",
     )
 
     # Configure physics for better layout

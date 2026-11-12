@@ -4,7 +4,7 @@ Unit tests for HRG metrics.
 
 import pytest
 import networkx as nx
-from src.metrics import (
+from human_risk_graph.metrics import (
     bus_factor_score,
     decision_concentration_score,
     decision_concentration_entropy,
