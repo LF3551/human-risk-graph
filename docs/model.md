@@ -108,6 +108,14 @@ $\text{round}(100 \cdot (1 - R))$.
 | 30-49 | F | High |
 | 0-29 | F | Critical |
 
+**What the score means.** The score is a structural index of how the organization is wired:
+who depends on whom, how approval authority is spread, and which controls can be
+overridden. It is not a calibrated probability of an incident, and two organizations with
+the same score can fail in different ways; read the three metrics and the findings, not
+only the number. It is as good as the graph: a dependency that exists only in practice
+(an approval in chat, an admin who never merges) is invisible until someone adds it, which
+is why `hrg scan` marks inferred dependencies as unconfirmed.
+
 ### 3.5 Fix plan
 
 `hrg analyze` simulates remediations, applies the one that lowers R the most, and repeats

@@ -14,6 +14,7 @@ Exit codes: 0 success, 1 invalid input or error, 2 usage error, 3 score below
 import click
 import hashlib
 import sys
+from collections import Counter
 from pathlib import Path
 from datetime import datetime
 
@@ -26,6 +27,14 @@ from .ci_reports import generate_junit_report, generate_sarif_report
 from .config import Config, ConfigError, apply_acceptances, load_config
 from .console import render_summary
 from .findings import collect_findings, threshold_breach
+from .github_scan import (
+    GitHubClient,
+    GitHubError,
+    GitHubScanner,
+    default_token,
+    draft_yaml,
+    merge_with_existing,
+)
 from .hrg import HumanRiskGraph
 from .loader import load_organization, organization_schema
 from .model_v2 import MODEL_V2, MODELS
@@ -198,6 +207,9 @@ def analyze(
         "person_lookup": person_lookup,
         "dependency_type_counts": dependency_type_counts,
         "config_file": config.path.name if config.path else None,
+        "unconfirmed_dependencies": sum(
+            1 for d in data["dependencies"] if d.get("confirmed") is False
+        ),
     }
 
     # Generate reports
@@ -364,6 +376,94 @@ def diff(ctx, old_file, new_file, fmt, output, fail_on_increase, model, config_p
 def schema():
     """Print the JSON Schema for organization files."""
     click.echo(organization_schema(), nl=False)
+
+
+@cli.group()
+def scan():
+    """Build a draft organization file from real data."""
+
+
+@scan.command("github")
+@click.argument("repo")
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(dir_okay=False, path_type=Path),
+    help="Draft file to write (default: REPO-org.yaml). An existing draft is updated.",
+)
+@click.option("--branch", help="Protected branch to analyze (default: the default branch).")
+@click.option(
+    "--max-prs",
+    type=click.IntRange(1, 1000),
+    default=100,
+    show_default=True,
+    help="Most recent merged pull requests to read.",
+)
+@click.option("--include-bots", is_flag=True, help="Keep bot accounts such as dependabot[bot].")
+@click.option(
+    "--token",
+    envvar="HRG_GITHUB_TOKEN",
+    help="GitHub token (default: GITHUB_TOKEN, GH_TOKEN or `gh auth token`).",
+)
+def scan_github(repo, output, branch, max_prs, include_bots, token):
+    """
+    Draft an organization from a GitHub repository.
+
+    REPO is OWNER/NAME. Reads pull request reviews, CODEOWNERS, branch rules and merges
+    without review, and writes a YAML draft where every dependency has its source,
+    evidence and confirmed: false. Review the draft, then run hrg analyze on it.
+
+    Example:
+        hrg scan github my-org/payments-api
+        hrg analyze payments-api-org.yaml
+    """
+    console = Console(stderr=True, highlight=False)
+    output = output or Path(f"{repo.split('/')[-1]}-org.yaml")
+    existing = None
+    if output.exists():
+        try:
+            existing = load_organization(output)
+        except ValueError as e:
+            click.echo(f"Error: {e}", err=True)
+            sys.exit(1)
+
+    client = GitHubClient(token or default_token())
+    if not client.token:
+        console.print("[yellow]No GitHub token: limited to 60 requests per hour.[/]")
+    try:
+        with console.status(f"Scanning {repo}") as status:
+            scanner = GitHubScanner(
+                client,
+                repo,
+                branch=branch,
+                max_prs=max_prs,
+                include_bots=include_bots,
+                progress=lambda message: status.update(f"{repo}: {message}"),
+            )
+            result = scanner.scan()
+    except (GitHubError, ValueError) as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+    notes = merge_with_existing(result, existing)
+    output.write_text(draft_yaml(result, notes), encoding="utf-8")
+
+    kinds = Counter(d["type"] for d in result.dependencies)
+    unconfirmed = sum(1 for d in result.dependencies if d.get("confirmed") is False)
+    console.print(
+        f"\n[bold]{repo}[/] · {result.pull_requests} merged PRs on {result.branch} · "
+        f"{result.api_calls} API calls"
+    )
+    people = len(result.people)
+    console.print(
+        f"  {people} {'person' if people == 1 else 'people'} · "
+        + "".join(f"{n} {kind} · " for kind, n in sorted(kinds.items()))
+        + f"{unconfirmed} to confirm"
+    )
+    for note in [*result.notes, *notes]:
+        console.print(f"  [dim]{note}[/]")
+    console.print(f"\n  Draft written to [cyan]{output}[/]")
+    console.print(f"  Next: review it, set confirmed: true, then [bold]hrg analyze {output}[/]\n")
 
 
 def main():

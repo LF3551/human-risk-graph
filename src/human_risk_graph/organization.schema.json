@@ -70,6 +70,18 @@
             "maximum": 1,
             "default": 0.5,
             "description": "Strength of the dependency, from 0 to 1."
+          },
+          "source": {
+            "type": "string",
+            "description": "Where the dependency comes from, e.g. pr-reviews, codeowners, branch-rules (set by hrg scan)."
+          },
+          "evidence": {
+            "type": "string",
+            "description": "Why the dependency was inferred."
+          },
+          "confirmed": {
+            "type": "boolean",
+            "description": "false until a person has checked the dependency; reports count unconfirmed ones."
           }
         }
       }
