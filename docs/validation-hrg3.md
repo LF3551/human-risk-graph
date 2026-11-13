@@ -110,3 +110,78 @@ CSV is the data the results were computed from.
   confounded with project size, which analysis 2 addresses only partly.
 - Popular PyPI packages are not a random sample of software, let alone of organizations.
 - The outcome does not distinguish a planned handover from a loss.
+
+---
+
+## Results (run of 2026-11-13, hrg 0.14.0)
+
+Everything above this line is the protocol as committed in d8514d4 before the data was
+collected. Data: [benchmark/validation/data.csv](../benchmark/validation/data.csv), one
+row per package; analyses: [benchmark/validation/results.json](../benchmark/validation/results.json).
+
+### Sample
+
+Of the 1,000 packages, **284 repositories** were included.
+
+| Excluded | Packages |
+|---|---:|
+| Fewer than 3 GitHub releases in W | 303 |
+| Same repository as a higher-ranked package (monorepos such as Azure SDK, Google Cloud) | 202 |
+| No release by a person | 90 |
+| No GitHub repository in the PyPI metadata | 86 |
+| Releases mainly published by automation | 34 |
+| Repository not reachable | 1 |
+
+192 of the 284 (68%) had a single releaser in W. 33 projects (12%) published no release
+in the 12 months after T0.
+
+### Primary outcome: release stall
+
+| Analysis | Exposed | Unexposed | Risk ratio (95% CI) | p |
+|---|---|---|---|---|
+| **H1** single releaser vs two or more | 30 / 192 (15.6%) | 3 / 92 (3.3%) | **4.79 (1.50–15.29)** | 0.0014 |
+| **H2** H1 stratified by release count (Mantel-Haenszel) | | | 2.66 (0.77–9.18) | |
+| Baseline: commit truck factor 1 vs ≥ 2 | 23 / 178 (12.9%) | 7 / 103 (6.8%) | 1.90 (0.85–4.28) | 0.16 |
+| Single releaser, among projects with truck factor ≥ 2 | 5 / 42 (11.9%) | 2 / 61 (3.3%) | 3.63 (0.74–17.84) | 0.12 |
+
+Strata of H2 (releases in W, by tercile): low 20/69 vs 1/10, middle 10/77 vs 1/32, high
+0/46 vs 1/50.
+
+### Secondary outcome (exploratory): first release more than 180 days after T0
+
+| Analysis | Exposed | Unexposed | Risk ratio (95% CI) | p |
+|---|---|---|---|---|
+| Single releaser vs two or more | 61 / 192 (31.8%) | 12 / 92 (13.0%) | 2.44 (1.38–4.29) | 0.0008 |
+| Stratified by release count | | | 1.39 (0.82–2.37) | |
+| Baseline: commit truck factor 1 | 52 / 178 (29.2%) | 18 / 103 (17.5%) | 1.67 (1.04–2.70) | 0.032 |
+| Single releaser, truck factor ≥ 2 | 11 / 42 (26.2%) | 7 / 61 (11.5%) | 2.28 (0.96–5.41) | 0.067 |
+
+### Interpretation
+
+- **H1 is supported.** Projects whose releases were published by one person before T0
+  stopped releasing in the following year almost five times as often as projects with two
+  or more release authors, and the interval excludes 1.
+- **H2 is not established.** Stratified by how many releases a project published, the risk
+  ratio stays above 1 (2.66) but the interval includes 1. Part of the crude effect is
+  project activity: projects that release rarely both have one releaser more often and
+  stall more often. The study cannot separate the two with 33 stalls; most of the
+  information sits in the low-activity stratum, where only 10 projects had two releasers.
+- **The release margin was a stronger signal than commit concentration** (4.79 vs 1.90 on
+  the primary outcome; only the release margin's interval excludes 1). Among projects that
+  commit concentration does not flag, a single releaser still went with a higher stall
+  rate (3.63), but with 103 projects the interval is wide. This is consistent with HRG
+  adding information beyond a commit-based truck factor, not proof of it.
+
+In short: the hrg-3 release function, computed from data before T0, predicted which
+popular Python projects would stop releasing, better than a commit-based truck factor; how
+much of that is the single person rather than low activity is not settled by this sample.
+
+### Deviations from the protocol
+
+None. The pilot changes are part of the committed protocol.
+
+### Next
+
+- A larger frame (the top 5,000 packages) for the stratified analysis, under a new protocol
+  committed before its data is collected.
+- The same design for the merge function and for bypasses of a required review.
