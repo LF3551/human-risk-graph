@@ -1,0 +1,186 @@
+name: Human Risk Graph
+description: Find single points of failure, approval concentration and control bypasses in who approves what, and gate CI on the score.
+author: Aleksei Aleinikov
+branding:
+  icon: users
+  color: purple
+
+inputs:
+  file:
+    description: Organization file (JSON or YAML) to analyze. Set either `file` or `scan`.
+    required: false
+    default: ""
+  scan:
+    description: Repository (OWNER/REPO) to draft an organization from with `hrg scan github` before the analysis. Set either `file` or `scan`.
+    required: false
+    default: ""
+  max-prs:
+    description: With `scan`, the most recent merged pull requests to read.
+    required: false
+    default: "100"
+  token:
+    description: GitHub token used by `scan`.
+    required: false
+    default: ${{ github.token }}
+  config:
+    description: Config file (default hrg.toml, .hrg.toml or [tool.hrg] in pyproject.toml in the working directory).
+    required: false
+    default: ""
+  min-score:
+    description: Fail if the score (0-100) is below this value. Accepted risks in the config are honoured.
+    required: false
+    default: ""
+  fail-above:
+    description: Fail if the composite risk (0-1) is above this value.
+    required: false
+    default: ""
+  output-dir:
+    description: Directory for the reports.
+    required: false
+    default: hrg-report
+  upload-sarif:
+    description: Upload findings to GitHub code scanning (needs `security-events write`; only with `file`).
+    required: false
+    default: "true"
+  sarif-category:
+    description: Code scanning category for the uploaded SARIF.
+    required: false
+    default: human-risk-graph
+  upload-artifact:
+    description: Upload the reports as a workflow artifact.
+    required: false
+    default: "true"
+  artifact-name:
+    description: Name of the workflow artifact.
+    required: false
+    default: human-risk-graph-report
+  python-version:
+    description: Python version to run the tool with.
+    required: false
+    default: "3.12"
+  version:
+    description: human-risk-graph version from PyPI (default the version of this action).
+    required: false
+    default: ""
+
+outputs:
+  score:
+    description: Score from 0 to 100, higher is better.
+    value: ${{ steps.analyze.outputs.score }}
+  grade:
+    description: Grade from A to F.
+    value: ${{ steps.analyze.outputs.grade }}
+  risk-level:
+    description: Low, Moderate, High or Critical.
+    value: ${{ steps.analyze.outputs.risk-level }}
+  errors:
+    description: Number of open error findings.
+    value: ${{ steps.analyze.outputs.errors }}
+  warnings:
+    description: Number of open warning findings.
+    value: ${{ steps.analyze.outputs.warnings }}
+  report-dir:
+    description: Directory with the HTML, Markdown, JSON and SARIF reports.
+    value: ${{ steps.analyze.outputs.report-dir }}
+  sarif-file:
+    description: Path of the SARIF report.
+    value: ${{ steps.analyze.outputs.sarif-file }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      id: python
+      uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+      with:
+        python-version: ${{ inputs.python-version }}
+        update-environment: false
+
+    - name: Install human-risk-graph
+      id: install
+      shell: bash
+      env:
+        PYTHON: ${{ steps.python.outputs.python-path }}
+        HRG_VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+        venv="$RUNNER_TEMP/hrg-venv"
+        "$PYTHON" -m venv "$venv"
+        if [ -x "$venv/bin/python" ]; then py="$venv/bin/python"; else py="$venv/Scripts/python.exe"; fi
+        if [ -n "$HRG_VERSION" ]; then spec="human-risk-graph==$HRG_VERSION"; else spec="$GITHUB_ACTION_PATH"; fi
+        "$py" -m pip install --quiet --disable-pip-version-check "$spec"
+        echo "python=$py" >> "$GITHUB_OUTPUT"
+
+    - name: Analyze
+      id: analyze
+      shell: bash
+      env:
+        HRG_PY: ${{ steps.install.outputs.python }}
+        HRG_FILE: ${{ inputs.file }}
+        HRG_SCAN: ${{ inputs.scan }}
+        HRG_MAX_PRS: ${{ inputs.max-prs }}
+        HRG_GITHUB_TOKEN: ${{ inputs.token }}
+        HRG_CONFIG: ${{ inputs.config }}
+        HRG_MIN_SCORE: ${{ inputs.min-score }}
+        HRG_FAIL_ABOVE: ${{ inputs.fail-above }}
+        HRG_OUT: ${{ inputs.output-dir }}
+        PYTHONUTF8: "1"
+      run: |
+        set -uo pipefail
+        hrg() { "$HRG_PY" -m human_risk_graph.cli "$@"; }
+        if { [ -n "$HRG_FILE" ] && [ -n "$HRG_SCAN" ]; } || { [ -z "$HRG_FILE" ] && [ -z "$HRG_SCAN" ]; }; then
+          echo "::error::Set exactly one of the inputs 'file' and 'scan'."
+          exit 1
+        fi
+        mkdir -p "$HRG_OUT"
+
+        input="$HRG_FILE"
+        if [ -n "$HRG_SCAN" ]; then
+          input="$HRG_OUT/${HRG_SCAN##*/}-org.yaml"
+          hrg scan github "$HRG_SCAN" --output "$input" --max-prs "$HRG_MAX_PRS" || exit 1
+        fi
+        unset HRG_GITHUB_TOKEN
+
+        args=(analyze "$input" --format all --format sarif --output "$HRG_OUT/report" --no-visualize)
+        if [ -n "$HRG_CONFIG" ]; then args+=(--config "$HRG_CONFIG"); fi
+        if [ -n "$HRG_MIN_SCORE" ]; then args+=(--min-score "$HRG_MIN_SCORE"); fi
+        if [ -n "$HRG_FAIL_ABOVE" ]; then args+=(--fail-above "$HRG_FAIL_ABOVE"); fi
+        # Exit code 3 is a threshold breach: publish the reports first, fail in the last step.
+        code=0
+        hrg "${args[@]}" || code=$?
+        if [ "$code" -ne 0 ] && [ "$code" -ne 3 ]; then
+          exit "$code"
+        fi
+
+        stem="$(basename "$input")"
+        stem="${stem%.*}"
+        report="$HRG_OUT/${stem}_report"
+        "$HRG_PY" -m human_risk_graph.gha summary "$report.json" >> "$GITHUB_STEP_SUMMARY"
+        {
+          "$HRG_PY" -m human_risk_graph.gha outputs "$report.json"
+          echo "report-dir=$HRG_OUT"
+          echo "sarif-file=$report.sarif"
+          echo "exit-code=$code"
+        } >> "$GITHUB_OUTPUT"
+
+    - name: Upload SARIF to code scanning
+      if: inputs.upload-sarif == 'true' && inputs.file != ''
+      uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+      with:
+        sarif_file: ${{ steps.analyze.outputs.sarif-file }}
+        category: ${{ inputs.sarif-category }}
+
+    - name: Upload reports
+      if: inputs.upload-artifact == 'true'
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ steps.analyze.outputs.report-dir }}
+        if-no-files-found: error
+
+    - name: Check thresholds
+      if: steps.analyze.outputs.exit-code == '3'
+      shell: bash
+      run: |
+        echo "::error::Human Risk Graph: the score breaks the configured threshold (see the job summary)."
+        exit 1

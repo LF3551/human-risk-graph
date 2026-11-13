@@ -1,0 +1,88 @@
+name: Action
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions: read-all
+
+jobs:
+  file:
+    name: Analyze a file (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./
+        id: hrg
+        with:
+          file: examples/organization.yaml
+          upload-sarif: "false"
+          artifact-name: hrg-report-${{ matrix.os }}
+      - name: Check outputs
+        shell: bash
+        env:
+          SCORE: ${{ steps.hrg.outputs.score }}
+          GRADE: ${{ steps.hrg.outputs.grade }}
+          ERRORS: ${{ steps.hrg.outputs.errors }}
+          SARIF: ${{ steps.hrg.outputs.sarif-file }}
+        run: |
+          set -eu
+          test "$SCORE" = 25 && test "$GRADE" = F && test "$ERRORS" = 3
+          for ext in json md html sarif; do test -s "hrg-report/organization_report.$ext"; done
+          test -s "$SARIF"
+
+  threshold:
+    name: Fail below min-score
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./
+        id: gate
+        continue-on-error: true
+        with:
+          file: examples/organization.yaml
+          min-score: "90"
+          upload-sarif: "false"
+          artifact-name: hrg-report-threshold
+      - name: Check that the gate failed after publishing outputs
+        shell: bash
+        env:
+          OUTCOME: ${{ steps.gate.outcome }}
+          SCORE: ${{ steps.gate.outputs.score }}
+        run: test "$OUTCOME" = failure && test "$SCORE" = 25
+
+  scan:
+    name: Scan this repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./
+        id: hrg
+        with:
+          scan: ${{ github.repository }}
+          max-prs: "20"
+          artifact-name: hrg-report-scan
+      - name: Check outputs
+        shell: bash
+        env:
+          SCORE: ${{ steps.hrg.outputs.score }}
+        run: test -n "$SCORE"

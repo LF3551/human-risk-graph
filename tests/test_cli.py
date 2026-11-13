@@ -1,3 +1,4 @@
+import io
 import json
 import shutil
 from pathlib import Path
@@ -6,7 +7,16 @@ import pytest
 from click.testing import CliRunner
 
 from human_risk_graph import __version__
-from human_risk_graph.cli import cli
+from human_risk_graph.cli import _tolerate_encoding, cli
+
+
+def test_non_utf8_console_does_not_crash():
+    raw = io.BytesIO()
+    stream = io.TextIOWrapper(raw, encoding="cp1252")
+    _tolerate_encoding([stream])
+    stream.write("Score \u2588\u2588\u2591 \u00b7 \u25b2 HRG001")
+    stream.flush()
+    assert raw.getvalue() == "Score ??? \u00b7 ? HRG001".encode("cp1252")
 
 
 def test_version_matches_package():
