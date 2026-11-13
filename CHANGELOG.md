@@ -5,6 +5,23 @@ All notable changes to Human Risk Graph will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.1] - 2026-11-13
+
+### 🐛 Fixed
+
+- hrg-2: bypass dependencies no longer count as connections for key-person risk and the bus factor. A new bypass could make a key person look less critical and raise the score. Now adding a bypass never improves the score (property-tested). Scores of organizations with bypasses can go down; the bundled example goes from 61 to 52 and reports more single points of failure.
+- Fix plan: a second-person check on a bypass removes the bypass instead of turning it into an escalation, which could add a connection that did not exist.
+- `hrg scan github`: a pull request merged without an approving review counts as a bypass only when the branch visibly requires reviews. Without that requirement there is no control to bypass, and when the requirement is not visible it is reported as a data gap.
+- HTML report: the main-driver sentence was missing a full stop between the headline and the detail.
+
+### ✨ Added
+
+- Drafts from `hrg scan` have a `coverage` section: source, branch, number of pull requests, whether reviews are required (`true`, `false` or `unknown`) and `gaps`, the data the token could not see (protection settings, ruleset bypass actors, team members, admins). Every report shows the gaps, because what the scan could not see is not evidence that it does not exist. JSON metadata has `coverage_gaps`.
+
+### 📝 Documentation
+
+- docs/model.md: the support graph without bypasses; the weights 0.4 / 0.3 / 0.3 are model parameters, not calibrated values.
+
 ## [0.8.0] - 2026-11-13
 
 ### ✨ Added

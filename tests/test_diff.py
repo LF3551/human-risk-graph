@@ -37,7 +37,8 @@ def test_compare_structure():
     assert [(d["from"], d["to"]) for d in diff["dependencies"]["removed"]] == [("a", "c")]
     [changed] = diff["dependencies"]["changed"]
     assert changed["old"]["type"] == "approval" and changed["new"]["type"] == "bypass"
-    assert diff["single_points_of_failure"] == {"introduced": ["b"], "resolved": ["a"]}
+    # a only keeps a bypass, which does not connect anyone: a stops being a key person.
+    assert diff["single_points_of_failure"] == {"introduced": [], "resolved": ["a"]}
     json.dumps(diff)
 
 
@@ -62,7 +63,7 @@ def test_formats_list_changes():
     text = format_text(diff)
     markdown = format_markdown(diff)
 
-    for line in ("+ person d", "- person c", "+ single point of failure b"):
+    for line in ("+ person d", "- person c", "- single point of failure a"):
         assert line in text
         assert line in markdown
     assert "~ dependency a -> b (approval, 0.50) => a -> b (bypass, 0.90)" in text

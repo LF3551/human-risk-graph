@@ -26,16 +26,19 @@ def test_example_findings():
     keys = [f.key for f in findings]
 
     assert keys == [
+        "HRG001:anna.mueller",
         "HRG001:ines.silva",
         "HRG001:johan.lindberg",
+        "HRG001:luca.rossi",
+        "HRG001:marie.dubois",
         "HRG002:luca.rossi",
         "HRG003:elena.popescu->anna.mueller",
         "HRG003:luca.rossi->carlos.garcia",
         "HRG003:marie.dubois->carlos.garcia",
     ]
-    # Single points of failure below the critical threshold are warnings.
-    assert {f.level for f in findings} == {"warning"}
-    assert "44% of the approval weight" in findings[2].message
+    # Single points of failure at or above the critical threshold are errors.
+    assert [f.level for f in findings[:5]] == ["error", "warning", "warning", "error", "error"]
+    assert "44% of the approval weight" in findings[5].message
 
 
 def test_critical_single_point_of_failure_is_error():
@@ -65,7 +68,7 @@ def test_every_rule_maps_to_all_frameworks():
 
 def test_finding_to_dict():
     _, _, findings = analyze(EXAMPLE)
-    d = findings[3].to_dict()
+    d = findings[6].to_dict()
     assert d["dependency"] == {"from": "elena.popescu", "to": "anna.mueller"}
     assert {"id": "A.5.3", "title": "Segregation of duties"} in d["controls"]["iso27001"]
 
@@ -107,7 +110,7 @@ def test_junit_report():
     assert suite.get("tests") == "4"
     assert suite.get("failures") == "3"
     assert suite.get("skipped") == "1"
-    assert cases["HRG001"].find("failure").get("type") == "warning"
+    assert cases["HRG001"].find("failure").get("type") == "error"
     assert cases["HRG004"].find("skipped") is not None
 
 

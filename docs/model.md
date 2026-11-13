@@ -45,8 +45,11 @@ concentration of 0 (the Gini coefficient of one value), the bus factor is divide
 the same single point of failure looks harmless in a large organization, and the linear
 composite lets one severe weakness be averaged away by two good metrics. hrg-2 fixes all three.
 
-Let U be the undirected version of G. Connectivity uses every dependency type, including
-bypasses: an emergency path is still a path.
+Let U be the undirected graph of the approval, escalation and other non-bypass dependencies
+(the **support graph**). Bypasses are left out on purpose: being able to override someone
+does not make the organization less dependent on them, and counting an override as a path
+would let a new bypass lower key-person risk. Bypasses are measured by B instead.
+(Before 0.8.1, U included bypasses.)
 
 ### 3.1 Key-person risk (K)
 
@@ -99,6 +102,11 @@ metrics are 1, R is increasing in each metric, and a single metric at 1 contribu
 its linear share (for example 0.57 instead of 0.4 for K). The **score** is
 $\text{round}(100 \cdot (1 - R))$.
 
+The weights are model parameters, not empirically calibrated values: they express that a
+key person weighs a little more than concentration or overrides. Set them in `hrg.toml`
+(`[weights]`) if your organization weighs these risks differently, and compare scores
+only under the same weights.
+
 | Score | Grade | Risk level |
 |-------|-------|------------|
 | 90-100 | A | Low |
@@ -124,8 +132,8 @@ is why `hrg scan` marks inferred dependencies as unconfirmed.
 - **Deputy** for a key person or one of the top three approvers: a new person with the same
   criticality who shares each of their approvals (the weight is split in two), has the same
   escalations and can be overridden by the same bypasses, but does not get their bypass powers.
-- **Second-person check on a bypass** involving a critical person: the bypass is treated as
-  an escalation.
+- **Second-person check on a bypass** involving a critical person: the bypass is no longer a
+  single-person override and is removed.
 
 A deputy removes a person's own impact, but adds one more person behind any other
 bottleneck, so a deputy is not always an improvement; the plan only lists steps that lower R
@@ -135,7 +143,8 @@ by at least half a point.
 
 - K, D, B, R ∈ [0, 1]; R is increasing in each metric.
 - K does not decrease when any criticality increases.
-- Adding a bypass never decreases B; putting a check on a bypass never increases R.
+- Adding a bypass never decreases B and never improves the score; it does not change K or
+  the bus factor. Putting a check on a bypass never increases R.
 - A deputy never increases the person's own impact.
 - Relabelling people does not change any result.
 - Reference structures: star (K = C(c), independent of size), single approver (D = 1),

@@ -5,12 +5,13 @@ Evidence used, all readable with a token that can read the repository:
 
 - Pull request reviews: who approved whose merged pull requests (``approval``).
 - CODEOWNERS: who must approve changes to the files a pull request touched (``approval``).
-- Pull requests merged without an approving review from someone else (``bypass`` from the
-  person who merged to the approvers they skipped).
+- Pull requests merged without an approving review from someone else, when the branch
+  visibly requires reviews (``bypass`` from the person who merged to the approvers).
 - Branch rules and ruleset bypass actors, when the token can see them (``bypass``).
 
 Technical permissions and history do not prove real authority, so every dependency is
-written with ``source``, ``evidence`` and ``confirmed: false`` for a person to review.
+written with ``source``, ``evidence`` and ``confirmed: false`` for a person to review, and
+what the token could not see is listed under ``coverage.gaps``.
 """
 
 import base64
@@ -180,6 +181,19 @@ class ScanResult:
     dependencies: List[Dict[str, Any]]
     notes: List[str]
     api_calls: int
+    review_required: Optional[bool] = None
+    gaps: List[str] = field(default_factory=list)
+
+    def coverage(self) -> Dict[str, Any]:
+        return {
+            "source": f"github {self.repo}",
+            "branch": self.branch,
+            "pull_requests": self.pull_requests,
+            "review_required": (
+                "unknown" if self.review_required is None else self.review_required
+            ),
+            "gaps": self.gaps,
+        }
 
 
 def _is_bot(login: str) -> bool:
@@ -206,6 +220,7 @@ class GitHubScanner:
         self.include_bots = include_bots
         self.progress = progress or (lambda message: None)
         self.notes: List[str] = []
+        self.gaps: List[str] = []
         self.team_members: Dict[str, Optional[List[str]]] = {}
 
     # Helpers
@@ -224,7 +239,7 @@ class GitHubScanner:
             org, slug = handle.split("/", 1)
             members = self.client.get(f"orgs/{org}/teams/{slug}/members", {"per_page": 100}, 500)
             if members is None:
-                self.notes.append(f"Members of team @{handle} are not visible; kept as one node.")
+                self.gaps.append(f"Members of team @{handle} are not visible; kept as one node.")
             self.team_members[handle] = [m["login"] for m in members] if members else None
         return self.team_members[handle] or [f"@{handle}"]
 
@@ -238,55 +253,67 @@ class GitHubScanner:
         self.notes.append("No CODEOWNERS file found.")
         return []
 
-    def _bypass_actors(self) -> Tuple[Set[str], Optional[Dict[str, Any]]]:
-        """People who can bypass branch rules, and the pull request rule if any."""
+    def _bypass_actors(self) -> Tuple[Set[str], Optional[bool]]:
+        """People who can bypass branch rules, and whether reviews are required (None: unknown)."""
         actors: Set[str] = set()
-        pr_rule = None
+        review_required: Optional[bool] = False
         rules = self.client.get(f"repos/{self.repo}/rules/branches/{self.branch}")
         ruleset_ids = set()
         for rule in rules or []:
             ruleset_ids.add(rule.get("ruleset_id"))
             if rule.get("type") == "pull_request":
-                pr_rule = rule.get("parameters") or {}
+                params = rule.get("parameters") or {}
+                if params.get("required_approving_review_count") or params.get(
+                    "require_code_owner_review"
+                ):
+                    review_required = True
         for ruleset_id in sorted(i for i in ruleset_ids if i):
             ruleset = self.client.get(
                 f"repos/{self.repo}/rulesets/{ruleset_id}", {"includes_parents": "true"}
             )
             bypass = (ruleset or {}).get("bypass_actors")
             if bypass is None:
-                self.notes.append(
+                self.gaps.append(
                     f"Bypass actors of ruleset {ruleset_id} are not visible (needs admin access)."
                 )
                 continue
             for actor in bypass:
                 actors |= self._actor_logins(actor)
 
+        branch = self.client.get(f"repos/{self.repo}/branches/{self.branch}") or {}
         protection = self.client.get(f"repos/{self.repo}/branches/{self.branch}/protection")
         if protection:
             reviews = protection.get("required_pull_request_reviews") or {}
-            pr_rule = pr_rule or {
-                "required_approving_review_count": reviews.get("required_approving_review_count"),
-                "require_code_owner_review": reviews.get("require_code_owners_reviews"),
-            }
+            if reviews.get("required_approving_review_count") or reviews.get(
+                "require_code_owners_reviews"
+            ):
+                review_required = True
             allowances = reviews.get("bypass_pull_request_allowances") or {}
             actors |= {u["login"] for u in allowances.get("users", [])}
             for team in allowances.get("teams", []):
                 actors |= set(self._expand(f"@{self.org}/{team['slug']}"))
-            if not (protection.get("enforce_admins") or {}).get("enabled"):
+            if reviews and not (protection.get("enforce_admins") or {}).get("enabled"):
                 actors |= self._admins("branch protection does not apply to admins")
-        elif not rules:
-            self.notes.append(
-                f"No branch rules on {self.branch} are visible; bypasses come only from "
-                "merge history."
+        elif branch.get("protected") and not rules:
+            self.gaps.append(
+                f"Branch {self.branch} is protected but its protection settings are not "
+                "visible (needs admin access): required reviews and bypass allowances unknown."
             )
-        return {a for a in actors if self._keep(a)}, pr_rule
+            review_required = None
+        elif branch.get("protected"):
+            self.gaps.append(
+                f"Classic protection settings of {self.branch} are not visible (needs admin "
+                "access); only rulesets were read."
+            )
+            review_required = review_required or None
+        return {a for a in actors if self._keep(a)}, review_required
 
     def _admins(self, why: str) -> Set[str]:
         admins = self.client.get(
             f"repos/{self.repo}/collaborators", {"permission": "admin", "per_page": 100}, 500
         )
         if admins is None:
-            self.notes.append(f"Repository admins are not visible ({why}; needs push access).")
+            self.gaps.append(f"Repository admins are not visible ({why}; needs push access).")
             return set()
         return {a["login"] for a in admins}
 
@@ -299,14 +326,14 @@ class GitHubScanner:
                 f"orgs/{self.org}/members", {"role": "admin", "per_page": 100}, 500
             )
             if owners is None:
-                self.notes.append("Organization owners can bypass rules but are not visible.")
+                self.gaps.append("Organization owners can bypass rules but are not visible.")
                 return set()
             return {o["login"] for o in owners}
         if kind == "Team":
             team = self.client.get(f"teams/{actor.get('actor_id')}")
             if team and team.get("slug"):
                 return set(self._expand(f"@{self.org}/{team['slug']}"))
-            self.notes.append(f"Team {actor.get('actor_id')} can bypass rules but is not visible.")
+            self.gaps.append(f"Team {actor.get('actor_id')} can bypass rules but is not visible.")
             return set()
         self.notes.append(f"Bypass actor of type {kind} ignored (not a person).")
         return set()
@@ -322,13 +349,11 @@ class GitHubScanner:
         self.progress("Reading CODEOWNERS and branch rules")
         codeowners = self._codeowners()
         only_default_rule = all(pattern in ("*", "/*", "**") for _, pattern, _ in codeowners)
-        bypassers, pr_rule = self._bypass_actors()
-        if pr_rule:
-            self.notes.append(
-                f"Branch {self.branch} requires {pr_rule.get('required_approving_review_count', 0)}"
-                " approving review(s)"
-                + (" from code owners." if pr_rule.get("require_code_owner_review") else ".")
-            )
+        bypassers, review_required = self._bypass_actors()
+        if review_required:
+            self.notes.append(f"Branch {self.branch} requires approving reviews.")
+        elif review_required is False:
+            self.notes.append(f"Branch {self.branch} does not require approving reviews.")
 
         self.progress(f"Reading up to {self.max_prs} merged pull requests")
         pulls = self.client.get(
@@ -403,10 +428,27 @@ class GitHubScanner:
             if self._keep(merger):
                 unreviewed_merges[merger].append(number)
 
-        return self._build(
+        unreviewed = sum(len(n) for n in unreviewed_merges.values())
+        if unreviewed and not review_required:
+            why = (
+                "the branch does not require reviews"
+                if review_required is False
+                else "whether the branch requires reviews is not visible"
+            )
+            message = (
+                f"{unreviewed} pull request(s) were merged without an approving review; "
+                f"{why}, so they are not counted as bypasses."
+            )
+            (self.notes if review_required is False else self.gaps).append(message)
+            unreviewed_merges.clear()
+
+        result = self._build(
             merged, authored, approvals, owner_reviews, unreviewed_merges, bypassers,
             approvers_seen, owners_seen,
         )  # fmt: skip
+        result.review_required = review_required
+        result.gaps = self.gaps
+        return result
 
     def _build(
         self, merged, authored, approvals, owner_reviews, unreviewed_merges, bypassers,
@@ -559,12 +601,18 @@ def draft_yaml(result: ScanResult, notes: Iterable[str] = ()) -> str:
         "# real authority. For every dependency check `evidence`, fix `type` or `weight`, and",
         "# set `confirmed: true`. Adjust `criticality` (0-1) to how much the work of each",
         "# person matters. Re-running the scan keeps your confirmations and criticality.",
+        "# `coverage.gaps` lists what the token could not see: a missing bypass there is not",
+        "# evidence that none exists.",
         "#",
         *[f"# Note: {n}" for n in [*result.notes, *notes]],
         "",
     ]
     body = yaml.safe_dump(
-        {"people": result.people, "dependencies": result.dependencies},
+        {
+            "coverage": result.coverage(),
+            "people": result.people,
+            "dependencies": result.dependencies,
+        },
         sort_keys=False,
         allow_unicode=True,
         width=100,

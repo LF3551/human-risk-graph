@@ -10,6 +10,24 @@
       "type": "string",
       "description": "Schema reference for editor support; ignored by the tool."
     },
+    "coverage": {
+      "type": "object",
+      "description": "Written by hrg scan: where the data comes from and what could not be seen.",
+      "properties": {
+        "source": { "type": "string" },
+        "branch": { "type": "string" },
+        "pull_requests": { "type": "integer", "minimum": 0 },
+        "review_required": {
+          "description": "Whether the branch requires approving reviews; unknown when not visible.",
+          "enum": [true, false, "unknown"]
+        },
+        "gaps": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Data the scan could not see; shown in every report."
+        }
+      }
+    },
     "people": {
       "type": "array",
       "description": "Everyone who takes part in approvals, escalations or bypasses.",

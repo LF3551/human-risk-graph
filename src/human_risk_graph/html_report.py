@@ -89,7 +89,9 @@ def _verdict(results: Dict[str, Any], tiles: List[Dict[str, str]]) -> str:
     if max(contributions) <= 0:
         return "No structural weakness found in the dependency data."
     tile = tiles[contributions.index(max(contributions))]
-    return f"Main driver: {tile['label'].lower()} — {tile['headline']} {tile['detail']}"
+    detail = tile["detail"]
+    separator = ". " if detail[:1].isupper() else " "
+    return f"Main driver: {tile['label'].lower()} — {tile['headline']}{separator}{detail}"
 
 
 def _tiles(results: Dict[str, Any], people: Dict[str, Dict[str, Any]]) -> List[Dict[str, str]]:
@@ -187,7 +189,7 @@ def _fixes_html(fixes: List[Dict[str, Any]], score: int) -> str:
   to <strong>{final}</strong> (grade {grade_for_score(score)} → {grade_for_score(final)}).</p>
 <ol class="fixes">{''.join(cards)}</ol>
 <p class="muted small">Simulated on the model: a deputy shares the person's approvals and
-  escalations; a bypass control turns the bypass into a regular escalation.</p>"""
+  escalations; a bypass control means no single person can override, so the bypass is removed.</p>"""
 
 
 # Dependency map
@@ -444,10 +446,22 @@ def _audit_html(results: Dict[str, Any], metadata: Dict[str, Any]) -> str:
         ("Critical threshold", results.get("critical_threshold", 0.7)),
         ("Config", metadata.get("config_file") or "none"),
         ("Unconfirmed dependencies", metadata.get("unconfirmed_dependencies", 0)),
+        ("Data gaps", len(metadata.get("coverage_gaps") or [])),
         ("People / dependencies", f"{metadata.get('organization_size', '')} / {metadata.get('dependencies_count', '')}"),
     ]  # fmt: skip
     rows = "".join(f"<tr><th>{_e(k)}</th><td><code>{_e(v)}</code></td></tr>" for k, v in items)
     return f'<table class="kv audit">{rows}</table>'
+
+
+def _gaps_html(gaps: List[str]) -> str:
+    if not gaps:
+        return ""
+    items = "".join(f"<li>{_e(gap)}</li>" for gap in gaps)
+    return (
+        f'<details class="notice"><summary>{len(gaps)} data '
+        f"{'gap' if len(gaps) == 1 else 'gaps'}: what the scan could not see is not evidence "
+        f"that it does not exist</summary><ul>{items}</ul></details>"
+    )
 
 
 def _json_for_script(data: Any) -> str:
@@ -501,7 +515,8 @@ def render(
             "<code>hrg scan</code>): review them before relying on the score.</p>"
             if metadata.get("unconfirmed_dependencies")
             else ""
-        ),
+        )
+        + _gaps_html(metadata.get("coverage_gaps") or []),
         tiles=_tiles_html(tiles, _weights(results)),
         fixes=_fixes_html(fixes, results["score"]),
         map=_map_html(hrg, rows),
@@ -556,6 +571,8 @@ h2 + .muted { margin: 0 0 18px; }
 .verdict { font-size: 17px; margin: 6px 0; }
 .notice { border: 1px solid var(--warn); color: var(--warn); border-radius: 10px;
   padding: 8px 12px; font-size: 14px; margin: 10px 0 0; }
+details.notice summary { cursor: pointer; }
+details.notice ul { margin: 6px 0 0; padding-left: 18px; }
 .meta { display: flex; gap: 18px; flex-wrap: wrap; color: var(--muted); font-size: 13px; margin-top: 12px; }
 .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .tile { border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: flex;

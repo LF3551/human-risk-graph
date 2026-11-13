@@ -210,6 +210,9 @@ def analyze(
         "unconfirmed_dependencies": sum(
             1 for d in data["dependencies"] if d.get("confirmed") is False
         ),
+        "coverage_gaps": [
+            str(gap) for gap in ((data.get("coverage") or {}).get("gaps") or []) if gap
+        ],
     }
 
     # Generate reports
@@ -462,6 +465,8 @@ def scan_github(repo, output, branch, max_prs, include_bots, token):
     )
     for note in [*result.notes, *notes]:
         console.print(f"  [dim]{note}[/]")
+    for gap in result.gaps:
+        console.print(f"  [yellow]Gap:[/] {gap}")
     console.print(f"\n  Draft written to [cyan]{output}[/]")
     console.print(f"  Next: review it, set confirmed: true, then [bold]hrg analyze {output}[/]\n")
 

@@ -34,6 +34,21 @@ def _pairs(n: int) -> int:
     return n * (n - 1) // 2
 
 
+def support_graph(graph: nx.DiGraph) -> nx.Graph:
+    """
+    Undirected graph of the dependencies that keep people connected.
+
+    Bypass dependencies are left out: being able to override someone does not make the
+    organization less dependent on them, it is counted as override exposure instead.
+    """
+    support = nx.Graph()
+    support.add_nodes_from(graph.nodes)
+    support.add_edges_from(
+        (u, v) for u, v, data in graph.edges(data=True) if data.get("edge_type") != "bypass"
+    )
+    return support
+
+
 def key_person_impacts(graph: nx.DiGraph) -> Dict[str, Dict[str, float]]:
     """
     Impact of losing each single point of failure.
@@ -41,9 +56,9 @@ def key_person_impacts(graph: nx.DiGraph) -> Dict[str, Dict[str, float]]:
     For a person v, ``impact`` is the share of connected pairs among the other people that
     are disconnected when v is removed, and ``cut_off`` is the number of people separated
     from the largest remaining group. Only articulation points have a non-zero impact,
-    so only they are returned.
+    so only they are returned. Bypass dependencies are ignored (see ``support_graph``).
     """
-    undirected = graph.to_undirected()
+    undirected = support_graph(graph)
     components = list(nx.connected_components(undirected))
     total_pairs = sum(_pairs(len(c)) for c in components)
     component_of = {node: comp for comp in components for node in comp}
@@ -68,9 +83,10 @@ def bus_factor_people(graph: nx.DiGraph) -> Optional[int]:
     """
     Smallest number of people whose loss splits the largest group (node connectivity).
 
-    Returns None when the largest group has fewer than three people.
+    Returns None when the largest group has fewer than three people. Bypass dependencies
+    are ignored (see ``support_graph``).
     """
-    undirected = graph.to_undirected()
+    undirected = support_graph(graph)
     if undirected.number_of_nodes() == 0:
         return None
     largest = max(nx.connected_components(undirected), key=len)

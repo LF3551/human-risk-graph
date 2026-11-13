@@ -55,12 +55,12 @@ def test_example_organization():
     r = calc(data["people"], data["dependencies"])
 
     assert r["model"] == "hrg-2"
-    assert (round(r["bus_factor"], 3), round(r["decision_concentration"], 3)) == (0.226, 0.287)
+    assert (round(r["bus_factor"], 3), round(r["decision_concentration"], 3)) == (0.425, 0.287)
     assert round(r["bypass_risk"], 3) == 0.416
-    assert (r["score"], r["grade"], r["risk_level"]) == (61, "D", "Moderate")
+    assert (r["score"], r["grade"], r["risk_level"]) == (52, "D", "Moderate")
     assert r["bus_factor_people"] == 1
-    assert r["key_people"][0]["id"] == "johan.lindberg"
-    assert r["key_people"][0]["cut_off"] == 2
+    assert r["key_people"][0]["id"] == "anna.mueller"
+    assert r["key_people"][0]["cut_off"] == 3
     assert (len(r["overridable_approvals"]), r["critical_approvals"]) == (4, 7)
 
 
@@ -198,6 +198,27 @@ def test_new_bypass_never_lowers_override_exposure(people, deps):
 
 
 @pytest.mark.parametrize("people, deps", ORGS)
+def test_new_bypass_never_improves_the_score(people, deps):
+    # Adversarial: an override must not make the organization look less dependent on anyone.
+    before = calc(people, deps)
+    linked = {(d["from"], d["to"]) for d in deps}
+    ids = [p["id"] for p in people]
+    for a, b in [(a, b) for a in ids for b in ids if a != b and (a, b) not in linked][:15]:
+        after = calc(people, deps + [{"from": a, "to": b, "type": "bypass", "weight": 1.0}])
+        assert after["composite_score"] >= before["composite_score"] - 1e-12
+        assert after["bus_factor"] == pytest.approx(before["bus_factor"])
+        assert after["bus_factor_people"] == before["bus_factor_people"]
+
+
+def test_bypass_does_not_relieve_a_key_person():
+    people = [{"id": i, "criticality": c} for i, c in [("lead", 0.9), ("a", 0.8), ("b", 0.8)]]
+    deps = [{"from": "lead", "to": t, "type": "approval"} for t in "ab"]
+    bypass = deps + [{"from": "a", "to": "b", "type": "bypass", "weight": 1.0}]
+    assert calc(people, bypass)["score"] == calc(people, deps)["score"]
+    assert calc(people, bypass)["key_people"][0]["id"] == "lead"
+
+
+@pytest.mark.parametrize("people, deps", ORGS)
 def test_deputy_reduces_the_persons_impact(people, deps):
     # Not "never raises risk": a deputy is one more person behind other bottlenecks.
     # The deputy does not inherit the person's own bypasses, which may keep them a bottleneck.
@@ -238,7 +259,7 @@ def test_example_fix_plan():
 
     assert [f["action"] for f in plan] == ["control-bypass", "deputy", "deputy"]
     assert plan[0]["target"] == ["elena.popescu", "anna.mueller"]
-    assert plan[0]["score_before"] == 61
+    assert plan[0]["score_before"] == 52
     for before, after in zip(plan, plan[1:]):
         assert after["score_before"] == before["score_after"]
     assert all(f["score_after"] > f["score_before"] for f in plan)
