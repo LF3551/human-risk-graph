@@ -1,339 +1,430 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Human Risk Graph Analysis Report</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            color: #e4e4e7;
-            line-height: 1.6;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: rgba(26, 26, 46, 0.8);
-            border-radius: 12px;
-            padding: 40px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-        }
-
-        header {
-            border-bottom: 2px solid #4a4e69;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
-        }
-
-        h1 {
-            color: #00d4ff;
-            font-size: 2.5em;
-            margin-bottom: 10px;
-        }
-
-        .metadata {
-            color: #9ba4b5;
-            font-size: 0.9em;
-        }
-
-        .metadata span {
-            margin-right: 20px;
-        }
-
-        .summary {
-            background: rgba(74, 78, 105, 0.3);
-            border-left: 4px solid #28a745;
-            padding: 20px;
-            margin: 30px 0;
-            border-radius: 8px;
-        }
-
-        .risk-score {
-            font-size: 3em;
-            font-weight: bold;
-            color: #28a745;
-            margin: 20px 0;
-        }
-
-        .risk-label {
-            display: inline-block;
-            background: #28a745;
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 0.9em;
-            margin-bottom: 15px;
-        }
-
-        .metrics {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin: 30px 0;
-        }
-
-        .metric-card {
-            background: rgba(74, 78, 105, 0.2);
-            padding: 20px;
-            border-radius: 8px;
-            border: 1px solid #4a4e69;
-            transition: transform 0.2s;
-        }
-
-        .metric-card:hover {
-            transform: translateY(-5px);
-            border-color: #00d4ff;
-        }
-
-        .metric-name {
-            color: #9ba4b5;
-            font-size: 0.9em;
-            margin-bottom: 10px;
-        }
-
-        .metric-value {
-            font-size: 2em;
-            font-weight: bold;
-            color: #00d4ff;
-        }
-
-        .metric-weight {
-            color: #6c757d;
-            font-size: 0.85em;
-            margin-top: 5px;
-        }
-
-        .section {
-            margin: 40px 0;
-        }
-
-        h2 {
-            color: #00d4ff;
-            font-size: 1.8em;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #4a4e69;
-        }
-
-        .critical-list {
-            list-style: none;
-            padding: 0;
-        }
-
-        .critical-list li {
-            background: rgba(247, 127, 0, 0.1);
-            border-left: 3px solid #f77f00;
-            padding: 12px 15px;
-            margin: 10px 0;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
-        }
-
-        .path-list {
-            background: rgba(74, 78, 105, 0.2);
-            padding: 15px;
-            border-radius: 8px;
-            margin: 10px 0;
-        }
-
-        .path-item {
-            padding: 8px 0;
-            border-bottom: 1px solid #4a4e69;
-            font-family: 'Courier New', monospace;
-        }
-
-        .path-item:last-child {
-            border-bottom: none;
-        }
-
-        .recommendations {
-            background: rgba(0, 212, 255, 0.1);
-            border-left: 4px solid #00d4ff;
-            padding: 20px;
-            border-radius: 8px;
-            margin: 20px 0;
-        }
-
-        .recommendations h3 {
-            color: #00d4ff;
-            margin-bottom: 15px;
-        }
-
-        .recommendations ul {
-            margin-left: 20px;
-            color: #e4e4e7;
-        }
-
-        .recommendations li {
-            margin: 8px 0;
-        }
-
-        footer {
-            margin-top: 50px;
-            padding-top: 20px;
-            border-top: 1px solid #4a4e69;
-            text-align: center;
-            color: #6c757d;
-            font-size: 0.9em;
-        }
-
-        .badge {
-            display: inline-block;
-            background: #4a4e69;
-            color: white;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 0.85em;
-            margin-left: 10px;
-        }
-
-        @media print {
-            body {
-                background: white;
-                color: black;
-            }
-
-            .container {
-                box-shadow: none;
-            }
-        }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="human-risk-graph 0.6.0">
+<title>Human Risk Graph · example_organization.json</title>
+<style>
+:root {
+  --bg: #f6f7f9; --card: #ffffff; --text: #0f172a; --muted: #64748b; --line: #e2e8f0;
+  --accent: #4f46e5; --error: #b91c1c; --warn: #b45309; --ok: #15803d;
+  --node: #94a3b8; --critical: #d97706; --spof: #dc2626;
+  --approval: #4f46e5; --escalation: #94a3b8; --bypass: #dc2626; --other: #cbd5e1;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0b1120; --card: #111827; --text: #e5e7eb; --muted: #94a3b8; --line: #1f2937;
+          --node: #64748b; --escalation: #64748b; --other: #334155; --accent: #818cf8;
+          --approval: #818cf8; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); line-height: 1.5;
+  font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  font-variant-numeric: tabular-nums; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 32px 24px 64px; }
+a { color: var(--accent); }
+code { font: 12.5px ui-monospace, SFMono-Regular, Menlo, monospace; word-break: break-all; }
+.muted { color: var(--muted); } .small { font-size: 13px; }
+.top { display: flex; justify-content: space-between; align-items: baseline; gap: 16px;
+  flex-wrap: wrap; margin-bottom: 20px; }
+.brand { font-weight: 700; letter-spacing: -0.01em; }
+.brand span { color: var(--muted); font-weight: 500; }
+nav a { color: var(--muted); text-decoration: none; margin-left: 16px; font-size: 14px; }
+nav a:hover { color: var(--text); }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+  padding: 24px; margin-bottom: 20px; }
+h2 { font-size: 18px; margin: 0 0 4px; letter-spacing: -0.01em; }
+h2 + .muted { margin: 0 0 18px; }
+.hero { display: grid; grid-template-columns: 200px 1fr; gap: 28px; align-items: center; }
+.ring { width: 180px; height: 180px; }
+.ring-track { fill: none; stroke: var(--line); stroke-width: 10; }
+.ring-value { fill: none; stroke-width: 10; stroke-linecap: round; }
+.ring-score { font-size: 34px; font-weight: 750; text-anchor: middle; fill: var(--text); }
+.ring-max { font-size: 11px; text-anchor: middle; fill: var(--muted); }
+.grade { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.grade b { font-size: 28px; width: 44px; height: 44px; border-radius: 12px; color: #fff;
+  display: inline-grid; place-items: center; }
+.grade span { font-size: 22px; font-weight: 650; }
+.verdict { font-size: 17px; margin: 6px 0; }
+.meta { display: flex; gap: 18px; flex-wrap: wrap; color: var(--muted); font-size: 13px; margin-top: 12px; }
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.tile { border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: flex;
+  flex-direction: column; gap: 6px; }
+.tile header, .tile footer { display: flex; justify-content: space-between; align-items: center; }
+.tile-label { font-size: 13px; color: var(--muted); font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.04em; }
+.tile-headline { font-size: 20px; font-weight: 700; margin: 0; }
+.tile-detail { margin: 0; color: var(--muted); flex: 1; }
+.tile footer { font-size: 12px; color: var(--muted); }
+.meter { height: 6px; background: var(--line); border-radius: 99px; overflow: hidden; }
+.meter span { display: block; height: 100%; background: var(--ok); }
+.meter-moderate span { background: var(--warn); } .meter-high span { background: var(--error); }
+.chip { font-size: 11.5px; font-weight: 650; padding: 2px 8px; border-radius: 99px;
+  border: 1px solid transparent; white-space: nowrap; margin-right: 4px; }
+.chip-low { color: var(--ok); border-color: currentColor; }
+.chip-moderate { color: var(--warn); border-color: currentColor; }
+.chip-high { color: var(--error); border-color: currentColor; }
+.lead { font-size: 16px; margin: 0 0 14px; }
+.fixes { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.fix { display: grid; grid-template-columns: 36px 1fr auto; gap: 14px; align-items: center;
+  border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.fix-step { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff;
+  display: grid; place-items: center; font-weight: 700; }
+.fix-kind { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.fix-title { margin: 2px 0; font-weight: 650; }
+.fix-why { margin: 0; color: var(--muted); font-size: 14px; }
+.fix-score { text-align: right; display: flex; flex-direction: column; }
+.gain { color: var(--ok); font-size: 20px; font-weight: 750; }
+.map-wrap { display: grid; grid-template-columns: 1fr 280px; gap: 16px; align-items: start; }
+.map { width: 100%; height: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); }
+.edge { stroke-width: 1.6; }
+.edge-approval { stroke: var(--approval); }
+.edge-escalation { stroke: var(--escalation); stroke-dasharray: 4 4; }
+.edge-bypass { stroke: var(--bypass); stroke-dasharray: 7 4; stroke-width: 2; }
+.edge-other { stroke: var(--other); }
+.arrow-approval { fill: var(--approval); } .arrow-escalation { fill: var(--escalation); }
+.arrow-bypass { fill: var(--bypass); } .arrow-other { fill: var(--other); }
+.node circle { fill: var(--node); stroke: var(--card); stroke-width: 2.5; cursor: pointer; }
+.node-critical circle { fill: var(--critical); }
+.node-spof circle { fill: var(--spof); }
+.node-label { font-size: 14px; font-weight: 550; text-anchor: middle; fill: var(--text); pointer-events: none;
+  paint-order: stroke; stroke: var(--bg); stroke-width: 4px; }
+.map.focus .edge, .map.focus .node { opacity: 0.18; transition: opacity .15s; }
+.map.focus .is-on { opacity: 1; }
+.node.selected circle { stroke: var(--text); stroke-width: 3; }
+.panel { border: 1px solid var(--line); border-radius: 12px; padding: 16px; font-size: 14px;
+  max-height: 540px; overflow: auto; }
+.panel h3 { margin: 0; font-size: 17px; }
+.panel dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 12px 0; }
+.panel dt { color: var(--muted); } .panel dd { margin: 0; font-weight: 600; }
+.panel ul { padding-left: 18px; margin: 6px 0 12px; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; color: var(--muted); margin-top: 12px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.dot { width: 11px; height: 11px; border-radius: 50%; background: var(--node); display: inline-block; }
+.dot-spof { background: var(--spof); } .dot-critical { background: var(--critical); }
+.line { width: 22px; height: 0; border-top: 2px solid; display: inline-block; }
+.line-approval { border-color: var(--approval); }
+.line-escalation { border-color: var(--escalation); border-top-style: dashed; }
+.line-bypass { border-color: var(--bypass); border-top-style: dashed; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+th[data-sort] { cursor: pointer; user-select: none; }
+th[data-sort]:hover { color: var(--text); }
+.people tbody tr { cursor: pointer; } .people tbody tr:hover { background: var(--bg); }
+.people tbody tr.selected { background: var(--bg); box-shadow: inset 3px 0 var(--accent); }
+.finding { border: 1px solid var(--line); border-left: 4px solid var(--warn); border-radius: 12px;
+  padding: 12px 16px; margin-top: 12px; }
+.finding-error { border-left-color: var(--error); }
+.finding summary { cursor: pointer; font-weight: 650; }
+.rule { font: 12.5px ui-monospace, Menlo, monospace; color: var(--muted); margin-right: 6px; }
+.count { float: right; color: var(--muted); font-weight: 500; }
+.finding ul { padding-left: 0; list-style: none; margin: 10px 0; }
+.finding li { padding: 4px 0; }
+.sev { font-size: 11px; font-weight: 700; text-transform: uppercase; margin-right: 8px; }
+.sev-error { color: var(--error); } .sev-warning { color: var(--warn); }
+.remediation { margin: 6px 0 10px; }
+.controls { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 4px 0; font-size: 13px; }
+.fw { color: var(--muted); min-width: 230px; }
+.control { border: 1px solid var(--line); border-radius: 6px; padding: 1px 7px;
+  font: 12px ui-monospace, Menlo, monospace; cursor: help; }
+.defs { padding-left: 18px; } .defs li { margin: 4px 0; }
+.formula { font: 13px ui-monospace, Menlo, monospace; background: var(--bg);
+  border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; overflow-x: auto; }
+.kv { max-width: 640px; } .audit th { width: 220px; text-transform: none; letter-spacing: 0; font-size: 13px; }
+footer.page { color: var(--muted); font-size: 13px; text-align: center; margin-top: 28px; }
+.hero > *, .map-wrap > *, .tiles > *, .fix > * { min-width: 0; }
+@media (max-width: 860px) {
+  .hero, .map-wrap { grid-template-columns: 1fr; } .tiles { grid-template-columns: 1fr; }
+  .ring { margin: 0 auto; display: block; } .fw { min-width: 0; width: 100%; }
+}
+@media (max-width: 640px) {
+  body { font-size: 14px; }
+  .wrap { padding: 16px 12px 40px; }
+  .card { padding: 16px; border-radius: 14px; }
+  nav { display: flex; flex-wrap: wrap; gap: 4px 14px; } nav a { margin-left: 0; }
+  .ring { width: 150px; height: 150px; }
+  .hero { gap: 12px; text-align: center; } .grade, .meta { justify-content: center; }
+  .fix { grid-template-columns: 32px 1fr; padding: 12px; }
+  .fix-score { grid-column: 2; flex-direction: row; gap: 10px; align-items: baseline; text-align: left; }
+  .node-label { font-size: 26px; stroke-width: 7px; }
+  .people thead { display: none; }
+  .people, .people tbody, .people tr, .people td { display: block; width: 100%; }
+  .people tr { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 12px; padding: 12px 4px;
+    border-bottom: 1px solid var(--line); }
+  .people td { border: 0; padding: 2px 0; }
+  .people td:first-child, .people td.flags { grid-column: 1 / -1; }
+  .people td[data-label]::before { content: attr(data-label) ": "; color: var(--muted); }
+  .audit th, .audit td { display: block; width: auto; border: 0; padding: 2px 0; }
+  .audit tr { display: block; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .count { float: none; margin-left: 6px; }
+}
+@media print {
+  body { background: #fff; } nav, .panel, th[data-sort]::after { display: none; }
+  .card { break-inside: avoid; border-color: #ddd; } .map-wrap { grid-template-columns: 1fr; }
+  details { display: block; } details > summary { list-style: none; }
+}
+</style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>🔒 Human Risk Graph Analysis Report</h1>
-            <div class="metadata">
-                <span>📅 2026-02-25 23:41:07</span>
-                <span>👥 10 people</span>
-                <span>🔗 14 dependencies</span>
-            </div>
-        </header>
+<div class="wrap">
+  <div class="top">
+    <div class="brand">Human Risk Graph <span>· example_organization.json</span></div>
+    <nav><a href="#fixes">Fixes</a><a href="#map">Map</a><a href="#people">People</a>
+      <a href="#findings">Findings</a><a href="#method">Method</a><a href="#audit">Audit</a>
+      <a href="#" id="print">Save as PDF</a></nav>
+  </div>
 
-        <div class="summary">
-            <div class="risk-label">LOW RISK</div>
-            <div class="risk-score">0.269</div>
-            <p style="color: #e4e4e7; font-size: 1.1em;">
-                Composite Human Risk Graph Score
-            </p>
-        </div>
-
-        <div class="section">
-            <h2>🔎 Key Findings</h2>
-            <div class="recommendations">
-                <ul>
-                    <li><strong>Primary Risk Driver:</strong> Bypass Risk</li>
-                    <li><strong>Critical People Identified:</strong> 2</li>
-                    <li><strong>Dependency Profile:</strong> approval: 8, bypass: 3, escalation: 3</li>
-                </ul>
-            </div>
-        </div>
-
-        <div class="section">
-            <h2>🧠 Why This Score</h2>
-            <div class="recommendations">
-                <ul>
-                    <li><strong>Formula:</strong> 0.4 × Bus + 0.3 × Decision + 0.3 × Bypass = 0.269</li>
-                    <li><strong>Bus contribution:</strong> 0.045</li>
-                    <li><strong>Decision contribution:</strong> 0.105</li>
-                    <li><strong>Bypass contribution:</strong> 0.118</li>
-                    <li><strong>Critical nodes:</strong> 4/10</li>
-                </ul>
-            </div>
-        </div>
-
-        <div class="section">
-            <h2>📘 How To Read Metrics</h2>
-            <div class="recommendations">
-                <ul>
-                    <li><strong>Bus Factor Risk:</strong> higher means stronger dependency on a few people.</li>
-                    <li><strong>Decision Concentration:</strong> higher means approval power is concentrated.</li>
-                    <li><strong>Bypass Risk:</strong> higher means controls are easier to bypass on critical paths.</li>
-                </ul>
-            </div>
-        </div>
-
-        <div class="metrics">
-            <div class="metric-card">
-                <div class="metric-name">🚌 Bus Factor Risk</div>
-                <div class="metric-value">0.113</div>
-                <div class="metric-weight">Weight: 40%</div>
-            </div>
-
-            <div class="metric-card">
-                <div class="metric-name">🎯 Decision Concentration</div>
-                <div class="metric-value">0.351</div>
-                <div class="metric-weight">Weight: 30%</div>
-            </div>
-
-            <div class="metric-card">
-                <div class="metric-name">⚡ Bypass Risk</div>
-                <div class="metric-value">0.394</div>
-                <div class="metric-weight">Weight: 30%</div>
-            </div>
-        </div>
-
-        <div class="section">
-            <h2>⚠️ Critical People <span class="badge">2 identified</span></h2>
-            <p style="color: #9ba4b5; margin-bottom: 15px;">
-                These individuals are <strong>single points of failure</strong> (articulation points).
-                Their removal would disconnect the organizational graph.
-            </p>
-            <ul class="critical-list">
-                <li>Ines Silva (Product Security Engineer) — criticality: 0.55</li>
-                <li>Johan Lindberg (DevOps Engineer) — criticality: 0.58</li>
-            </ul>
-        </div>
-
-        <div class="section">
-            <h2>💡 Recommendations</h2>
-
-            <div class="recommendations">
-                <h3>Priority Actions</h3>
-                <ul>
-
-                    <li><strong>Reduce key-person dependency (Bus Factor):</strong>
-                        <ul>
-                            <li>Cross-train backup owners for critical responsibilities</li>
-                            <li>Document approval and emergency procedures</li>
-                            <li>Define succession coverage for critical roles</li>
-                        </ul>
-                    </li>
-
-                    <li><strong>Distribute decision authority:</strong>
-                        <ul>
-                            <li>Introduce secondary approvers for sensitive workflows</li>
-                            <li>Rotate ownership of high-impact decisions</li>
-                        </ul>
-                    </li>
-
-                    <li><strong>Tighten bypass governance:</strong>
-                        <ul>
-                            <li>Add compensating controls for emergency bypasses</li>
-                            <li>Alert and review all bypass events weekly</li>
-                        </ul>
-                    </li>
-
-                </ul>
-            </div>
-
-        </div>
-
-        <footer>
-            <p>Report generated by <a href="https://github.com/LF3551/human-risk-graph"
-               style="color: #00d4ff; text-decoration: none;">Human Risk Graph</a></p>
-            <p style="margin-top: 10px;">A quantitative model for organizational security risk from human dependencies</p>
-        </footer>
+  <section class="card hero">
+    <svg class="ring" viewBox="0 0 120 120" role="img" aria-label="Score 61 of 100">
+  <circle cx="60" cy="60" r="52" class="ring-track"/>
+  <circle cx="60" cy="60" r="52" class="ring-value" stroke="#c2410c"
+          stroke-dasharray="199.3 326.7" transform="rotate(-90 60 60)"/>
+  <text x="60" y="62" class="ring-score">61</text>
+  <text x="60" y="82" class="ring-max">/ 100</text>
+</svg>
+    <div>
+      <div class="grade"><b style="background:#c2410c">D</b><span>Moderate risk</span></div>
+      <p class="verdict">Main driver: override exposure — 4 of 7 critical approvals can be overridden through a bypass.</p>
+      <p class="muted">Human dependency risks are manageable; the top fixes below are worth doing.</p>
+      <div class="meta"><span>10 people</span><span>14 dependencies</span>
+        <span>0 errors · 6 warnings</span><span>model hrg-2</span><span>2026-11-13 07:02</span></div>
     </div>
+  </section>
+
+  <section class="tiles"><article class="tile">
+  <header><span class="tile-label">Key-person risk</span>
+    <span class="chip chip-moderate">Moderate</span></header>
+  <p class="tile-headline">Bus factor 1</p>
+  <p class="tile-detail">Losing Johan Lindberg cuts off 2 people and 39% of connections.</p>
+  <div class="meter meter-moderate" title="0.226"><span style="width:22.6%"></span></div>
+  <footer><span>0.226</span><span>weight 40%</span></footer>
+</article>
+<article class="tile">
+  <header><span class="tile-label">Approval concentration</span>
+    <span class="chip chip-moderate">Moderate</span></header>
+  <p class="tile-headline">3.5 effective approvers</p>
+  <p class="tile-detail">of 5; Luca Rossi holds 44% of approval weight.</p>
+  <div class="meter meter-moderate" title="0.287"><span style="width:28.7%"></span></div>
+  <footer><span>0.287</span><span>weight 30%</span></footer>
+</article>
+<article class="tile">
+  <header><span class="tile-label">Override exposure</span>
+    <span class="chip chip-moderate">Moderate</span></header>
+  <p class="tile-headline">4 of 7 critical approvals</p>
+  <p class="tile-detail">can be overridden through a bypass.</p>
+  <div class="meter meter-moderate" title="0.416"><span style="width:41.6%"></span></div>
+  <footer><span>0.416</span><span>weight 30%</span></footer>
+</article></section>
+
+  <section class="card" id="fixes" style="margin-top:20px">
+    <h2>Top fixes</h2>
+    <p class="muted">Remediations simulated on your data, ranked by how much they raise the score.</p>
+    <p class="lead">Doing all 3 raises the score from <strong>61</strong>
+  to <strong>81</strong> (grade D → B).</p>
+<ol class="fixes"><li class="fix">
+  <span class="fix-step">1</span>
+  <div class="fix-body"><span class="fix-kind">Bypass control</span>
+    <p class="fix-title">Require a second person for Elena Popescu&#x27;s bypass of Anna Mueller</p>
+    <p class="fix-why">bypass involving a critical person</p></div>
+  <div class="fix-score"><span class="gain">+9</span>
+    <span class="muted">61 → 70</span></div>
+</li><li class="fix">
+  <span class="fix-step">2</span>
+  <div class="fix-body"><span class="fix-kind">Deputy</span>
+    <p class="fix-title">Add a deputy for Johan Lindberg</p>
+    <p class="fix-why">single point of failure, cuts off 2 people</p></div>
+  <div class="fix-score"><span class="gain">+6</span>
+    <span class="muted">70 → 76</span></div>
+</li><li class="fix">
+  <span class="fix-step">3</span>
+  <div class="fix-body"><span class="fix-kind">Deputy</span>
+    <p class="fix-title">Add a deputy for Ines Silva</p>
+    <p class="fix-why">single point of failure, cuts off 1 person</p></div>
+  <div class="fix-score"><span class="gain">+5</span>
+    <span class="muted">76 → 81</span></div>
+</li></ol>
+<p class="muted small">Simulated on the model: a deputy shares the person's approvals and
+  escalations; a bypass control turns the bypass into a regular escalation.</p>
+  </section>
+
+  <section class="card" id="map">
+    <h2>Dependency map</h2>
+    <p class="muted">Who approves, escalates to and can bypass whom. Select a person for details.</p>
+    <div class="map-wrap">
+  <svg class="map" viewBox="0 0 820 500" role="img" aria-label="Dependency map">
+    <defs><marker id="arrow-approval" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow-approval"/></marker><marker id="arrow-escalation" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow-escalation"/></marker><marker id="arrow-bypass" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow-bypass"/></marker><marker id="arrow-other" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow-other"/></marker></defs>
+    <g class="edges"><line class="edge edge-approval" data-from="anna.mueller" data-to="carlos.garcia" x1="168.8" y1="296.4" x2="269.2" y2="219.7" marker-end="url(#arrow-approval)"><title>Anna Mueller → Carlos Garcia: approval</title></line><line class="edge edge-approval" data-from="anna.mueller" data-to="sofia.papadopoulos" x1="153.5" y1="291.1" x2="141.5" y2="244.0" marker-end="url(#arrow-approval)"><title>Anna Mueller → Sofia Papadopoulos: approval</title></line><line class="edge edge-approval" data-from="carlos.garcia" data-to="johan.lindberg" x1="294.7" y1="198.3" x2="317.0" y2="177.2" marker-end="url(#arrow-approval)"><title>Carlos Garcia → Johan Lindberg: approval</title></line><line class="edge edge-approval" data-from="carlos.garcia" data-to="peter.novak" x1="271.4" y1="205.3" x2="74.6" y2="169.7" marker-end="url(#arrow-approval)"><title>Carlos Garcia → Peter Novak: approval</title></line><line class="edge edge-bypass" data-from="elena.popescu" data-to="anna.mueller" x1="198.8" y1="415.6" x2="164.4" y2="324.6" marker-end="url(#arrow-bypass)"><title>Elena Popescu → Anna Mueller: bypass</title></line><line class="edge edge-escalation" data-from="ines.silva" data-to="tomas.kowalski" x1="418.3" y1="100.7" x2="450.8" y2="68.4" marker-end="url(#arrow-escalation)"><title>Ines Silva → Tomas Kowalski: escalation</title></line><line class="edge edge-approval" data-from="johan.lindberg" data-to="ines.silva" x1="356.0" y1="145.6" x2="386.0" y2="126.1" marker-end="url(#arrow-approval)"><title>Johan Lindberg → Ines Silva: approval</title></line><line class="edge edge-approval" data-from="luca.rossi" data-to="anna.mueller" x1="748.7" y1="310.1" x2="177.8" y2="305.4" marker-end="url(#arrow-approval)"><title>Luca Rossi → Anna Mueller: approval</title></line><line class="edge edge-bypass" data-from="luca.rossi" data-to="carlos.garcia" x1="749.1" y1="307.0" x2="304.1" y2="211.8" marker-end="url(#arrow-bypass)"><title>Luca Rossi → Carlos Garcia: bypass</title></line><line class="edge edge-approval" data-from="luca.rossi" data-to="marie.dubois" x1="749.2" y1="313.9" x2="457.3" y2="387.5" marker-end="url(#arrow-approval)"><title>Luca Rossi → Marie Dubois: approval</title></line><line class="edge edge-bypass" data-from="marie.dubois" data-to="carlos.garcia" x1="429.0" y1="381.6" x2="297.4" y2="222.9" marker-end="url(#arrow-bypass)"><title>Marie Dubois → Carlos Garcia: bypass</title></line><line class="edge edge-approval" data-from="marie.dubois" data-to="elena.popescu" x1="424.0" y1="394.5" x2="222.4" y2="425.1" marker-end="url(#arrow-approval)"><title>Marie Dubois → Elena Popescu: approval</title></line><line class="edge edge-escalation" data-from="peter.novak" data-to="sofia.papadopoulos" x1="66.4" y1="174.0" x2="121.8" y2="214.8" marker-end="url(#arrow-escalation)"><title>Peter Novak → Sofia Papadopoulos: escalation</title></line><line class="edge edge-escalation" data-from="sofia.papadopoulos" data-to="johan.lindberg" x1="148.8" y1="221.8" x2="310.7" y2="166.8" marker-end="url(#arrow-escalation)"><title>Sofia Papadopoulos → Johan Lindberg: escalation</title></line></g>
+    <g class="nodes"><g class="node node-critical" data-id="luca.rossi" tabindex="0" role="button"><circle cx="764.0" cy="310.2" r="15.3"/><text x="779.3" y="338.5" class="node-label" style="text-anchor:end">Luca Rossi</text><title>Luca Rossi · Principal SRE</title></g><g class="node node-critical" data-id="anna.mueller" tabindex="0" role="button"><circle cx="157.1" cy="305.2" r="14.6"/><text x="142.5" y="332.9" class="node-label" style="text-anchor:start">Anna Mueller</text><title>Anna Mueller · Security Lead</title></g><g class="node node-critical" data-id="marie.dubois" tabindex="0" role="button"><circle cx="437.9" cy="392.4" r="14.0"/><text x="437.9" y="419.5" class="node-label" style="text-anchor:middle">Marie Dubois</text><title>Marie Dubois · Engineering Manager</title></g><g class="node node-critical" data-id="carlos.garcia" tabindex="0" role="button"><circle cx="284.8" cy="207.7" r="13.7"/><text x="284.8" y="234.4" class="node-label" style="text-anchor:middle">Carlos Garcia</text><title>Carlos Garcia · Platform Architect</title></g><g class="node" data-id="elena.popescu" tabindex="0" role="button"><circle cx="203.4" cy="428.0" r="13.2"/><text x="203.4" y="454.2" class="node-label" style="text-anchor:middle">Elena Popescu</text><title>Elena Popescu · Incident Manager</title></g><g class="node" data-id="peter.novak" tabindex="0" role="button"><circle cx="56.0" cy="166.4" r="12.9"/><text x="43.1" y="192.3" class="node-label" style="text-anchor:start">Peter Novak</text><title>Peter Novak · Backend Lead</title></g><g class="node" data-id="sofia.papadopoulos" tabindex="0" role="button"><circle cx="136.8" cy="225.9" r="12.7"/><text x="124.2" y="251.6" class="node-label" style="text-anchor:start">Sofia Papadopoulos</text><title>Sofia Papadopoulos · Compliance Officer</title></g><g class="node" data-id="tomas.kowalski" tabindex="0" role="button"><circle cx="463.2" cy="56.0" r="11.5"/><text x="463.2" y="80.5" class="node-label" style="text-anchor:middle">Tomas Kowalski</text><title>Tomas Kowalski · Software Engineer</title></g><g class="node node-spof" data-id="ines.silva" tabindex="0" role="button"><circle cx="405.8" cy="113.1" r="17.7"/><text x="405.8" y="143.8" class="node-label" style="text-anchor:middle">Ines Silva</text><title>Ines Silva · Product Security Engineer</title></g><g class="node node-spof" data-id="johan.lindberg" tabindex="0" role="button"><circle cx="337.4" cy="157.8" r="22.2"/><text x="337.4" y="193.0" class="node-label" style="text-anchor:middle">Johan Lindberg</text><title>Johan Lindberg · DevOps Engineer</title></g></g>
+  </svg>
+  <aside class="panel" id="panel" aria-live="polite">
+    <p class="muted">Select a person on the map or in the table to see who depends on them.</p>
+  </aside>
+</div>
+<div class="legend">
+  <span><i class="dot dot-spof"></i>Single point of failure</span>
+  <span><i class="dot dot-critical"></i>Critical (≥ threshold)</span>
+  <span><i class="dot"></i>Other</span>
+  <span><i class="line line-approval"></i>Approval</span>
+  <span><i class="line line-escalation"></i>Escalation</span>
+  <span><i class="line line-bypass"></i>Bypass</span>
+  <span class="muted">Node size: criticality and impact</span>
+</div>
+  </section>
+
+  <section class="card" id="people">
+    <h2>People</h2>
+    <p class="muted">Impact is the share of connections between the others that depend on the person.</p>
+    <table class="people sortable">
+  <thead><tr><th data-sort="text">Person</th><th data-sort="num">Criticality</th>
+  <th data-sort="num">Impact</th><th data-sort="num">Cuts off</th>
+  <th data-sort="num">Approval share</th><th>Flags</th></tr></thead>
+  <tbody><tr data-id="johan.lindberg"><td><strong>Johan Lindberg</strong><div class="muted small">DevOps Engineer</div></td><td data-label="Criticality" data-v="0.58">0.58</td><td data-label="Impact" data-v="0.3888888888888889">39%</td><td data-label="Cuts off" data-v="2">2</td><td data-label="Approval share" data-v="0.06097560975609757">6%</td><td class="flags"><span class="chip chip-high">SPOF</span></td></tr><tr data-id="ines.silva"><td><strong>Ines Silva</strong><div class="muted small">Product Security Engineer</div></td><td data-label="Criticality" data-v="0.55">0.55</td><td data-label="Impact" data-v="0.2222222222222222">22%</td><td data-label="Cuts off" data-v="1">1</td><td data-label="Approval share" data-v="0.0">—</td><td class="flags"><span class="chip chip-high">SPOF</span></td></tr><tr data-id="luca.rossi"><td><strong>Luca Rossi</strong><div class="muted small">Principal SRE</div></td><td data-label="Criticality" data-v="0.92">0.92</td><td data-label="Impact" data-v="0.0">—</td><td data-label="Cuts off" data-v="0">—</td><td data-label="Approval share" data-v="0.43902439024390244">44%</td><td class="flags"><span class="chip chip-moderate">critical</span></td></tr><tr data-id="anna.mueller"><td><strong>Anna Mueller</strong><div class="muted small">Security Lead</div></td><td data-label="Criticality" data-v="0.85">0.85</td><td data-label="Impact" data-v="0.0">—</td><td data-label="Cuts off" data-v="0">—</td><td data-label="Approval share" data-v="0.23170731707317077">23%</td><td class="flags"><span class="chip chip-moderate">critical</span></td></tr><tr data-id="marie.dubois"><td><strong>Marie Dubois</strong><div class="muted small">Engineering Manager</div></td><td data-label="Criticality" data-v="0.78">0.78</td><td data-label="Impact" data-v="0.0">—</td><td data-label="Cuts off" data-v="0">—</td><td data-label="Approval share" data-v="0.10975609756097562">11%</td><td class="flags"><span class="chip chip-moderate">critical</span></td></tr><tr data-id="carlos.garcia"><td><strong>Carlos Garcia</strong><div class="muted small">Platform Architect</div></td><td data-label="Criticality" data-v="0.74">0.74</td><td data-label="Impact" data-v="0.0">—</td><td data-label="Cuts off" data-v="0">—</td><td data-label="Approval share" data-v="0.15853658536585366">16%</td><td class="flags"><span class="chip chip-moderate">critical</span></td></tr><tr data-id="elena.popescu"><td><strong>Elena Popescu</strong><div class="muted small">Incident Manager</div></td><td data-label="Criticality" data-v="0.69">0.69</td><td data-label="Impact" data-v="0.0">—</td><td data-label="Cuts off" data-v="0">—</td><td data-label="Approval share" data-v="0.0">—</td><td class="flags"></td></tr><tr data-id="peter.novak"><td><strong>Peter Novak</strong><div class="muted small">Backend Lead</div></td><td data-label="Criticality" data-v="0.66">0.66</td><td data-label="Impact" data-v="0.0">—</td><td data-label="Cuts off" data-v="0">—</td><td data-label="Approval share" data-v="0.0">—</td><td class="flags"></td></tr><tr data-id="sofia.papadopoulos"><td><strong>Sofia Papadopoulos</strong><div class="muted small">Compliance Officer</div></td><td data-label="Criticality" data-v="0.63">0.63</td><td data-label="Impact" data-v="0.0">—</td><td data-label="Cuts off" data-v="0">—</td><td data-label="Approval share" data-v="0.0">—</td><td class="flags"></td></tr><tr data-id="tomas.kowalski"><td><strong>Tomas Kowalski</strong><div class="muted small">Software Engineer</div></td><td data-label="Criticality" data-v="0.5">0.50</td><td data-label="Impact" data-v="0.0">—</td><td data-label="Cuts off" data-v="0">—</td><td data-label="Approval share" data-v="0.0">—</td><td class="flags"></td></tr></tbody>
+</table>
+  </section>
+
+  <section class="card" id="findings">
+    <h2>Findings</h2>
+    <p class="muted">0 errors · 6 warnings, with related ISO/IEC 27001, SOC 2 and DORA controls.</p>
+    <p class="muted small">Related controls are informative pointers for audits, not an assessment of compliance.</p><details class="finding finding-warning" open>
+  <summary><span class="rule">HRG001</span> Single point of failure
+    <span class="count">2</span></summary>
+  <ul><li><span class="sev sev-warning">warning</span>Ines Silva (ines.silva) is a single point of failure (criticality 0.55): losing them cuts off 1 person and 22% of the connections between the others.</li><li><span class="sev sev-warning">warning</span>Johan Lindberg (johan.lindberg) is a single point of failure (criticality 0.58): losing them cuts off 2 people and 39% of the connections between the others.</li></ul>
+  <p class="remediation"><strong>Remediation.</strong> Name a deputy, cross-train them, and document the approvals and emergency procedures this person handles.</p>
+  <div class="controls"><span class="fw">ISO/IEC 27001:2022</span><span class="control" title="Information security during disruption">A.5.29</span><span class="control" title="ICT readiness for business continuity">A.5.30</span></div><div class="controls"><span class="fw">SOC 2 (2017 Trust Services Criteria)</span><span class="control" title="Competent individuals, including succession planning">CC1.4</span><span class="control" title="Mitigation of business disruption risk">CC9.1</span></div><div class="controls"><span class="fw">DORA (Regulation (EU) 2022/2554)</span><span class="control" title="Identification of material single points of failure">Art. 10(1)</span><span class="control" title="Continuity of critical or important functions">Art. 11(2)(a)</span></div>
+</details><details class="finding finding-warning" open>
+  <summary><span class="rule">HRG002</span> Concentrated approval authority
+    <span class="count">1</span></summary>
+  <ul><li><span class="sev sev-warning">warning</span>Approval authority is concentrated (3.5 effective approvers of 5); Luca Rossi (luca.rossi) holds 44% of the approval weight.</li></ul>
+  <p class="remediation"><strong>Remediation.</strong> Add secondary approvers for sensitive workflows and spread ownership of high-impact decisions.</p>
+  <div class="controls"><span class="fw">ISO/IEC 27001:2022</span><span class="control" title="Information security roles and responsibilities">A.5.2</span><span class="control" title="Segregation of duties">A.5.3</span></div><div class="controls"><span class="fw">SOC 2 (2017 Trust Services Criteria)</span><span class="control" title="Structures, reporting lines, authorities and responsibilities">CC1.3</span><span class="control" title="Control activities, including segregation of duties">CC5.1</span></div><div class="controls"><span class="fw">DORA (Regulation (EU) 2022/2554)</span><span class="control" title="Clear roles and responsibilities for ICT functions">Art. 5(2)(c)</span><span class="control" title="Segregation of ICT risk management, control and audit functions">Art. 6(4)</span></div>
+</details><details class="finding finding-warning" open>
+  <summary><span class="rule">HRG003</span> Bypass involving a critical person
+    <span class="count">3</span></summary>
+  <ul><li><span class="sev sev-warning">warning</span>Elena Popescu (elena.popescu) can bypass Anna Mueller (anna.mueller) and override the controls they enforce; one of them is critical.</li><li><span class="sev sev-warning">warning</span>Luca Rossi (luca.rossi) can bypass Carlos Garcia (carlos.garcia) and override the controls they enforce; one of them is critical.</li><li><span class="sev sev-warning">warning</span>Marie Dubois (marie.dubois) can bypass Carlos Garcia (carlos.garcia) and override the controls they enforce; one of them is critical.</li></ul>
+  <p class="remediation"><strong>Remediation.</strong> Require a second person for the bypass, log every use, and review each use after the fact.</p>
+  <div class="controls"><span class="fw">ISO/IEC 27001:2022</span><span class="control" title="Segregation of duties">A.5.3</span><span class="control" title="Privileged access rights">A.8.2</span><span class="control" title="Change management">A.8.32</span></div><div class="controls"><span class="fw">SOC 2 (2017 Trust Services Criteria)</span><span class="control" title="Control activities, including segregation of duties">CC5.1</span><span class="control" title="Role-based access, least privilege and segregation of duties">CC6.3</span><span class="control" title="Authorization of changes">CC8.1</span></div><div class="controls"><span class="fw">DORA (Regulation (EU) 2022/2554)</span><span class="control" title="Access limited to approved functions">Art. 9(4)(c)</span><span class="control" title="Controlled approval of ICT changes">Art. 9(4)(e)</span></div>
+</details>
+  </section>
+
+  <section class="card" id="method">
+    <h2>How the score is calculated</h2>
+    <p class="muted">Model hrg-2.</p>
+    <ul class="defs"><li><strong>Key-person risk K</strong>: the largest criticality × impact,
+          where impact is the share of connections between the others that are lost without the person.</li>
+        <li><strong>Approval concentration D</strong>: Herfindahl-Hirschman index of approval
+          weight; 1/D is the effective number of approvers.</li>
+        <li><strong>Override exposure B</strong>: weighted share of critical approvals whose
+          approver can be bypassed.</li></ul>
+<p class="formula">Composite risk = (1 − (1 − 0.4·K)(1 − 0.3·D)(1 − 0.3·B)) / (1 − (1 − 0.4)(1 − 0.3)(1 − 0.3)) = 0.386; score = 100·(1 − risk) = 61</p>
+<table class="kv"><thead><tr><th>Metric</th><th>Value</th><th>Weight</th></tr></thead>
+  <tbody><tr><td>Key-person risk</td><td>0.226</td><td>40%</td></tr><tr><td>Approval concentration</td><td>0.287</td><td>30%</td></tr><tr><td>Override exposure</td><td>0.416</td><td>30%</td></tr><tr><td><strong>Composite risk</strong></td>
+  <td><strong>0.386</strong></td><td></td></tr></tbody></table>
+<p class="muted small">Grades: A ≥ 90, B ≥ 80, C ≥ 70, D ≥ 50, F below 50. Full definitions and
+  properties: <a href="https://github.com/LF3551/human-risk-graph/blob/main/docs/model.md">docs/model.md</a>.</p>
+  </section>
+
+  <section class="card" id="audit">
+    <h2>Audit trail</h2>
+    <p class="muted">Enough to reproduce this result.</p>
+    <table class="kv audit"><tr><th>Input file</th><td><code>example_organization.json</code></td></tr><tr><th>Input SHA-256</th><td><code>824985be282b635f6b341a91b8731172b1c7e8d0b62f723b4ef0c631da1e1034</code></td></tr><tr><th>Generated</th><td><code>2026-11-13T07:02:20</code></td></tr><tr><th>Tool</th><td><code>human-risk-graph 0.6.0</code></td></tr><tr><th>Model</th><td><code>hrg-2</code></td></tr><tr><th>Weights</th><td><code>α 0.4 · β 0.3 · γ 0.3</code></td></tr><tr><th>Critical threshold</th><td><code>0.7</code></td></tr><tr><th>People / dependencies</th><td><code>10 / 14</code></td></tr></table>
+  </section>
+
+  <footer class="page">Generated by <a href="https://github.com/LF3551/human-risk-graph">Human Risk Graph</a>
+    0.6.0 · <a href="https://doi.org/10.5281/zenodo.18288055">doi:10.5281/zenodo.18288055</a></footer>
+</div>
+<script type="application/json" id="hrg-data">{"people": {"luca.rossi": {"id": "luca.rossi", "name": "Luca Rossi", "role": "Principal SRE", "criticality": 0.92, "impact": 0.0, "cut_off": 0, "share": 0.43902439024390244, "critical": true, "spof": false, "findings": ["HRG002: Approval authority is concentrated (3.5 effective approvers of 5); Luca Rossi (luca.rossi) holds 44% of the approval weight.", "HRG003: Luca Rossi (luca.rossi) can bypass Carlos Garcia (carlos.garcia) and override the controls they enforce; one of them is critical."], "links": ["Approves Anna Mueller", "Can bypass Carlos Garcia", "Approves Marie Dubois"]}, "anna.mueller": {"id": "anna.mueller", "name": "Anna Mueller", "role": "Security Lead", "criticality": 0.85, "impact": 0.0, "cut_off": 0, "share": 0.23170731707317077, "critical": true, "spof": false, "findings": [], "links": ["Approves Carlos Garcia", "Approves Sofia Papadopoulos", "Can be bypassed by Elena Popescu", "Approved by Luca Rossi"]}, "marie.dubois": {"id": "marie.dubois", "name": "Marie Dubois", "role": "Engineering Manager", "criticality": 0.78, "impact": 0.0, "cut_off": 0, "share": 0.10975609756097562, "critical": true, "spof": false, "findings": ["HRG003: Marie Dubois (marie.dubois) can bypass Carlos Garcia (carlos.garcia) and override the controls they enforce; one of them is critical."], "links": ["Approved by Luca Rossi", "Can bypass Carlos Garcia", "Approves Elena Popescu"]}, "carlos.garcia": {"id": "carlos.garcia", "name": "Carlos Garcia", "role": "Platform Architect", "criticality": 0.74, "impact": 0.0, "cut_off": 0, "share": 0.15853658536585366, "critical": true, "spof": false, "findings": [], "links": ["Approved by Anna Mueller", "Approves Johan Lindberg", "Approves Peter Novak", "Can be bypassed by Luca Rossi", "Can be bypassed by Marie Dubois"]}, "elena.popescu": {"id": "elena.popescu", "name": "Elena Popescu", "role": "Incident Manager", "criticality": 0.69, "impact": 0.0, "cut_off": 0, "share": 0.0, "critical": false, "spof": false, "findings": ["HRG003: Elena Popescu (elena.popescu) can bypass Anna Mueller (anna.mueller) and override the controls they enforce; one of them is critical."], "links": ["Can bypass Anna Mueller", "Approved by Marie Dubois"]}, "peter.novak": {"id": "peter.novak", "name": "Peter Novak", "role": "Backend Lead", "criticality": 0.66, "impact": 0.0, "cut_off": 0, "share": 0.0, "critical": false, "spof": false, "findings": [], "links": ["Approved by Carlos Garcia", "Escalates to Sofia Papadopoulos"]}, "sofia.papadopoulos": {"id": "sofia.papadopoulos", "name": "Sofia Papadopoulos", "role": "Compliance Officer", "criticality": 0.63, "impact": 0.0, "cut_off": 0, "share": 0.0, "critical": false, "spof": false, "findings": [], "links": ["Approved by Anna Mueller", "Escalation from Peter Novak", "Escalates to Johan Lindberg"]}, "johan.lindberg": {"id": "johan.lindberg", "name": "Johan Lindberg", "role": "DevOps Engineer", "criticality": 0.58, "impact": 0.3888888888888889, "cut_off": 2, "share": 0.06097560975609757, "critical": false, "spof": true, "findings": ["HRG001: Johan Lindberg (johan.lindberg) is a single point of failure (criticality 0.58): losing them cuts off 2 people and 39% of the connections between the others."], "links": ["Approved by Carlos Garcia", "Approves Ines Silva", "Escalation from Sofia Papadopoulos"]}, "ines.silva": {"id": "ines.silva", "name": "Ines Silva", "role": "Product Security Engineer", "criticality": 0.55, "impact": 0.2222222222222222, "cut_off": 1, "share": 0.0, "critical": false, "spof": true, "findings": ["HRG001: Ines Silva (ines.silva) is a single point of failure (criticality 0.55): losing them cuts off 1 person and 22% of the connections between the others."], "links": ["Escalates to Tomas Kowalski", "Approved by Johan Lindberg"]}, "tomas.kowalski": {"id": "tomas.kowalski", "name": "Tomas Kowalski", "role": "Software Engineer", "criticality": 0.5, "impact": 0.0, "cut_off": 0, "share": 0.0, "critical": false, "spof": false, "findings": [], "links": ["Escalation from Ines Silva"]}}}</script>
+<script>
+(function () {
+  var data = JSON.parse(document.getElementById('hrg-data').textContent).people;
+  var map = document.querySelector('.map');
+  var panel = document.getElementById('panel');
+  function el(tag, text, cls) {
+    var e = document.createElement(tag);
+    if (text !== undefined) e.textContent = text;
+    if (cls) e.className = cls;
+    return e;
+  }
+  function pct(v) { return v ? Math.round(v * 100) + '%' : '—'; }
+  function show(id, focus) {
+    var p = data[id];
+    if (!p || !panel) return;
+    panel.replaceChildren();
+    panel.appendChild(el('h3', p.name));
+    if (p.role) panel.appendChild(el('div', p.role, 'muted'));
+    var dl = el('dl');
+    [['Criticality', p.criticality.toFixed(2)], ['Impact', pct(p.impact)],
+     ['Cuts off', p.cut_off ? p.cut_off + (p.cut_off === 1 ? ' person' : ' people') : '—'],
+     ['Approval share', pct(p.share)],
+     ['Status', (p.spof ? 'Single point of failure' : '') + (p.spof && p.critical ? ' · ' : '') +
+       (p.critical ? 'Critical' : '') || '—']].forEach(function (kv) {
+      dl.appendChild(el('dt', kv[0])); dl.appendChild(el('dd', kv[1]));
+    });
+    panel.appendChild(dl);
+    function list(title, items) {
+      if (!items.length) return;
+      panel.appendChild(el('strong', title));
+      var ul = el('ul');
+      items.forEach(function (t) { ul.appendChild(el('li', t)); });
+      panel.appendChild(ul);
+    }
+    list('Dependencies', p.links);
+    list('Findings', p.findings);
+    if (map && focus !== false) {
+      map.classList.add('focus');
+      map.querySelectorAll('.is-on, .selected').forEach(function (n) { n.classList.remove('is-on', 'selected'); });
+      map.querySelectorAll('.edge').forEach(function (e) {
+        if (e.dataset.from === id || e.dataset.to === id) {
+          e.classList.add('is-on');
+          [e.dataset.from, e.dataset.to].forEach(function (n) {
+            var node = map.querySelector('.node[data-id="' + CSS.escape(n) + '"]');
+            if (node) node.classList.add('is-on');
+          });
+        }
+      });
+      var node = map.querySelector('.node[data-id="' + CSS.escape(id) + '"]');
+      if (node) node.classList.add('is-on', 'selected');
+    }
+    document.querySelectorAll('.people tr.selected').forEach(function (r) { r.classList.remove('selected'); });
+    var row = document.querySelector('.people tr[data-id="' + CSS.escape(id) + '"]');
+    if (row) row.classList.add('selected');
+  }
+  document.querySelectorAll('.node').forEach(function (n) {
+    n.addEventListener('click', function (ev) { ev.stopPropagation(); show(n.dataset.id); });
+    n.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') show(n.dataset.id); });
+  });
+  if (map) map.addEventListener('click', function () {
+    map.classList.remove('focus');
+    map.querySelectorAll('.selected').forEach(function (n) { n.classList.remove('selected'); });
+  });
+  document.querySelectorAll('.people tbody tr').forEach(function (r) {
+    r.addEventListener('click', function () {
+      show(r.dataset.id);
+      if (map) map.scrollIntoView({behavior: 'smooth', block: 'center'});
+    });
+  });
+  document.querySelectorAll('th[data-sort]').forEach(function (th, index) {
+    var asc = th.dataset.sort === 'num';  // numbers sort high-to-low on the first click
+    th.addEventListener('click', function () {
+      var tbody = th.closest('table').querySelector('tbody');
+      var rows = Array.prototype.slice.call(tbody.rows);
+      asc = !asc;
+      rows.sort(function (a, b) {
+        var x = a.cells[index], y = b.cells[index];
+        var r = th.dataset.sort === 'num'
+          ? parseFloat(x.dataset.v) - parseFloat(y.dataset.v)
+          : x.textContent.localeCompare(y.textContent);
+        return asc ? r : -r;
+      });
+      rows.forEach(function (r) { tbody.appendChild(r); });
+    });
+  });
+  var printLink = document.getElementById('print');
+  if (printLink) printLink.addEventListener('click', function (ev) { ev.preventDefault(); window.print(); });
+  var ids = Object.keys(data).filter(function (id) { return data[id].impact > 0; });
+  ids.sort(function (a, b) { return data[b].impact * data[b].criticality - data[a].impact * data[a].criticality; });
+  if (ids.length) show(ids[0], false);
+})();
+</script>
 </body>
 </html>

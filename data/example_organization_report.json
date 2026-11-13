@@ -1,7 +1,10 @@
 {
   "metadata": {
-    "input_file": "/Users/alekseialeinikov/Documents/SCRIPTS/human-risk-graph/data/example_organization.json",
-    "analysis_date": "2026-02-25T23:41:07.975116",
+    "input_file": "data/example_organization.json",
+    "input_name": "example_organization.json",
+    "input_sha256": "824985be282b635f6b341a91b8731172b1c7e8d0b62f723b4ef0c631da1e1034",
+    "tool_version": "0.6.0",
+    "analysis_date": "2026-11-13T07:02:20",
     "organization_size": 10,
     "dependencies_count": 14,
     "person_lookup": {
@@ -63,21 +66,390 @@
     }
   },
   "results": {
-    "bus_factor": 0.11299999999999999,
-    "decision_concentration": 0.35121951219512193,
-    "bypass_risk": 0.39436619718309857,
-    "composite_score": 0.2688757128134661,
-    "risk_level": "Low",
+    "model": "hrg-2",
+    "weights": {
+      "alpha": 0.4,
+      "beta": 0.3,
+      "gamma": 0.3
+    },
+    "critical_threshold": 0.7,
+    "bus_factor": 0.22555555555555554,
+    "decision_concentration": 0.28732897085068415,
+    "bypass_risk": 0.4155844155844156,
+    "composite_score": 0.3856848026632976,
+    "score": 61,
+    "grade": "D",
+    "bus_factor_people": 1,
+    "key_people": [
+      {
+        "id": "johan.lindberg",
+        "criticality": 0.58,
+        "impact": 0.3888888888888889,
+        "cut_off": 2,
+        "risk": 0.22555555555555554
+      },
+      {
+        "id": "ines.silva",
+        "criticality": 0.55,
+        "impact": 0.2222222222222222,
+        "cut_off": 1,
+        "risk": 0.12222222222222223
+      }
+    ],
+    "approval_shares": {
+      "luca.rossi": 0.43902439024390244,
+      "anna.mueller": 0.23170731707317077,
+      "carlos.garcia": 0.15853658536585366,
+      "marie.dubois": 0.10975609756097562,
+      "johan.lindberg": 0.06097560975609757
+    },
+    "effective_approvers": 3.4803312629399583,
+    "critical_approvals": 7,
+    "overridable_approvals": [
+      [
+        "anna.mueller",
+        "carlos.garcia"
+      ],
+      [
+        "anna.mueller",
+        "sofia.papadopoulos"
+      ],
+      [
+        "carlos.garcia",
+        "johan.lindberg"
+      ],
+      [
+        "carlos.garcia",
+        "peter.novak"
+      ]
+    ],
     "critical_nodes": [
-      "luca.rossi",
       "anna.mueller",
-      "marie.dubois",
-      "carlos.garcia"
+      "carlos.garcia",
+      "luca.rossi",
+      "marie.dubois"
     ],
     "articulation_points": [
       "ines.silva",
       "johan.lindberg"
-    ]
+    ],
+    "risk_level": "Moderate"
   },
-  "generated_at": "2026-02-25T23:41:07.975127"
+  "generated_at": "2026-11-13T07:02:20.411405",
+  "findings": [
+    {
+      "rule_id": "HRG001",
+      "rule": "single-point-of-failure",
+      "level": "warning",
+      "message": "Ines Silva (ines.silva) is a single point of failure (criticality 0.55): losing them cuts off 1 person and 22% of the connections between the others.",
+      "person": "ines.silva",
+      "dependency": null,
+      "remediation": "Name a deputy, cross-train them, and document the approvals and emergency procedures this person handles.",
+      "controls": {
+        "iso27001": [
+          {
+            "id": "A.5.29",
+            "title": "Information security during disruption"
+          },
+          {
+            "id": "A.5.30",
+            "title": "ICT readiness for business continuity"
+          }
+        ],
+        "soc2": [
+          {
+            "id": "CC1.4",
+            "title": "Competent individuals, including succession planning"
+          },
+          {
+            "id": "CC9.1",
+            "title": "Mitigation of business disruption risk"
+          }
+        ],
+        "dora": [
+          {
+            "id": "Art. 10(1)",
+            "title": "Identification of material single points of failure"
+          },
+          {
+            "id": "Art. 11(2)(a)",
+            "title": "Continuity of critical or important functions"
+          }
+        ]
+      }
+    },
+    {
+      "rule_id": "HRG001",
+      "rule": "single-point-of-failure",
+      "level": "warning",
+      "message": "Johan Lindberg (johan.lindberg) is a single point of failure (criticality 0.58): losing them cuts off 2 people and 39% of the connections between the others.",
+      "person": "johan.lindberg",
+      "dependency": null,
+      "remediation": "Name a deputy, cross-train them, and document the approvals and emergency procedures this person handles.",
+      "controls": {
+        "iso27001": [
+          {
+            "id": "A.5.29",
+            "title": "Information security during disruption"
+          },
+          {
+            "id": "A.5.30",
+            "title": "ICT readiness for business continuity"
+          }
+        ],
+        "soc2": [
+          {
+            "id": "CC1.4",
+            "title": "Competent individuals, including succession planning"
+          },
+          {
+            "id": "CC9.1",
+            "title": "Mitigation of business disruption risk"
+          }
+        ],
+        "dora": [
+          {
+            "id": "Art. 10(1)",
+            "title": "Identification of material single points of failure"
+          },
+          {
+            "id": "Art. 11(2)(a)",
+            "title": "Continuity of critical or important functions"
+          }
+        ]
+      }
+    },
+    {
+      "rule_id": "HRG002",
+      "rule": "approval-concentration",
+      "level": "warning",
+      "message": "Approval authority is concentrated (3.5 effective approvers of 5); Luca Rossi (luca.rossi) holds 44% of the approval weight.",
+      "person": "luca.rossi",
+      "dependency": null,
+      "remediation": "Add secondary approvers for sensitive workflows and spread ownership of high-impact decisions.",
+      "controls": {
+        "iso27001": [
+          {
+            "id": "A.5.2",
+            "title": "Information security roles and responsibilities"
+          },
+          {
+            "id": "A.5.3",
+            "title": "Segregation of duties"
+          }
+        ],
+        "soc2": [
+          {
+            "id": "CC1.3",
+            "title": "Structures, reporting lines, authorities and responsibilities"
+          },
+          {
+            "id": "CC5.1",
+            "title": "Control activities, including segregation of duties"
+          }
+        ],
+        "dora": [
+          {
+            "id": "Art. 5(2)(c)",
+            "title": "Clear roles and responsibilities for ICT functions"
+          },
+          {
+            "id": "Art. 6(4)",
+            "title": "Segregation of ICT risk management, control and audit functions"
+          }
+        ]
+      }
+    },
+    {
+      "rule_id": "HRG003",
+      "rule": "critical-bypass",
+      "level": "warning",
+      "message": "Elena Popescu (elena.popescu) can bypass Anna Mueller (anna.mueller) and override the controls they enforce; one of them is critical.",
+      "person": "elena.popescu",
+      "dependency": {
+        "from": "elena.popescu",
+        "to": "anna.mueller"
+      },
+      "remediation": "Require a second person for the bypass, log every use, and review each use after the fact.",
+      "controls": {
+        "iso27001": [
+          {
+            "id": "A.5.3",
+            "title": "Segregation of duties"
+          },
+          {
+            "id": "A.8.2",
+            "title": "Privileged access rights"
+          },
+          {
+            "id": "A.8.32",
+            "title": "Change management"
+          }
+        ],
+        "soc2": [
+          {
+            "id": "CC5.1",
+            "title": "Control activities, including segregation of duties"
+          },
+          {
+            "id": "CC6.3",
+            "title": "Role-based access, least privilege and segregation of duties"
+          },
+          {
+            "id": "CC8.1",
+            "title": "Authorization of changes"
+          }
+        ],
+        "dora": [
+          {
+            "id": "Art. 9(4)(c)",
+            "title": "Access limited to approved functions"
+          },
+          {
+            "id": "Art. 9(4)(e)",
+            "title": "Controlled approval of ICT changes"
+          }
+        ]
+      }
+    },
+    {
+      "rule_id": "HRG003",
+      "rule": "critical-bypass",
+      "level": "warning",
+      "message": "Luca Rossi (luca.rossi) can bypass Carlos Garcia (carlos.garcia) and override the controls they enforce; one of them is critical.",
+      "person": "luca.rossi",
+      "dependency": {
+        "from": "luca.rossi",
+        "to": "carlos.garcia"
+      },
+      "remediation": "Require a second person for the bypass, log every use, and review each use after the fact.",
+      "controls": {
+        "iso27001": [
+          {
+            "id": "A.5.3",
+            "title": "Segregation of duties"
+          },
+          {
+            "id": "A.8.2",
+            "title": "Privileged access rights"
+          },
+          {
+            "id": "A.8.32",
+            "title": "Change management"
+          }
+        ],
+        "soc2": [
+          {
+            "id": "CC5.1",
+            "title": "Control activities, including segregation of duties"
+          },
+          {
+            "id": "CC6.3",
+            "title": "Role-based access, least privilege and segregation of duties"
+          },
+          {
+            "id": "CC8.1",
+            "title": "Authorization of changes"
+          }
+        ],
+        "dora": [
+          {
+            "id": "Art. 9(4)(c)",
+            "title": "Access limited to approved functions"
+          },
+          {
+            "id": "Art. 9(4)(e)",
+            "title": "Controlled approval of ICT changes"
+          }
+        ]
+      }
+    },
+    {
+      "rule_id": "HRG003",
+      "rule": "critical-bypass",
+      "level": "warning",
+      "message": "Marie Dubois (marie.dubois) can bypass Carlos Garcia (carlos.garcia) and override the controls they enforce; one of them is critical.",
+      "person": "marie.dubois",
+      "dependency": {
+        "from": "marie.dubois",
+        "to": "carlos.garcia"
+      },
+      "remediation": "Require a second person for the bypass, log every use, and review each use after the fact.",
+      "controls": {
+        "iso27001": [
+          {
+            "id": "A.5.3",
+            "title": "Segregation of duties"
+          },
+          {
+            "id": "A.8.2",
+            "title": "Privileged access rights"
+          },
+          {
+            "id": "A.8.32",
+            "title": "Change management"
+          }
+        ],
+        "soc2": [
+          {
+            "id": "CC5.1",
+            "title": "Control activities, including segregation of duties"
+          },
+          {
+            "id": "CC6.3",
+            "title": "Role-based access, least privilege and segregation of duties"
+          },
+          {
+            "id": "CC8.1",
+            "title": "Authorization of changes"
+          }
+        ],
+        "dora": [
+          {
+            "id": "Art. 9(4)(c)",
+            "title": "Access limited to approved functions"
+          },
+          {
+            "id": "Art. 9(4)(e)",
+            "title": "Controlled approval of ICT changes"
+          }
+        ]
+      }
+    }
+  ],
+  "fix_plan": [
+    {
+      "action": "control-bypass",
+      "target": [
+        "elena.popescu",
+        "anna.mueller"
+      ],
+      "title": "Require a second person for Elena Popescu's bypass of Anna Mueller",
+      "reason": "bypass involving a critical person",
+      "score_before": 61,
+      "score_after": 70,
+      "risk_before": 0.3856848026632976,
+      "risk_after": 0.2985149062871246
+    },
+    {
+      "action": "deputy",
+      "target": "johan.lindberg",
+      "title": "Add a deputy for Johan Lindberg",
+      "reason": "single point of failure, cuts off 2 people",
+      "score_before": 70,
+      "score_after": 76,
+      "risk_before": 0.2985149062871246,
+      "risk_after": 0.24100107638745183
+    },
+    {
+      "action": "deputy",
+      "target": "ines.silva",
+      "title": "Add a deputy for Ines Silva",
+      "reason": "single point of failure, cuts off 1 person",
+      "score_before": 76,
+      "score_after": 81,
+      "risk_before": 0.24100107638745183,
+      "risk_after": 0.1869018098449943
+    }
+  ]
 }

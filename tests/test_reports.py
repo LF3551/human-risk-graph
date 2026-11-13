@@ -68,12 +68,56 @@ def test_markdown_v1_keeps_original_formula():
 @pytest.mark.parametrize("model", ["hrg-2", "hrg-1"])
 def test_html_report(model):
     results, fixes = _analyze(model)
-    report = generate_html_report(results, _metadata(), fixes=fixes)
+    hrg = HumanRiskGraph(PEOPLE, DEPENDENCIES)
+    report = generate_html_report(results, _metadata(), fixes=fixes, hrg=hrg)
 
-    assert "Weight: 40%" in report
-    assert "Weight: 30%" in report
-    assert f"GRADE {results['grade']}" in report
+    assert "weight 40%" in report
+    assert "weight 30%" in report
+    assert f">{results['grade']}</b>" in report
     assert f"model {model}" in report
+    assert f'aria-label="Score {results["score"]} of 100"' in report
+    assert report.count('tabindex="0" role="button"') == len(PEOPLE)
+    assert 'class="edge edge-bypass"' in report
+
+
+def test_html_report_is_self_contained():
+    results, fixes = _analyze()
+    report = generate_html_report(
+        results, _metadata(), fixes=fixes, hrg=HumanRiskGraph(PEOPLE, DEPENDENCIES)
+    )
+
+    assert "<script src" not in report
+    assert "<link" not in report
+    assert "@import" not in report
+
+
+def test_html_report_escapes_input_everywhere():
+    people = [{"id": "x", "name": "</script><img src=x onerror=alert(1)>", "criticality": 0.9},
+              {"id": "y"}, {"id": "z"}]  # fmt: skip
+    deps = [{"from": "y", "to": "x"}, {"from": "x", "to": "z", "type": "<b>bad</b>"}]
+    hrg = HumanRiskGraph(people, deps)
+    results = hrg.calculate()
+    metadata = {"input_name": "<org>.json", "organization_size": 3, "dependencies_count": 2}
+
+    report = generate_html_report(results, metadata, hrg=hrg)
+
+    assert "<img src=x" not in report
+    assert "</script><img" not in report
+    assert "<b>bad</b>" not in report
+    assert "<org>" not in report
+    data = report.split('id="hrg-data">')[1].split("</script>")[0]
+    assert json.loads(data)["people"]["x"]["name"].startswith("</script>")
+
+
+def test_html_report_panel_data():
+    results, _ = _analyze()
+    report = generate_html_report(results, _metadata(), hrg=HumanRiskGraph(PEOPLE, DEPENDENCIES))
+    people = json.loads(report.split('id="hrg-data">')[1].split("</script>")[0])["people"]
+
+    assert people["A"]["spof"] is True
+    assert "Approves B" in people["A"]["links"]
+    assert "Can be bypassed by D" in people["A"]["links"]
+    assert people["A"]["share"] == 1.0
 
 
 def test_json_report_includes_fix_plan():
@@ -92,4 +136,5 @@ def test_markdown_displays_human_friendly_critical_people():
 def test_html_displays_human_friendly_critical_people():
     results, _ = _analyze()
     report = generate_html_report(results, _metadata())
-    assert "Ivan Petrov (Site Reliability Engineer)" in report
+    assert "Ivan Petrov" in report
+    assert "Site Reliability Engineer" in report

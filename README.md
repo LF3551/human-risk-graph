@@ -172,7 +172,7 @@ Exit codes: `0` success, `1` invalid input or error, `2` usage error,
 ### Example Output
 
 ```
-Human Risk Graph 0.5.0 · example_organization.json · 10 people · 14 dependencies
+Human Risk Graph 0.6.0 · example_organization.json · 10 people · 14 dependencies
 
   Score  61/100  ██████░░░░  D · Moderate risk  model hrg-2
 
@@ -207,6 +207,16 @@ Human Risk Graph 0.5.0 · example_organization.json · 10 people · 14 dependenc
 - JSON report with detailed metrics
 - Interactive HTML graph visualization
 - Optional Markdown and HTML reports
+
+### HTML Report
+
+One self-contained file that works offline, in light and dark mode, on a phone and as a PDF:
+score and verdict, fix plan, interactive dependency map, people, findings with related
+controls, the exact formula, and an audit trail with the input file's SHA-256.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/LF3551/human-risk-graph/main/docs/figures/html-report.png" alt="Human Risk Graph HTML report" width="800">
+</p>
 
 ### Findings and Compliance Mapping
 

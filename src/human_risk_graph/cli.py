@@ -12,6 +12,7 @@ Exit codes: 0 success, 1 invalid input or error, 2 usage error, 3 score below
 """
 
 import click
+import hashlib
 import sys
 from pathlib import Path
 from datetime import datetime
@@ -132,7 +133,7 @@ def analyze(input_file, formats, output, visualize, fail_above, min_score, model
         person["id"]: {
             "name": person.get("name", person["id"]),
             "role": person.get("role", ""),
-            "criticality": person.get("criticality", 0.0),
+            "criticality": person.get("criticality", 0.5),
         }
         for person in data["people"]
     }
@@ -143,8 +144,12 @@ def analyze(input_file, formats, output, visualize, fail_above, min_score, model
         dependency_type_counts[dep_type] = dependency_type_counts.get(dep_type, 0) + 1
 
     metadata = {
-        "input_file": str(input_path.absolute()),
-        "analysis_date": datetime.now().isoformat(),
+        # As given on the command line: an absolute path would leak local directory names.
+        "input_file": input_path.as_posix(),
+        "input_name": input_path.name,
+        "input_sha256": hashlib.sha256(input_path.read_bytes()).hexdigest(),
+        "tool_version": __version__,
+        "analysis_date": datetime.now().isoformat(timespec="seconds"),
         "organization_size": len(data["people"]),
         "dependencies_count": len(data["dependencies"]),
         "person_lookup": person_lookup,
@@ -172,7 +177,7 @@ def analyze(input_file, formats, output, visualize, fail_above, min_score, model
             elif fmt == "markdown":
                 content = generate_markdown_report(results, metadata, findings, fixes)
             elif fmt == "html":
-                content = generate_html_report(results, metadata, findings, fixes)
+                content = generate_html_report(results, metadata, findings, fixes, hrg)
             elif fmt == "sarif":
                 content = generate_sarif_report(
                     findings,
