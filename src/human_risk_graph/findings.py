@@ -131,7 +131,8 @@ RULES: Dict[str, Rule] = {
                 "Approval authority is unevenly distributed: a few people hold most of the "
                 "approval weight. Model hrg-2 measures it with the Herfindahl-Hirschman index "
                 "(fewer than 4 effective approvers is a warning, fewer than 2 an error); "
-                "hrg-1 with the Gini coefficient."
+                "hrg-1 with the Gini coefficient; hrg-3 with the same index over the weight "
+                "of the functions each person can perform."
             ),
             remediation=(
                 "Add secondary approvers for sensitive workflows and spread ownership of "

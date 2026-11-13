@@ -16,6 +16,12 @@ SOC 2 and DORA. The findings appear in the JSON, Markdown, HTML, SARIF and JUnit
 | `HRG002` approval-concentration | Fewer than 4 effective approvers (Herfindahl-Hirschman index of approval weight ≥ 0.25; model hrg-1: Gini coefficient ≥ 0.3). Reported against the person with the largest share. | `error` below 2 effective approvers (hrg-1: Gini ≥ 0.7), otherwise `warning` |
 | `HRG003` critical-bypass | A `bypass` dependency starts or ends at a critical person. | `warning` |
 | `HRG004` risk-above-threshold | The score is below `--min-score`, or the composite risk is above `--fail-above`. | `error` |
+| `HRG005` function-single-point-of-failure | Model hrg-3: a function cannot be performed, or stops when one of its performers is unavailable. | `error` if the function is critical (criticality ≥ 0.7), otherwise `warning` |
+| `HRG006` solo-critical-function | Model hrg-3: one person can complete a critical function alone, because it requires one person or someone in `alone` can bypass the second person ([SLSA Source Level 4](https://slsa.dev/spec/v1.2/source-requirements) two-party review). | `warning` |
+
+Models hrg-1 and hrg-2 raise HRG001-HRG004. Model hrg-3 raises HRG002 (for authority
+over functions: Herfindahl-Hirschman index of function weight ≥ 0.25, `error` from 0.5),
+HRG004, HRG005 and HRG006. The JUnit report has one test case per rule of the model used.
 
 ## Related controls
 
@@ -25,6 +31,8 @@ SOC 2 and DORA. The findings appear in the JSON, Markdown, HTML, SARIF and JUnit
 | `HRG002` | A.5.2 Information security roles and responsibilities; A.5.3 Segregation of duties | CC1.3 Structures, reporting lines, authorities and responsibilities; CC5.1 Control activities, including segregation of duties | Art. 5(2)(c) Clear roles and responsibilities for ICT functions; Art. 6(4) Segregation of ICT risk management, control and audit functions |
 | `HRG003` | A.5.3 Segregation of duties; A.8.2 Privileged access rights; A.8.32 Change management | CC5.1 Control activities, including segregation of duties; CC6.3 Role-based access, least privilege and segregation of duties; CC8.1 Authorization of changes | Art. 9(4)(c) Access limited to approved functions; Art. 9(4)(e) Controlled approval of ICT changes |
 | `HRG004` | 6.1.2 Information security risk assessment | CC3.2 Risk identification and analysis | Art. 6(8)(b) ICT risk tolerance level |
+| `HRG005` | A.5.29 Information security during disruption; A.5.30 ICT readiness for business continuity | CC1.4 Competent individuals, including succession planning; CC9.1 Mitigation of business disruption risk | Art. 10(1) Identification of material single points of failure; Art. 11(2)(a) Continuity of critical or important functions |
+| `HRG006` | A.5.3 Segregation of duties; A.8.2 Privileged access rights; A.8.32 Change management | CC5.1 Control activities, including segregation of duties; CC6.3 Role-based access, least privilege and segregation of duties; CC8.1 Authorization of changes | Art. 9(4)(c) Access limited to approved functions; Art. 9(4)(e) Controlled approval of ICT changes |
 
 Control titles are short paraphrases. Read the standard or regulation for the exact text.
 

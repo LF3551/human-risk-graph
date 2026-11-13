@@ -369,8 +369,6 @@ def _cut_off(hrg, people) -> Dict[str, List[str]]:
     support = support_graph(hrg.graph)
     out: Dict[str, List[str]] = {}
     for pid in people:
-        if pid not in support:
-            continue
         component = nx.node_connected_component(support, pid) - {pid}
         parts = sorted(
             nx.connected_components(support.subgraph(component)),
