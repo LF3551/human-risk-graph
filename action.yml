@@ -180,9 +180,8 @@ runs:
           exit "$code"
         fi
 
-        stem="$(basename "$input")"
-        stem="${stem%.*}"
-        report="$HRG_OUT/${stem}_report"
+        report_json="$(ls -t "$HRG_OUT"/*_report.json | head -n 1)"
+        report="${report_json%.json}"
         "$HRG_PY" -m human_risk_graph.gha summary "$report.json" >> "$GITHUB_STEP_SUMMARY"
         {
           "$HRG_PY" -m human_risk_graph.gha outputs "$report.json"

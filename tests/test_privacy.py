@@ -251,9 +251,10 @@ def test_input_file_name_is_pseudonymized(org_file):
         cli, ["analyze", str(named), "--pseudonymize", "--format", "all", "--no-visualize", "-q"]
     )
     assert result.exit_code == 0, result.output
-    reports = list(org_file.parent.glob("bob-org_report.*"))
+    reports = [p for p in org_file.parent.iterdir() if "_report." in p.name]
     assert len(reports) == 3
     for report in reports:
+        _no_identifiers(report.name)
         _no_identifiers(report.read_text())
 
 

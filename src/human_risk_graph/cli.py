@@ -254,7 +254,7 @@ def analyze(
 
     # Prepare metadata
     input_path = Path(input_file)
-    base_name = input_path.stem
+    base_name = pz.scrub(input_path.stem) if pz else input_path.stem
     output_dir = input_path.parent if not output else Path(output).parent
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -327,7 +327,7 @@ def analyze(
             elif fmt == "sarif":
                 content = generate_sarif_report(
                     findings,
-                    _artifact_uri(input_path),
+                    pz.scrub(_artifact_uri(input_path)) if pz else _artifact_uri(input_path),
                     input_path.read_text(encoding="utf-8"),
                     {p: i for i, p in pz.mapping.items()} if pz else None,
                 )

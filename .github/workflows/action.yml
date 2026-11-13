@@ -121,7 +121,11 @@ jobs:
           logins=$(awk '/^people:/{p=1;next} /^[a-z]/{p=0} p && /^- id: /{print $3}' "$DRAFT" | tr -d "'")
           test -n "$logins"
           for login in $logins; do
-            if grep -rqF -w -- "$login" "$DIR"/*_report.*; then
+            # The reports link to this tool's repository, which belongs to the scanned owner.
+            if sed 's#github.com/LF3551/human-risk-graph##g' "$DIR"/* | grep -qF -w -- "$login"; then
               echo "::error::login $login found in a report"; exit 1
+            fi
+            if ls "$DIR" | grep -qF -- "$login"; then
+              echo "::error::login $login in a report file name"; exit 1
             fi
           done
