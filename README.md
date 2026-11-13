@@ -17,6 +17,7 @@
 </p>
 
 <p align="center">
+  <a href="https://lf3551.github.io/human-risk-graph/"><b>Live demo</b></a> ·
   <a href="#quick-start">Quick start</a> ·
   <a href="#html-report">HTML report</a> ·
   <a href="#github-action">GitHub Action</a> ·
@@ -53,6 +54,9 @@ Simple ratios hide the worst cases. HRG is designed so that they cannot:
 The model, its properties and its tests are in [docs/model.md](docs/model.md).
 
 ## Quick start
+
+**See it first:** [live example reports](https://lf3551.github.io/human-risk-graph/) of two
+fictional organizations, nothing to install.
 
 Try it on the example organization, nothing to set up (needs [uv](https://docs.astral.sh/uv/)):
 
@@ -140,9 +144,10 @@ active approver is a declared one in every repository; see the reproducible
 One self-contained file that works offline, in light and dark mode, on a phone and as a PDF:
 score and verdict, fix plan, interactive dependency map, people, findings with related
 controls, the exact formula, and an audit trail with the input file's SHA-256.
+[Open a live example](https://lf3551.github.io/human-risk-graph/demo/platform-team.html).
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/LF3551/human-risk-graph/main/docs/figures/html-report.png" alt="Human Risk Graph HTML report" width="800">
+  <a href="https://lf3551.github.io/human-risk-graph/demo/platform-team.html"><img src="https://raw.githubusercontent.com/LF3551/human-risk-graph/main/docs/figures/html-report.png" alt="Human Risk Graph HTML report" width="800"></a>
 </p>
 
 ## What HRG measures

@@ -70,3 +70,5 @@ paper/*.fls
 # OS
 .DS_Store
 Thumbs.db
+# GitHub Pages build
+_site/
