@@ -5,6 +5,16 @@ All notable changes to Human Risk Graph will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.1] - 2026-11-13
+
+### 📝 Documentation
+
+- README: the key points cover the organization scan, pseudonymized reports and the validation study; links to the privacy and validation pages; three live examples, not two; the repository layout lists `benchmark/`.
+- Live demo site: organization scan and `--pseudonymize` in "Try it", links to the validation study and the privacy page, and "not for judging people".
+- `docs/model-hrg3.md` explains the per-repository functions of an organization scan.
+- Example reports in `data/` regenerated with the current version (they were from 0.7.0).
+- Package keywords: `gdpr`, `segregation-of-duties`, `github`.
+
 ## [0.15.0] - 2026-11-13
 
 ### ✨ Added

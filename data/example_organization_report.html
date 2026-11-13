@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="generator" content="human-risk-graph 0.7.0">
+<meta name="generator" content="human-risk-graph 0.15.1">
 <title>Human Risk Graph · example_organization.json</title>
 <style>
 :root {
@@ -46,6 +46,10 @@ h2 + .muted { margin: 0 0 18px; }
   display: inline-grid; place-items: center; }
 .grade span { font-size: 22px; font-weight: 650; }
 .verdict { font-size: 17px; margin: 6px 0; }
+.notice { border: 1px solid var(--warn); color: var(--warn); border-radius: 10px;
+  padding: 8px 12px; font-size: 14px; margin: 10px 0 0; }
+details.notice summary { cursor: pointer; }
+details.notice ul { margin: 6px 0 0; padding-left: 18px; }
 .meta { display: flex; gap: 18px; flex-wrap: wrap; color: var(--muted); font-size: 13px; margin-top: 12px; }
 .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .tile { border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: flex;
@@ -82,15 +86,47 @@ h2 + .muted { margin: 0 0 18px; }
 .edge-escalation { stroke: var(--escalation); stroke-dasharray: 4 4; }
 .edge-bypass { stroke: var(--bypass); stroke-dasharray: 7 4; stroke-width: 2; }
 .edge-other { stroke: var(--other); }
+.flow { fill: none; stroke-width: 2.6; stroke-linecap: round; stroke-dasharray: 0.1 13;
+  pointer-events: none; opacity: 0.55; animation: hrg-flow 2.4s linear infinite; }
+.flow-approval { stroke: var(--approval); } .flow-escalation { stroke: var(--escalation); }
+.flow-bypass { stroke: var(--bypass); stroke-width: 3.4; animation-duration: 1.1s; }
+.flow-other { stroke: var(--other); }
+@keyframes hrg-flow { to { stroke-dashoffset: -13.1; } }
+@keyframes hrg-pulse { 50% { stroke-width: 8; } }
 .arrow-approval { fill: var(--approval); } .arrow-escalation { fill: var(--escalation); }
 .arrow-bypass { fill: var(--bypass); } .arrow-other { fill: var(--other); }
 .node circle { fill: var(--node); stroke: var(--card); stroke-width: 2.5; cursor: pointer; }
-.node-critical circle { fill: var(--critical); }
-.node-spof circle { fill: var(--spof); }
+.node-critical circle { stroke: var(--critical); stroke-width: 3.5; }
+.node-spof circle { fill: var(--critical); }
+.node-spof.node-critical circle { fill: var(--spof); stroke: var(--card); stroke-width: 2.5; }
+.edge-hit { stroke: transparent; stroke-width: 12; pointer-events: stroke; cursor: help; }
+.map-box { position: relative; }
+.map-box .map { touch-action: none; }
+.map.panning { cursor: grabbing; }
+.zoom { position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; }
+.zoom button { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--card); color: var(--text); font-size: 16px; cursor: pointer; }
+.zoom button:hover { border-color: var(--accent); }
+.fix[data-targets] { cursor: pointer; }
+.fix[data-targets]:hover, .fix[data-targets]:focus-visible { border-color: var(--accent); outline: none; }
+.node.hint circle { stroke: var(--accent); stroke-width: 4; }
+.whatif { border: 1px solid var(--line); border-left: 3px solid var(--spof); border-radius: 10px;
+  padding: 8px 12px; margin: 10px 0; }
+.whatif strong { display: block; margin-bottom: 4px; }
+.whatif .score-drop { font-size: 18px; font-weight: 750; color: var(--spof); }
 .node-label { font-size: 14px; font-weight: 550; text-anchor: middle; fill: var(--text); pointer-events: none;
   paint-order: stroke; stroke: var(--bg); stroke-width: 4px; }
 .map.focus .edge, .map.focus .node { opacity: 0.18; transition: opacity .15s; }
 .map.focus .is-on { opacity: 1; }
+.map.focus .flow { opacity: 0; }
+.map.focus .flow.is-on { opacity: 1; animation-duration: 1s; }
+.map.focus .flow-bypass.is-on { animation-duration: 0.55s; }
+.node.cut circle { stroke: var(--spof); stroke-width: 3; animation: hrg-pulse 1.2s ease-in-out infinite; }
+.edge.cut { stroke: var(--spof); } .flow.cut { stroke: var(--spof); }
+@media (prefers-reduced-motion: reduce) {
+  .flow, .node.cut circle { animation: none; }
+  .flow { stroke-dasharray: none; opacity: 0.25; }
+}
 .node.selected circle { stroke: var(--text); stroke-width: 3; }
 .panel { border: 1px solid var(--line); border-radius: 12px; padding: 16px; font-size: 14px;
   max-height: 540px; overflow: auto; }
@@ -101,7 +137,8 @@ h2 + .muted { margin: 0 0 18px; }
 .legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; color: var(--muted); margin-top: 12px; }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
 .dot { width: 11px; height: 11px; border-radius: 50%; background: var(--node); display: inline-block; }
-.dot-spof { background: var(--spof); } .dot-critical { background: var(--critical); }
+.dot-spof { background: var(--critical); } .dot-spof-critical { background: var(--spof); }
+.dot-critical { background: var(--node); box-shadow: 0 0 0 2px var(--critical); }
 .line { width: 22px; height: 0; border-top: 2px solid; display: inline-block; }
 .line-approval { border-color: var(--approval); }
 .line-escalation { border-color: var(--escalation); border-top-style: dashed; }
@@ -162,7 +199,7 @@ footer.page { color: var(--muted); font-size: 13px; text-align: center; margin-t
   .count { float: none; margin-left: 6px; }
 }
 @media print {
-  body { background: #fff; } nav, .panel, th[data-sort]::after { display: none; }
+  body { background: #fff; } nav, .panel, th[data-sort]::after, .flow, .zoom { display: none; }
   .card { break-inside: avoid; border-color: #ddd; } .map-wrap { grid-template-columns: 1fr; }
   details { display: block; } details > summary { list-style: none; }
 }
@@ -178,19 +215,20 @@ footer.page { color: var(--muted); font-size: 13px; text-align: center; margin-t
   </div>
 
   <section class="card hero">
-    <svg class="ring" viewBox="0 0 120 120" role="img" aria-label="Score 61 of 100">
+    <svg class="ring" viewBox="0 0 120 120" role="img" aria-label="Score 52 of 100">
   <circle cx="60" cy="60" r="52" class="ring-track"/>
   <circle cx="60" cy="60" r="52" class="ring-value" stroke="#c2410c"
-          stroke-dasharray="199.3 326.7" transform="rotate(-90 60 60)"/>
-  <text x="60" y="62" class="ring-score">61</text>
+          stroke-dasharray="169.9 326.7" transform="rotate(-90 60 60)"/>
+  <text x="60" y="62" class="ring-score">52</text>
   <text x="60" y="82" class="ring-max">/ 100</text>
 </svg>
     <div>
       <div class="grade"><b style="background:#c2410c">D</b><span>Moderate risk</span></div>
-      <p class="verdict">Main driver: override exposure — 4 of 7 critical approvals can be overridden through a bypass.</p>
+      <p class="verdict">Main driver: key-person risk — Bus factor 1. Losing Anna Mueller cuts off 3 people and 50% of connections.</p>
       <p class="muted">Human dependency risks are manageable; the top fixes below are worth doing.</p>
+      
       <div class="meta"><span>10 people</span><span>14 dependencies</span>
-        <span>0 errors · 6 warnings</span><span>model hrg-2</span><span>2026-11-13 07:20</span></div>
+        <span>3 errors · 6 warnings</span><span>model hrg-2</span><span>2026-11-13 14:55</span></div>
     </div>
   </section>
 
@@ -198,9 +236,9 @@ footer.page { color: var(--muted); font-size: 13px; text-align: center; margin-t
   <header><span class="tile-label">Key-person risk</span>
     <span class="chip chip-moderate">Moderate</span></header>
   <p class="tile-headline">Bus factor 1</p>
-  <p class="tile-detail">Losing Johan Lindberg cuts off 2 people and 39% of connections.</p>
-  <div class="meter meter-moderate" title="0.226"><span style="width:22.6%"></span></div>
-  <footer><span>0.226</span><span>weight 40%</span></footer>
+  <p class="tile-detail">Losing Anna Mueller cuts off 3 people and 50% of connections.</p>
+  <div class="meter meter-moderate" title="0.425"><span style="width:42.5%"></span></div>
+  <footer><span>0.425</span><span>weight 40%</span></footer>
 </article>
 <article class="tile">
   <header><span class="tile-label">Approval concentration</span>
@@ -222,76 +260,87 @@ footer.page { color: var(--muted); font-size: 13px; text-align: center; margin-t
   <section class="card" id="fixes" style="margin-top:20px">
     <h2>Top fixes</h2>
     <p class="muted">Remediations simulated on your data, ranked by how much they raise the score.</p>
-    <p class="lead">Doing all 3 raises the score from <strong>61</strong>
-  to <strong>81</strong> (grade D → B).</p>
-<ol class="fixes"><li class="fix">
+    <p class="lead">Doing all 3 raises the score from <strong>52</strong>
+  to <strong>76</strong> (grade D → C).</p>
+<ol class="fixes"><li class="fix" data-targets="[&quot;elena.popescu&quot;, &quot;anna.mueller&quot;]" tabindex="0" role="button"
+    title="Show on the map">
   <span class="fix-step">1</span>
   <div class="fix-body"><span class="fix-kind">Bypass control</span>
     <p class="fix-title">Require a second person for Elena Popescu&#x27;s bypass of Anna Mueller</p>
     <p class="fix-why">bypass involving a critical person</p></div>
-  <div class="fix-score"><span class="gain">+9</span>
-    <span class="muted">61 → 70</span></div>
-</li><li class="fix">
+  <div class="fix-score"><span class="gain">+8</span>
+    <span class="muted">52 → 60</span></div>
+</li><li class="fix" data-targets="[&quot;anna.mueller&quot;]" tabindex="0" role="button"
+    title="Show on the map">
   <span class="fix-step">2</span>
   <div class="fix-body"><span class="fix-kind">Deputy</span>
-    <p class="fix-title">Add a deputy for Johan Lindberg</p>
-    <p class="fix-why">single point of failure, cuts off 2 people</p></div>
+    <p class="fix-title">Add a deputy for Anna Mueller</p>
+    <p class="fix-why">single point of failure, cuts off 3 people</p></div>
   <div class="fix-score"><span class="gain">+6</span>
-    <span class="muted">70 → 76</span></div>
-</li><li class="fix">
+    <span class="muted">60 → 66</span></div>
+</li><li class="fix" data-targets="[&quot;luca.rossi&quot;]" tabindex="0" role="button"
+    title="Show on the map">
   <span class="fix-step">3</span>
   <div class="fix-body"><span class="fix-kind">Deputy</span>
-    <p class="fix-title">Add a deputy for Ines Silva</p>
-    <p class="fix-why">single point of failure, cuts off 1 person</p></div>
-  <div class="fix-score"><span class="gain">+5</span>
-    <span class="muted">76 → 81</span></div>
+    <p class="fix-title">Add a deputy for Luca Rossi</p>
+    <p class="fix-why">single point of failure, cuts off 2 people</p></div>
+  <div class="fix-score"><span class="gain">+10</span>
+    <span class="muted">66 → 76</span></div>
 </li></ol>
-<p class="muted small">Simulated on the model: a deputy shares the person's approvals and
-  escalations; a bypass control turns the bypass into a regular escalation.</p>
+<p class="muted small">Simulated on the model: a deputy shares the person's approvals and escalations; a bypass control means no single person can override, so the bypass is removed.</p>
   </section>
 
   <section class="card" id="map">
     <h2>Dependency map</h2>
     <p class="muted">Who approves, escalates to and can bypass whom. Select a person for details.</p>
     <div class="map-wrap">
+  <div class="map-box">
   <svg class="map" viewBox="0 0 820 500" role="img" aria-label="Dependency map">
     <defs><marker id="arrow-approval" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow-approval"/></marker><marker id="arrow-escalation" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow-escalation"/></marker><marker id="arrow-bypass" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow-bypass"/></marker><marker id="arrow-other" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow-other"/></marker></defs>
-    <g class="edges"><line class="edge edge-approval" data-from="anna.mueller" data-to="carlos.garcia" x1="168.8" y1="296.4" x2="269.2" y2="219.7" marker-end="url(#arrow-approval)"><title>Anna Mueller → Carlos Garcia: approval</title></line><line class="edge edge-approval" data-from="anna.mueller" data-to="sofia.papadopoulos" x1="153.5" y1="291.1" x2="141.5" y2="244.0" marker-end="url(#arrow-approval)"><title>Anna Mueller → Sofia Papadopoulos: approval</title></line><line class="edge edge-approval" data-from="carlos.garcia" data-to="johan.lindberg" x1="294.7" y1="198.3" x2="317.0" y2="177.2" marker-end="url(#arrow-approval)"><title>Carlos Garcia → Johan Lindberg: approval</title></line><line class="edge edge-approval" data-from="carlos.garcia" data-to="peter.novak" x1="271.4" y1="205.3" x2="74.6" y2="169.7" marker-end="url(#arrow-approval)"><title>Carlos Garcia → Peter Novak: approval</title></line><line class="edge edge-bypass" data-from="elena.popescu" data-to="anna.mueller" x1="198.8" y1="415.6" x2="164.4" y2="324.6" marker-end="url(#arrow-bypass)"><title>Elena Popescu → Anna Mueller: bypass</title></line><line class="edge edge-escalation" data-from="ines.silva" data-to="tomas.kowalski" x1="418.3" y1="100.7" x2="450.8" y2="68.4" marker-end="url(#arrow-escalation)"><title>Ines Silva → Tomas Kowalski: escalation</title></line><line class="edge edge-approval" data-from="johan.lindberg" data-to="ines.silva" x1="356.0" y1="145.6" x2="386.0" y2="126.1" marker-end="url(#arrow-approval)"><title>Johan Lindberg → Ines Silva: approval</title></line><line class="edge edge-approval" data-from="luca.rossi" data-to="anna.mueller" x1="748.7" y1="310.1" x2="177.8" y2="305.4" marker-end="url(#arrow-approval)"><title>Luca Rossi → Anna Mueller: approval</title></line><line class="edge edge-bypass" data-from="luca.rossi" data-to="carlos.garcia" x1="749.1" y1="307.0" x2="304.1" y2="211.8" marker-end="url(#arrow-bypass)"><title>Luca Rossi → Carlos Garcia: bypass</title></line><line class="edge edge-approval" data-from="luca.rossi" data-to="marie.dubois" x1="749.2" y1="313.9" x2="457.3" y2="387.5" marker-end="url(#arrow-approval)"><title>Luca Rossi → Marie Dubois: approval</title></line><line class="edge edge-bypass" data-from="marie.dubois" data-to="carlos.garcia" x1="429.0" y1="381.6" x2="297.4" y2="222.9" marker-end="url(#arrow-bypass)"><title>Marie Dubois → Carlos Garcia: bypass</title></line><line class="edge edge-approval" data-from="marie.dubois" data-to="elena.popescu" x1="424.0" y1="394.5" x2="222.4" y2="425.1" marker-end="url(#arrow-approval)"><title>Marie Dubois → Elena Popescu: approval</title></line><line class="edge edge-escalation" data-from="peter.novak" data-to="sofia.papadopoulos" x1="66.4" y1="174.0" x2="121.8" y2="214.8" marker-end="url(#arrow-escalation)"><title>Peter Novak → Sofia Papadopoulos: escalation</title></line><line class="edge edge-escalation" data-from="sofia.papadopoulos" data-to="johan.lindberg" x1="148.8" y1="221.8" x2="310.7" y2="166.8" marker-end="url(#arrow-escalation)"><title>Sofia Papadopoulos → Johan Lindberg: escalation</title></line></g>
-    <g class="nodes"><g class="node node-critical" data-id="luca.rossi" tabindex="0" role="button"><circle cx="764.0" cy="310.2" r="15.3"/><text x="779.3" y="338.5" class="node-label" style="text-anchor:end">Luca Rossi</text><title>Luca Rossi · Principal SRE</title></g><g class="node node-critical" data-id="anna.mueller" tabindex="0" role="button"><circle cx="157.1" cy="305.2" r="14.6"/><text x="142.5" y="332.9" class="node-label" style="text-anchor:start">Anna Mueller</text><title>Anna Mueller · Security Lead</title></g><g class="node node-critical" data-id="marie.dubois" tabindex="0" role="button"><circle cx="437.9" cy="392.4" r="14.0"/><text x="437.9" y="419.5" class="node-label" style="text-anchor:middle">Marie Dubois</text><title>Marie Dubois · Engineering Manager</title></g><g class="node node-critical" data-id="carlos.garcia" tabindex="0" role="button"><circle cx="284.8" cy="207.7" r="13.7"/><text x="284.8" y="234.4" class="node-label" style="text-anchor:middle">Carlos Garcia</text><title>Carlos Garcia · Platform Architect</title></g><g class="node" data-id="elena.popescu" tabindex="0" role="button"><circle cx="203.4" cy="428.0" r="13.2"/><text x="203.4" y="454.2" class="node-label" style="text-anchor:middle">Elena Popescu</text><title>Elena Popescu · Incident Manager</title></g><g class="node" data-id="peter.novak" tabindex="0" role="button"><circle cx="56.0" cy="166.4" r="12.9"/><text x="43.1" y="192.3" class="node-label" style="text-anchor:start">Peter Novak</text><title>Peter Novak · Backend Lead</title></g><g class="node" data-id="sofia.papadopoulos" tabindex="0" role="button"><circle cx="136.8" cy="225.9" r="12.7"/><text x="124.2" y="251.6" class="node-label" style="text-anchor:start">Sofia Papadopoulos</text><title>Sofia Papadopoulos · Compliance Officer</title></g><g class="node" data-id="tomas.kowalski" tabindex="0" role="button"><circle cx="463.2" cy="56.0" r="11.5"/><text x="463.2" y="80.5" class="node-label" style="text-anchor:middle">Tomas Kowalski</text><title>Tomas Kowalski · Software Engineer</title></g><g class="node node-spof" data-id="ines.silva" tabindex="0" role="button"><circle cx="405.8" cy="113.1" r="17.7"/><text x="405.8" y="143.8" class="node-label" style="text-anchor:middle">Ines Silva</text><title>Ines Silva · Product Security Engineer</title></g><g class="node node-spof" data-id="johan.lindberg" tabindex="0" role="button"><circle cx="337.4" cy="157.8" r="22.2"/><text x="337.4" y="193.0" class="node-label" style="text-anchor:middle">Johan Lindberg</text><title>Johan Lindberg · DevOps Engineer</title></g></g>
+    <g class="edges"><line class="edge edge-approval" data-from="anna.mueller" data-to="carlos.garcia" x1="179.9" y1="308.6" x2="241.1" y2="253.5" marker-end="url(#arrow-approval)"/><line class="flow flow-approval" data-from="anna.mueller" data-to="carlos.garcia" x1="179.9" y1="308.6" x2="241.1" y2="253.5"/><line class="edge-hit" data-from="anna.mueller" data-to="carlos.garcia" x1="179.9" y1="308.6" x2="241.1" y2="253.5"><title>Anna Mueller approves Carlos Garcia · weight 0.55</title></line><line class="edge edge-approval" data-from="anna.mueller" data-to="sofia.papadopoulos" x1="158.7" y1="300.7" x2="150.7" y2="234.5" marker-end="url(#arrow-approval)"/><line class="flow flow-approval" data-from="anna.mueller" data-to="sofia.papadopoulos" x1="158.7" y1="300.7" x2="150.7" y2="234.5"/><line class="edge-hit" data-from="anna.mueller" data-to="sofia.papadopoulos" x1="158.7" y1="300.7" x2="150.7" y2="234.5"><title>Anna Mueller approves Sofia Papadopoulos · weight 0.40</title></line><line class="edge edge-approval" data-from="carlos.garcia" data-to="johan.lindberg" x1="262.8" y1="228.7" x2="299.7" y2="168.8" marker-end="url(#arrow-approval)"/><line class="flow flow-approval" data-from="carlos.garcia" data-to="johan.lindberg" x1="262.8" y1="228.7" x2="299.7" y2="168.8"/><line class="edge-hit" data-from="carlos.garcia" data-to="johan.lindberg" x1="262.8" y1="228.7" x2="299.7" y2="168.8"><title>Carlos Garcia approves Johan Lindberg · weight 0.30</title></line><line class="edge edge-approval" data-from="carlos.garcia" data-to="peter.novak" x1="243.1" y1="235.0" x2="73.5" y2="163.6" marker-end="url(#arrow-approval)"/><line class="flow flow-approval" data-from="carlos.garcia" data-to="peter.novak" x1="243.1" y1="235.0" x2="73.5" y2="163.6"/><line class="edge-hit" data-from="carlos.garcia" data-to="peter.novak" x1="243.1" y1="235.0" x2="73.5" y2="163.6"><title>Carlos Garcia approves Peter Novak · weight 0.35</title></line><line class="edge edge-bypass" data-from="elena.popescu" data-to="anna.mueller" x1="198.5" y1="415.8" x2="173.2" y2="353.6" marker-end="url(#arrow-bypass)"/><line class="flow flow-bypass" data-from="elena.popescu" data-to="anna.mueller" x1="198.5" y1="415.8" x2="173.2" y2="353.6"/><line class="edge-hit" data-from="elena.popescu" data-to="anna.mueller" x1="198.5" y1="415.8" x2="173.2" y2="353.6"><title>Elena Popescu can bypass Anna Mueller · weight 0.60</title></line><line class="edge edge-escalation" data-from="ines.silva" data-to="tomas.kowalski" x1="434.1" y1="122.3" x2="487.9" y2="68.4" marker-end="url(#arrow-escalation)"/><line class="flow flow-escalation" data-from="ines.silva" data-to="tomas.kowalski" x1="434.1" y1="122.3" x2="487.9" y2="68.4"/><line class="edge-hit" data-from="ines.silva" data-to="tomas.kowalski" x1="434.1" y1="122.3" x2="487.9" y2="68.4"><title>Ines Silva escalates to Tomas Kowalski · weight 0.30</title></line><line class="edge edge-approval" data-from="johan.lindberg" data-to="ines.silva" x1="333.1" y1="144.3" x2="400.3" y2="136.5" marker-end="url(#arrow-approval)"/><line class="flow flow-approval" data-from="johan.lindberg" data-to="ines.silva" x1="333.1" y1="144.3" x2="400.3" y2="136.5"/><line class="edge-hit" data-from="johan.lindberg" data-to="ines.silva" x1="333.1" y1="144.3" x2="400.3" y2="136.5"><title>Johan Lindberg approves Ines Silva · weight 0.25</title></line><line class="edge edge-approval" data-from="luca.rossi" data-to="anna.mueller" x1="740.9" y1="310.8" x2="192.3" y2="324.4" marker-end="url(#arrow-approval)"/><line class="flow flow-approval" data-from="luca.rossi" data-to="anna.mueller" x1="740.9" y1="310.8" x2="192.3" y2="324.4"/><line class="edge-hit" data-from="luca.rossi" data-to="anna.mueller" x1="740.9" y1="310.8" x2="192.3" y2="324.4"><title>Luca Rossi approves Anna Mueller · weight 0.95</title></line><line class="edge edge-bypass" data-from="luca.rossi" data-to="carlos.garcia" x1="741.2" y1="307.1" x2="275.2" y2="243.0" marker-end="url(#arrow-bypass)"/><line class="flow flow-bypass" data-from="luca.rossi" data-to="carlos.garcia" x1="741.2" y1="307.1" x2="275.2" y2="243.0"/><line class="edge-hit" data-from="luca.rossi" data-to="carlos.garcia" x1="741.2" y1="307.1" x2="275.2" y2="243.0"><title>Luca Rossi can bypass Carlos Garcia · weight 0.90</title></line><line class="edge edge-approval" data-from="luca.rossi" data-to="marie.dubois" x1="741.6" y1="315.8" x2="461.6" y2="386.5" marker-end="url(#arrow-approval)"/><line class="flow flow-approval" data-from="luca.rossi" data-to="marie.dubois" x1="741.6" y1="315.8" x2="461.6" y2="386.5"/><line class="edge-hit" data-from="luca.rossi" data-to="marie.dubois" x1="741.6" y1="315.8" x2="461.6" y2="386.5"><title>Luca Rossi approves Marie Dubois · weight 0.85</title></line><line class="edge edge-bypass" data-from="marie.dubois" data-to="carlos.garcia" x1="423.7" y1="380.6" x2="270.8" y2="252.9" marker-end="url(#arrow-bypass)"/><line class="flow flow-bypass" data-from="marie.dubois" data-to="carlos.garcia" x1="423.7" y1="380.6" x2="270.8" y2="252.9"/><line class="edge-hit" data-from="marie.dubois" data-to="carlos.garcia" x1="423.7" y1="380.6" x2="270.8" y2="252.9"><title>Marie Dubois can bypass Carlos Garcia · weight 0.80</title></line><line class="edge edge-approval" data-from="marie.dubois" data-to="elena.popescu" x1="419.6" y1="395.2" x2="222.4" y2="425.1" marker-end="url(#arrow-approval)"/><line class="flow flow-approval" data-from="marie.dubois" data-to="elena.popescu" x1="419.6" y1="395.2" x2="222.4" y2="425.1"/><line class="edge-hit" data-from="marie.dubois" data-to="elena.popescu" x1="419.6" y1="395.2" x2="222.4" y2="425.1"><title>Marie Dubois approves Elena Popescu · weight 0.45</title></line><line class="edge edge-escalation" data-from="peter.novak" data-to="sofia.papadopoulos" x1="66.9" y1="163.3" x2="132.7" y2="205.8" marker-end="url(#arrow-escalation)"/><line class="flow flow-escalation" data-from="peter.novak" data-to="sofia.papadopoulos" x1="66.9" y1="163.3" x2="132.7" y2="205.8"/><line class="edge-hit" data-from="peter.novak" data-to="sofia.papadopoulos" x1="66.9" y1="163.3" x2="132.7" y2="205.8"><title>Peter Novak escalates to Sofia Papadopoulos · weight 0.50</title></line><line class="edge edge-escalation" data-from="sofia.papadopoulos" data-to="johan.lindberg" x1="160.1" y1="211.0" x2="289.3" y2="156.7" marker-end="url(#arrow-escalation)"/><line class="flow flow-escalation" data-from="sofia.papadopoulos" data-to="johan.lindberg" x1="160.1" y1="211.0" x2="289.3" y2="156.7"/><line class="edge-hit" data-from="sofia.papadopoulos" data-to="johan.lindberg" x1="160.1" y1="211.0" x2="289.3" y2="156.7"><title>Sofia Papadopoulos escalates to Johan Lindberg · weight 0.40</title></line></g>
+    <g class="nodes"><g class="node node-critical" data-id="carlos.garcia" tabindex="0" role="button"><circle cx="255.7" cy="240.3" r="13.7"/><text x="255.7" y="220.7" class="node-label" style="text-anchor:middle">Carlos Garcia</text><title>Carlos Garcia · Platform Architect</title></g><g class="node" data-id="elena.popescu" tabindex="0" role="button"><circle cx="203.4" cy="428.0" r="13.2"/><text x="203.4" y="455.2" class="node-label" style="text-anchor:middle">Elena Popescu</text><title>Elena Popescu · Incident Manager</title></g><g class="node" data-id="peter.novak" tabindex="0" role="button"><circle cx="56.0" cy="156.3" r="12.9"/><text x="56.0" y="137.4" class="node-label" style="text-anchor:middle">Peter Novak</text><title>Peter Novak · Backend Lead</title></g><g class="node" data-id="sofia.papadopoulos" tabindex="0" role="button"><circle cx="148.4" cy="216.0" r="12.7"/><text x="140.8" y="240.6" class="node-label" style="text-anchor:end">Sofia Papadopoulos</text><title>Sofia Papadopoulos · Compliance Officer</title></g><g class="node" data-id="tomas.kowalski" tabindex="0" role="button"><circle cx="500.2" cy="56.0" r="11.5"/><text x="500.2" y="38.5" class="node-label" style="text-anchor:middle">Tomas Kowalski</text><title>Tomas Kowalski · Software Engineer</title></g><g class="node node-spof" data-id="ines.silva" tabindex="0" role="button"><circle cx="422.5" cy="133.9" r="16.4"/><text x="422.5" y="164.3" class="node-label" style="text-anchor:middle">Ines Silva</text><title>Ines Silva · Product Security Engineer</title></g><g class="node node-spof node-critical" data-id="marie.dubois" tabindex="0" role="button"><circle cx="437.9" cy="392.4" r="18.5"/><text x="437.9" y="424.9" class="node-label" style="text-anchor:middle">Marie Dubois</text><title>Marie Dubois · Engineering Manager</title></g><g class="node node-spof" data-id="johan.lindberg" tabindex="0" role="button"><circle cx="313.3" cy="146.6" r="20.0"/><text x="313.3" y="120.6" class="node-label" style="text-anchor:middle">Johan Lindberg</text><title>Johan Lindberg · DevOps Engineer</title></g><g class="node node-spof node-critical" data-id="luca.rossi" tabindex="0" role="button"><circle cx="764.0" cy="310.2" r="23.1"/><text x="764.0" y="347.3" class="node-label" style="text-anchor:middle">Luca Rossi</text><title>Luca Rossi · Principal SRE</title></g><g class="node node-spof node-critical" data-id="anna.mueller" tabindex="0" role="button"><circle cx="161.6" cy="325.2" r="24.6"/><text x="132.0" y="330.2" class="node-label" style="text-anchor:end">Anna Mueller</text><title>Anna Mueller · Security Lead</title></g></g>
   </svg>
+  <div class="zoom" role="group" aria-label="Zoom">
+    <button type="button" data-zoom="in" aria-label="Zoom in">+</button>
+    <button type="button" data-zoom="out" aria-label="Zoom out">−</button>
+    <button type="button" data-zoom="fit" aria-label="Fit the whole map">⤢</button>
+  </div>
+  </div>
   <aside class="panel" id="panel" aria-live="polite">
-    <p class="muted">Select a person on the map or in the table to see who depends on them.</p>
+    <p class="muted">Select a person on the map or in the table to see who depends on them
+      and what happens if they are unavailable.</p>
   </aside>
 </div>
 <div class="legend">
+  <span><i class="dot dot-spof-critical"></i>Critical single point of failure</span>
   <span><i class="dot dot-spof"></i>Single point of failure</span>
   <span><i class="dot dot-critical"></i>Critical (≥ threshold)</span>
   <span><i class="dot"></i>Other</span>
   <span><i class="line line-approval"></i>Approval</span>
   <span><i class="line line-escalation"></i>Escalation</span>
   <span><i class="line line-bypass"></i>Bypass</span>
-  <span class="muted">Node size: criticality and impact</span>
+  <span class="muted">Moving dots run from who approves, escalates or bypasses to whom · Select a key person: the people cut off without them pulse red · Node size: criticality and impact · Drag to pan when zoomed</span>
 </div>
   </section>
 
   <section class="card" id="people">
     <h2>People</h2>
     <p class="muted">Impact is the share of connections between the others that depend on the person.</p>
-    <table class="people sortable">
+<table class="people sortable">
   <thead><tr><th data-sort="text">Person</th><th data-sort="num">Criticality</th>
   <th data-sort="num">Impact</th><th data-sort="num">Cuts off</th>
   <th data-sort="num">Approval share</th><th>Flags</th></tr></thead>
-  <tbody><tr data-id="johan.lindberg"><td><strong>Johan Lindberg</strong><div class="muted small">DevOps Engineer</div></td><td data-label="Criticality" data-v="0.58">0.58</td><td data-label="Impact" data-v="0.3888888888888889">39%</td><td data-label="Cuts off" data-v="2">2</td><td data-label="Approval share" data-v="0.06097560975609757">6%</td><td class="flags"><span class="chip chip-high">SPOF</span></td></tr><tr data-id="ines.silva"><td><strong>Ines Silva</strong><div class="muted small">Product Security Engineer</div></td><td data-label="Criticality" data-v="0.55">0.55</td><td data-label="Impact" data-v="0.2222222222222222">22%</td><td data-label="Cuts off" data-v="1">1</td><td data-label="Approval share" data-v="0.0">—</td><td class="flags"><span class="chip chip-high">SPOF</span></td></tr><tr data-id="luca.rossi"><td><strong>Luca Rossi</strong><div class="muted small">Principal SRE</div></td><td data-label="Criticality" data-v="0.92">0.92</td><td data-label="Impact" data-v="0.0">—</td><td data-label="Cuts off" data-v="0">—</td><td data-label="Approval share" data-v="0.43902439024390244">44%</td><td class="flags"><span class="chip chip-moderate">critical</span></td></tr><tr data-id="anna.mueller"><td><strong>Anna Mueller</strong><div class="muted small">Security Lead</div></td><td data-label="Criticality" data-v="0.85">0.85</td><td data-label="Impact" data-v="0.0">—</td><td data-label="Cuts off" data-v="0">—</td><td data-label="Approval share" data-v="0.23170731707317077">23%</td><td class="flags"><span class="chip chip-moderate">critical</span></td></tr><tr data-id="marie.dubois"><td><strong>Marie Dubois</strong><div class="muted small">Engineering Manager</div></td><td data-label="Criticality" data-v="0.78">0.78</td><td data-label="Impact" data-v="0.0">—</td><td data-label="Cuts off" data-v="0">—</td><td data-label="Approval share" data-v="0.10975609756097562">11%</td><td class="flags"><span class="chip chip-moderate">critical</span></td></tr><tr data-id="carlos.garcia"><td><strong>Carlos Garcia</strong><div class="muted small">Platform Architect</div></td><td data-label="Criticality" data-v="0.74">0.74</td><td data-label="Impact" data-v="0.0">—</td><td data-label="Cuts off" data-v="0">—</td><td data-label="Approval share" data-v="0.15853658536585366">16%</td><td class="flags"><span class="chip chip-moderate">critical</span></td></tr><tr data-id="elena.popescu"><td><strong>Elena Popescu</strong><div class="muted small">Incident Manager</div></td><td data-label="Criticality" data-v="0.69">0.69</td><td data-label="Impact" data-v="0.0">—</td><td data-label="Cuts off" data-v="0">—</td><td data-label="Approval share" data-v="0.0">—</td><td class="flags"></td></tr><tr data-id="peter.novak"><td><strong>Peter Novak</strong><div class="muted small">Backend Lead</div></td><td data-label="Criticality" data-v="0.66">0.66</td><td data-label="Impact" data-v="0.0">—</td><td data-label="Cuts off" data-v="0">—</td><td data-label="Approval share" data-v="0.0">—</td><td class="flags"></td></tr><tr data-id="sofia.papadopoulos"><td><strong>Sofia Papadopoulos</strong><div class="muted small">Compliance Officer</div></td><td data-label="Criticality" data-v="0.63">0.63</td><td data-label="Impact" data-v="0.0">—</td><td data-label="Cuts off" data-v="0">—</td><td data-label="Approval share" data-v="0.0">—</td><td class="flags"></td></tr><tr data-id="tomas.kowalski"><td><strong>Tomas Kowalski</strong><div class="muted small">Software Engineer</div></td><td data-label="Criticality" data-v="0.5">0.50</td><td data-label="Impact" data-v="0.0">—</td><td data-label="Cuts off" data-v="0">—</td><td data-label="Approval share" data-v="0.0">—</td><td class="flags"></td></tr></tbody>
+  <tbody><tr data-id="anna.mueller"><td><strong>Anna Mueller</strong><div class="muted small">Security Lead</div></td><td data-label="Criticality" data-v="0.85">0.85</td><td data-label="Impact" data-v="0.5">50%</td><td data-label="Cuts off" data-v="3">3</td><td data-label="Approval share" data-v="0.23170731707317077">23%</td><td class="flags"><span class="chip chip-high">SPOF</span><span class="chip chip-moderate">critical</span></td></tr><tr data-id="luca.rossi"><td><strong>Luca Rossi</strong><div class="muted small">Principal SRE</div></td><td data-label="Criticality" data-v="0.92">0.92</td><td data-label="Impact" data-v="0.3888888888888889">39%</td><td data-label="Cuts off" data-v="2">2</td><td data-label="Approval share" data-v="0.43902439024390244">44%</td><td class="flags"><span class="chip chip-high">SPOF</span><span class="chip chip-moderate">critical</span></td></tr><tr data-id="johan.lindberg"><td><strong>Johan Lindberg</strong><div class="muted small">DevOps Engineer</div></td><td data-label="Criticality" data-v="0.58">0.58</td><td data-label="Impact" data-v="0.3888888888888889">39%</td><td data-label="Cuts off" data-v="2">2</td><td data-label="Approval share" data-v="0.06097560975609757">6%</td><td class="flags"><span class="chip chip-high">SPOF</span></td></tr><tr data-id="marie.dubois"><td><strong>Marie Dubois</strong><div class="muted small">Engineering Manager</div></td><td data-label="Criticality" data-v="0.78">0.78</td><td data-label="Impact" data-v="0.2222222222222222">22%</td><td data-label="Cuts off" data-v="1">1</td><td data-label="Approval share" data-v="0.10975609756097562">11%</td><td class="flags"><span class="chip chip-high">SPOF</span><span class="chip chip-moderate">critical</span></td></tr><tr data-id="ines.silva"><td><strong>Ines Silva</strong><div class="muted small">Product Security Engineer</div></td><td data-label="Criticality" data-v="0.55">0.55</td><td data-label="Impact" data-v="0.2222222222222222">22%</td><td data-label="Cuts off" data-v="1">1</td><td data-label="Approval share" data-v="0.0">—</td><td class="flags"><span class="chip chip-high">SPOF</span></td></tr><tr data-id="carlos.garcia"><td><strong>Carlos Garcia</strong><div class="muted small">Platform Architect</div></td><td data-label="Criticality" data-v="0.74">0.74</td><td data-label="Impact" data-v="0.0">—</td><td data-label="Cuts off" data-v="0">—</td><td data-label="Approval share" data-v="0.15853658536585366">16%</td><td class="flags"><span class="chip chip-moderate">critical</span></td></tr><tr data-id="elena.popescu"><td><strong>Elena Popescu</strong><div class="muted small">Incident Manager</div></td><td data-label="Criticality" data-v="0.69">0.69</td><td data-label="Impact" data-v="0.0">—</td><td data-label="Cuts off" data-v="0">—</td><td data-label="Approval share" data-v="0.0">—</td><td class="flags"></td></tr><tr data-id="peter.novak"><td><strong>Peter Novak</strong><div class="muted small">Backend Lead</div></td><td data-label="Criticality" data-v="0.66">0.66</td><td data-label="Impact" data-v="0.0">—</td><td data-label="Cuts off" data-v="0">—</td><td data-label="Approval share" data-v="0.0">—</td><td class="flags"></td></tr><tr data-id="sofia.papadopoulos"><td><strong>Sofia Papadopoulos</strong><div class="muted small">Compliance Officer</div></td><td data-label="Criticality" data-v="0.63">0.63</td><td data-label="Impact" data-v="0.0">—</td><td data-label="Cuts off" data-v="0">—</td><td data-label="Approval share" data-v="0.0">—</td><td class="flags"></td></tr><tr data-id="tomas.kowalski"><td><strong>Tomas Kowalski</strong><div class="muted small">Software Engineer</div></td><td data-label="Criticality" data-v="0.5">0.50</td><td data-label="Impact" data-v="0.0">—</td><td data-label="Cuts off" data-v="0">—</td><td data-label="Approval share" data-v="0.0">—</td><td class="flags"></td></tr></tbody>
 </table>
   </section>
 
   <section class="card" id="findings">
     <h2>Findings</h2>
-    <p class="muted">0 errors · 6 warnings, with related ISO/IEC 27001, SOC 2 and DORA controls.</p>
-    <p class="muted small">Related controls are informative pointers for audits, not an assessment of compliance.</p><details class="finding finding-warning" open>
+    <p class="muted">3 errors · 6 warnings, with related ISO/IEC 27001, SOC 2 and DORA controls.</p>
+    <p class="muted small">Related controls are informative pointers for audits, not an assessment of compliance.</p><details class="finding finding-error" open>
   <summary><span class="rule">HRG001</span> Single point of failure
-    <span class="count">2</span></summary>
-  <ul><li><span class="sev sev-warning">warning</span>Ines Silva (ines.silva) is a single point of failure (criticality 0.55): losing them cuts off 1 person and 22% of the connections between the others.</li><li><span class="sev sev-warning">warning</span>Johan Lindberg (johan.lindberg) is a single point of failure (criticality 0.58): losing them cuts off 2 people and 39% of the connections between the others.</li></ul>
+    <span class="count">5</span></summary>
+  <ul><li><span class="sev sev-error">error</span>Anna Mueller (anna.mueller) is a single point of failure (criticality 0.85): losing them cuts off 3 people and 50% of the connections between the others.</li><li><span class="sev sev-warning">warning</span>Ines Silva (ines.silva) is a single point of failure (criticality 0.55): losing them cuts off 1 person and 22% of the connections between the others.</li><li><span class="sev sev-warning">warning</span>Johan Lindberg (johan.lindberg) is a single point of failure (criticality 0.58): losing them cuts off 2 people and 39% of the connections between the others.</li><li><span class="sev sev-error">error</span>Luca Rossi (luca.rossi) is a single point of failure (criticality 0.92): losing them cuts off 2 people and 39% of the connections between the others.</li><li><span class="sev sev-error">error</span>Marie Dubois (marie.dubois) is a single point of failure (criticality 0.78): losing them cuts off 1 person and 22% of the connections between the others.</li></ul>
   <p class="remediation"><strong>Remediation.</strong> Name a deputy, cross-train them, and document the approvals and emergency procedures this person handles.</p>
   <div class="controls"><span class="fw">ISO/IEC 27001:2022</span><span class="control" title="Information security during disruption">A.5.29</span><span class="control" title="ICT readiness for business continuity">A.5.30</span></div><div class="controls"><span class="fw">SOC 2 (2017 Trust Services Criteria)</span><span class="control" title="Competent individuals, including succession planning">CC1.4</span><span class="control" title="Mitigation of business disruption risk">CC9.1</span></div><div class="controls"><span class="fw">DORA (Regulation (EU) 2022/2554)</span><span class="control" title="Identification of material single points of failure">Art. 10(1)</span><span class="control" title="Continuity of critical or important functions">Art. 11(2)(a)</span></div>
 </details><details class="finding finding-warning" open>
@@ -318,10 +367,10 @@ footer.page { color: var(--muted); font-size: 13px; text-align: center; margin-t
           weight; 1/D is the effective number of approvers.</li>
         <li><strong>Override exposure B</strong>: weighted share of critical approvals whose
           approver can be bypassed.</li></ul>
-<p class="formula">Composite risk = (1 − (1 − 0.4·K)(1 − 0.3·D)(1 − 0.3·B)) / (1 − (1 − 0.4)(1 − 0.3)(1 − 0.3)) = 0.386; score = 100·(1 − risk) = 61</p>
+<p class="formula">Composite risk = (1 − (1 − 0.4·K)(1 − 0.3·D)(1 − 0.3·B)) / (1 − (1 − 0.4)(1 − 0.3)(1 − 0.3)) = 0.476; score = 100·(1 − risk) = 52</p>
 <table class="kv"><thead><tr><th>Metric</th><th>Value</th><th>Weight</th></tr></thead>
-  <tbody><tr><td>Key-person risk</td><td>0.226</td><td>40%</td></tr><tr><td>Approval concentration</td><td>0.287</td><td>30%</td></tr><tr><td>Override exposure</td><td>0.416</td><td>30%</td></tr><tr><td><strong>Composite risk</strong></td>
-  <td><strong>0.386</strong></td><td></td></tr></tbody></table>
+  <tbody><tr><td>Key-person risk</td><td>0.425</td><td>40%</td></tr><tr><td>Approval concentration</td><td>0.287</td><td>30%</td></tr><tr><td>Override exposure</td><td>0.416</td><td>30%</td></tr><tr><td><strong>Composite risk</strong></td>
+  <td><strong>0.476</strong></td><td></td></tr></tbody></table>
 <p class="muted small">Grades: A ≥ 90, B ≥ 80, C ≥ 70, D ≥ 50, F below 50. Full definitions and
   properties: <a href="https://github.com/LF3551/human-risk-graph/blob/main/docs/model.md">docs/model.md</a>.</p>
   </section>
@@ -329,16 +378,17 @@ footer.page { color: var(--muted); font-size: 13px; text-align: center; margin-t
   <section class="card" id="audit">
     <h2>Audit trail</h2>
     <p class="muted">Enough to reproduce this result.</p>
-    <table class="kv audit"><tr><th>Input file</th><td><code>example_organization.json</code></td></tr><tr><th>Input SHA-256</th><td><code>824985be282b635f6b341a91b8731172b1c7e8d0b62f723b4ef0c631da1e1034</code></td></tr><tr><th>Generated</th><td><code>2026-11-13T07:20:26</code></td></tr><tr><th>Tool</th><td><code>human-risk-graph 0.7.0</code></td></tr><tr><th>Model</th><td><code>hrg-2</code></td></tr><tr><th>Weights</th><td><code>α 0.4 · β 0.3 · γ 0.3</code></td></tr><tr><th>Critical threshold</th><td><code>0.7</code></td></tr><tr><th>Config</th><td><code>none</code></td></tr><tr><th>People / dependencies</th><td><code>10 / 14</code></td></tr></table>
+    <table class="kv audit"><tr><th>Input file</th><td><code>example_organization.json</code></td></tr><tr><th>Input SHA-256</th><td><code>824985be282b635f6b341a91b8731172b1c7e8d0b62f723b4ef0c631da1e1034</code></td></tr><tr><th>Generated</th><td><code>2026-11-13T14:55:08</code></td></tr><tr><th>Tool</th><td><code>human-risk-graph 0.15.1</code></td></tr><tr><th>Model</th><td><code>hrg-2</code></td></tr><tr><th>Weights</th><td><code>α 0.4 · β 0.3 · γ 0.3</code></td></tr><tr><th>Critical threshold</th><td><code>0.7</code></td></tr><tr><th>Config</th><td><code>none</code></td></tr><tr><th>Unconfirmed dependencies</th><td><code>0</code></td></tr><tr><th>Data gaps</th><td><code>0</code></td></tr><tr><th>People / dependencies</th><td><code>10 / 14</code></td></tr></table>
   </section>
 
   <footer class="page">Generated by <a href="https://github.com/LF3551/human-risk-graph">Human Risk Graph</a>
-    0.7.0 · <a href="https://doi.org/10.5281/zenodo.18288055">doi:10.5281/zenodo.18288055</a></footer>
+    0.15.1 · <a href="https://doi.org/10.5281/zenodo.18288055">doi:10.5281/zenodo.18288055</a></footer>
 </div>
-<script type="application/json" id="hrg-data">{"people": {"luca.rossi": {"id": "luca.rossi", "name": "Luca Rossi", "role": "Principal SRE", "criticality": 0.92, "impact": 0.0, "cut_off": 0, "share": 0.43902439024390244, "critical": true, "spof": false, "findings": ["HRG002: Approval authority is concentrated (3.5 effective approvers of 5); Luca Rossi (luca.rossi) holds 44% of the approval weight.", "HRG003: Luca Rossi (luca.rossi) can bypass Carlos Garcia (carlos.garcia) and override the controls they enforce; one of them is critical."], "links": ["Approves Anna Mueller", "Can bypass Carlos Garcia", "Approves Marie Dubois"]}, "anna.mueller": {"id": "anna.mueller", "name": "Anna Mueller", "role": "Security Lead", "criticality": 0.85, "impact": 0.0, "cut_off": 0, "share": 0.23170731707317077, "critical": true, "spof": false, "findings": [], "links": ["Approves Carlos Garcia", "Approves Sofia Papadopoulos", "Can be bypassed by Elena Popescu", "Approved by Luca Rossi"]}, "marie.dubois": {"id": "marie.dubois", "name": "Marie Dubois", "role": "Engineering Manager", "criticality": 0.78, "impact": 0.0, "cut_off": 0, "share": 0.10975609756097562, "critical": true, "spof": false, "findings": ["HRG003: Marie Dubois (marie.dubois) can bypass Carlos Garcia (carlos.garcia) and override the controls they enforce; one of them is critical."], "links": ["Approved by Luca Rossi", "Can bypass Carlos Garcia", "Approves Elena Popescu"]}, "carlos.garcia": {"id": "carlos.garcia", "name": "Carlos Garcia", "role": "Platform Architect", "criticality": 0.74, "impact": 0.0, "cut_off": 0, "share": 0.15853658536585366, "critical": true, "spof": false, "findings": [], "links": ["Approved by Anna Mueller", "Approves Johan Lindberg", "Approves Peter Novak", "Can be bypassed by Luca Rossi", "Can be bypassed by Marie Dubois"]}, "elena.popescu": {"id": "elena.popescu", "name": "Elena Popescu", "role": "Incident Manager", "criticality": 0.69, "impact": 0.0, "cut_off": 0, "share": 0.0, "critical": false, "spof": false, "findings": ["HRG003: Elena Popescu (elena.popescu) can bypass Anna Mueller (anna.mueller) and override the controls they enforce; one of them is critical."], "links": ["Can bypass Anna Mueller", "Approved by Marie Dubois"]}, "peter.novak": {"id": "peter.novak", "name": "Peter Novak", "role": "Backend Lead", "criticality": 0.66, "impact": 0.0, "cut_off": 0, "share": 0.0, "critical": false, "spof": false, "findings": [], "links": ["Approved by Carlos Garcia", "Escalates to Sofia Papadopoulos"]}, "sofia.papadopoulos": {"id": "sofia.papadopoulos", "name": "Sofia Papadopoulos", "role": "Compliance Officer", "criticality": 0.63, "impact": 0.0, "cut_off": 0, "share": 0.0, "critical": false, "spof": false, "findings": [], "links": ["Approved by Anna Mueller", "Escalation from Peter Novak", "Escalates to Johan Lindberg"]}, "johan.lindberg": {"id": "johan.lindberg", "name": "Johan Lindberg", "role": "DevOps Engineer", "criticality": 0.58, "impact": 0.3888888888888889, "cut_off": 2, "share": 0.06097560975609757, "critical": false, "spof": true, "findings": ["HRG001: Johan Lindberg (johan.lindberg) is a single point of failure (criticality 0.58): losing them cuts off 2 people and 39% of the connections between the others."], "links": ["Approved by Carlos Garcia", "Approves Ines Silva", "Escalation from Sofia Papadopoulos"]}, "ines.silva": {"id": "ines.silva", "name": "Ines Silva", "role": "Product Security Engineer", "criticality": 0.55, "impact": 0.2222222222222222, "cut_off": 1, "share": 0.0, "critical": false, "spof": true, "findings": ["HRG001: Ines Silva (ines.silva) is a single point of failure (criticality 0.55): losing them cuts off 1 person and 22% of the connections between the others."], "links": ["Escalates to Tomas Kowalski", "Approved by Johan Lindberg"]}, "tomas.kowalski": {"id": "tomas.kowalski", "name": "Tomas Kowalski", "role": "Software Engineer", "criticality": 0.5, "impact": 0.0, "cut_off": 0, "share": 0.0, "critical": false, "spof": false, "findings": [], "links": ["Escalation from Ines Silva"]}}}</script>
+<script type="application/json" id="hrg-data">{"people": {"luca.rossi": {"id": "luca.rossi", "name": "Luca Rossi", "role": "Principal SRE", "criticality": 0.92, "impact": 0.3888888888888889, "cut_off": 2, "share": 0.43902439024390244, "critical": true, "spof": true, "findings": ["HRG001: Luca Rossi (luca.rossi) is a single point of failure (criticality 0.92): losing them cuts off 2 people and 39% of the connections between the others.", "HRG002: Approval authority is concentrated (3.5 effective approvers of 5); Luca Rossi (luca.rossi) holds 44% of the approval weight.", "HRG003: Luca Rossi (luca.rossi) can bypass Carlos Garcia (carlos.garcia) and override the controls they enforce; one of them is critical."], "links": ["Approves Anna Mueller", "Can bypass Carlos Garcia", "Approves Marie Dubois"], "cut": ["elena.popescu", "marie.dubois"], "orphaned": ["Anna Mueller", "Marie Dubois"]}, "anna.mueller": {"id": "anna.mueller", "name": "Anna Mueller", "role": "Security Lead", "criticality": 0.85, "impact": 0.5, "cut_off": 3, "share": 0.23170731707317077, "critical": true, "spof": true, "findings": ["HRG001: Anna Mueller (anna.mueller) is a single point of failure (criticality 0.85): losing them cuts off 3 people and 50% of the connections between the others."], "links": ["Approves Carlos Garcia", "Approves Sofia Papadopoulos", "Can be bypassed by Elena Popescu", "Approved by Luca Rossi"], "cut": ["elena.popescu", "luca.rossi", "marie.dubois"], "orphaned": ["Carlos Garcia", "Sofia Papadopoulos"]}, "marie.dubois": {"id": "marie.dubois", "name": "Marie Dubois", "role": "Engineering Manager", "criticality": 0.78, "impact": 0.2222222222222222, "cut_off": 1, "share": 0.10975609756097562, "critical": true, "spof": true, "findings": ["HRG001: Marie Dubois (marie.dubois) is a single point of failure (criticality 0.78): losing them cuts off 1 person and 22% of the connections between the others.", "HRG003: Marie Dubois (marie.dubois) can bypass Carlos Garcia (carlos.garcia) and override the controls they enforce; one of them is critical."], "links": ["Approved by Luca Rossi", "Can bypass Carlos Garcia", "Approves Elena Popescu"], "cut": ["elena.popescu"], "orphaned": ["Elena Popescu"]}, "carlos.garcia": {"id": "carlos.garcia", "name": "Carlos Garcia", "role": "Platform Architect", "criticality": 0.74, "impact": 0.0, "cut_off": 0, "share": 0.15853658536585366, "critical": true, "spof": false, "findings": [], "links": ["Approved by Anna Mueller", "Approves Johan Lindberg", "Approves Peter Novak", "Can be bypassed by Luca Rossi", "Can be bypassed by Marie Dubois"], "cut": [], "orphaned": ["Johan Lindberg", "Peter Novak"]}, "elena.popescu": {"id": "elena.popescu", "name": "Elena Popescu", "role": "Incident Manager", "criticality": 0.69, "impact": 0.0, "cut_off": 0, "share": 0.0, "critical": false, "spof": false, "findings": ["HRG003: Elena Popescu (elena.popescu) can bypass Anna Mueller (anna.mueller) and override the controls they enforce; one of them is critical."], "links": ["Can bypass Anna Mueller", "Approved by Marie Dubois"], "cut": [], "orphaned": []}, "peter.novak": {"id": "peter.novak", "name": "Peter Novak", "role": "Backend Lead", "criticality": 0.66, "impact": 0.0, "cut_off": 0, "share": 0.0, "critical": false, "spof": false, "findings": [], "links": ["Approved by Carlos Garcia", "Escalates to Sofia Papadopoulos"], "cut": [], "orphaned": []}, "sofia.papadopoulos": {"id": "sofia.papadopoulos", "name": "Sofia Papadopoulos", "role": "Compliance Officer", "criticality": 0.63, "impact": 0.0, "cut_off": 0, "share": 0.0, "critical": false, "spof": false, "findings": [], "links": ["Approved by Anna Mueller", "Escalation from Peter Novak", "Escalates to Johan Lindberg"], "cut": [], "orphaned": []}, "johan.lindberg": {"id": "johan.lindberg", "name": "Johan Lindberg", "role": "DevOps Engineer", "criticality": 0.58, "impact": 0.3888888888888889, "cut_off": 2, "share": 0.06097560975609757, "critical": false, "spof": true, "findings": ["HRG001: Johan Lindberg (johan.lindberg) is a single point of failure (criticality 0.58): losing them cuts off 2 people and 39% of the connections between the others."], "links": ["Approved by Carlos Garcia", "Approves Ines Silva", "Escalation from Sofia Papadopoulos"], "cut": ["ines.silva", "tomas.kowalski"], "orphaned": ["Ines Silva"]}, "ines.silva": {"id": "ines.silva", "name": "Ines Silva", "role": "Product Security Engineer", "criticality": 0.55, "impact": 0.2222222222222222, "cut_off": 1, "share": 0.0, "critical": false, "spof": true, "findings": ["HRG001: Ines Silva (ines.silva) is a single point of failure (criticality 0.55): losing them cuts off 1 person and 22% of the connections between the others."], "links": ["Escalates to Tomas Kowalski", "Approved by Johan Lindberg"], "cut": ["tomas.kowalski"], "orphaned": []}, "tomas.kowalski": {"id": "tomas.kowalski", "name": "Tomas Kowalski", "role": "Software Engineer", "criticality": 0.5, "impact": 0.0, "cut_off": 0, "share": 0.0, "critical": false, "spof": false, "findings": [], "links": ["Escalation from Ines Silva"], "cut": [], "orphaned": []}}, "labels": {"intro": "Impact is the share of connections between the others that depend on the person.", "impact": "Impact", "cut": "Cuts off", "units": ["person", "people"], "share": "Approval share"}, "score": 52}</script>
 <script>
 (function () {
-  var data = JSON.parse(document.getElementById('hrg-data').textContent).people;
+  var payload = JSON.parse(document.getElementById('hrg-data').textContent);
+  var data = payload.people, L = payload.labels;
   var map = document.querySelector('.map');
   var panel = document.getElementById('panel');
   function el(tag, text, cls) {
@@ -355,9 +405,9 @@ footer.page { color: var(--muted); font-size: 13px; text-align: center; margin-t
     panel.appendChild(el('h3', p.name));
     if (p.role) panel.appendChild(el('div', p.role, 'muted'));
     var dl = el('dl');
-    [['Criticality', p.criticality.toFixed(2)], ['Impact', pct(p.impact)],
-     ['Cuts off', p.cut_off ? p.cut_off + (p.cut_off === 1 ? ' person' : ' people') : '—'],
-     ['Approval share', pct(p.share)],
+    [['Criticality', p.criticality.toFixed(2)], [L.impact, pct(p.impact)],
+     [L.cut, p.cut_off ? p.cut_off + ' ' + L.units[p.cut_off === 1 ? 0 : 1] : '—'],
+     [L.share, pct(p.share)],
      ['Status', (p.spof ? 'Single point of failure' : '') + (p.spof && p.critical ? ' · ' : '') +
        (p.critical ? 'Critical' : '') || '—']].forEach(function (kv) {
       dl.appendChild(el('dt', kv[0])); dl.appendChild(el('dd', kv[1]));
@@ -371,11 +421,25 @@ footer.page { color: var(--muted); font-size: 13px; text-align: center; margin-t
       panel.appendChild(ul);
     }
     list('Dependencies', p.links);
+    var names = function (ids) { return (ids || []).map(function (n) { return data[n] ? data[n].name : n; }); };
+    if ((p.cut || []).length || (p.orphaned || []).length || (p.stops || []).length ||
+        p.without_score !== undefined) {
+      var box = el('div', undefined, 'whatif');
+      box.appendChild(el('strong', 'If ' + p.name + ' is unavailable'));
+      if (p.without_score !== undefined && p.without_score !== payload.score) {
+        box.appendChild(el('div', 'Score ' + payload.score + ' → ' + p.without_score, 'score-drop'));
+      }
+      [['Cut off', names(p.cut)], ['No approver left for', p.orphaned || []],
+       ['Stops', p.stops || []]].forEach(function (kv) {
+        if (kv[1].length) box.appendChild(el('div', kv[0] + ': ' + kv[1].join(', ')));
+      });
+      panel.appendChild(box);
+    }
     list('Findings', p.findings);
     if (map && focus !== false) {
       map.classList.add('focus');
-      map.querySelectorAll('.is-on, .selected').forEach(function (n) { n.classList.remove('is-on', 'selected'); });
-      map.querySelectorAll('.edge').forEach(function (e) {
+      map.querySelectorAll('.is-on, .selected, .cut, .hint').forEach(function (n) { n.classList.remove('is-on', 'selected', 'cut', 'hint'); });
+      map.querySelectorAll('.edge, .flow').forEach(function (e) {
         if (e.dataset.from === id || e.dataset.to === id) {
           e.classList.add('is-on');
           [e.dataset.from, e.dataset.to].forEach(function (n) {
@@ -386,6 +450,14 @@ footer.page { color: var(--muted); font-size: 13px; text-align: center; margin-t
       });
       var node = map.querySelector('.node[data-id="' + CSS.escape(id) + '"]');
       if (node) node.classList.add('is-on', 'selected');
+      (p.cut || []).forEach(function (n) {
+        var cut = map.querySelector('.node[data-id="' + CSS.escape(n) + '"]');
+        if (cut) cut.classList.add('is-on', 'cut');
+      });
+      var island = new Set(p.cut || []);
+      map.querySelectorAll('.edge, .flow').forEach(function (e) {
+        if (island.has(e.dataset.from) && island.has(e.dataset.to)) e.classList.add('is-on', 'cut');
+      });
     }
     document.querySelectorAll('.people tr.selected').forEach(function (r) { r.classList.remove('selected'); });
     var row = document.querySelector('.people tr[data-id="' + CSS.escape(id) + '"]');
@@ -396,9 +468,68 @@ footer.page { color: var(--muted); font-size: 13px; text-align: center; margin-t
     n.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') show(n.dataset.id); });
   });
   if (map) map.addEventListener('click', function () {
+    if (dragged) { dragged = false; return; }
     map.classList.remove('focus');
-    map.querySelectorAll('.selected').forEach(function (n) { n.classList.remove('selected'); });
+    map.querySelectorAll('.selected, .cut, .hint').forEach(function (n) { n.classList.remove('selected', 'cut', 'hint'); });
   });
+  document.querySelectorAll('.fix[data-targets]').forEach(function (f) {
+    function go() {
+      var targets = JSON.parse(f.dataset.targets).filter(function (t) { return data[t]; });
+      if (!targets.length || !map) return;
+      show(targets[0]);
+      var all = new Set(targets);
+      targets.forEach(function (t) {
+        var node = map.querySelector('.node[data-id="' + CSS.escape(t) + '"]');
+        if (node) node.classList.add('is-on', 'hint');
+      });
+      map.querySelectorAll('.edge, .flow').forEach(function (e) {
+        if (all.has(e.dataset.from) && all.has(e.dataset.to)) e.classList.add('is-on');
+      });
+      map.scrollIntoView({behavior: 'smooth', block: 'center'});
+    }
+    f.addEventListener('click', go);
+    f.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') go(); });
+  });
+  var full = map ? map.viewBox.baseVal : null;
+  var W = full ? full.width : 0, H = full ? full.height : 0;
+  var view = {x: 0, y: 0, w: W, h: H}, drag = null, dragged = false;
+  function setView(x, y, w) {
+    w = Math.min(W, Math.max(W / 6, w));
+    var h = w * H / W;
+    view = {x: Math.min(Math.max(x, 0), W - w), y: Math.min(Math.max(y, 0), H - h), w: w, h: h};
+    map.setAttribute('viewBox', [view.x, view.y, view.w, view.h].map(function (v) { return v.toFixed(1); }).join(' '));
+  }
+  function zoom(factor) {
+    var cx = view.x + view.w / 2, cy = view.y + view.h / 2, w = view.w * factor;
+    setView(cx - w / 2, cy - w * H / W / 2, w);
+  }
+  document.querySelectorAll('.zoom button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      if (b.dataset.zoom === 'in') zoom(0.75);
+      else if (b.dataset.zoom === 'out') zoom(1 / 0.75);
+      else setView(0, 0, W);
+    });
+  });
+  if (map) {
+    map.addEventListener('pointerdown', function (ev) {
+      if (view.w >= W || ev.target.closest('.node')) return;
+      drag = {x: ev.clientX, y: ev.clientY, vx: view.x, vy: view.y};
+    });
+    map.addEventListener('pointermove', function (ev) {
+      if (!drag) return;
+      var k = view.w / map.getBoundingClientRect().width;
+      var dx = ev.clientX - drag.x, dy = ev.clientY - drag.y;
+      if (!dragged && Math.abs(dx) + Math.abs(dy) < 4) return;
+      if (!dragged) { dragged = true; map.setPointerCapture(ev.pointerId); map.classList.add('panning'); }
+      setView(drag.vx - dx * k, drag.vy - dy * k, view.w);
+    });
+    ['pointerup', 'pointercancel'].forEach(function (type) {
+      map.addEventListener(type, function () {
+        drag = null; map.classList.remove('panning');
+        setTimeout(function () { dragged = false; }, 0);
+      });
+    });
+  }
   document.querySelectorAll('.people tbody tr').forEach(function (r) {
     r.addEventListener('click', function () {
       show(r.dataset.id);

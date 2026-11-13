@@ -47,8 +47,11 @@ functions:
 merges; requires 2 when the branch requires reviews, with anyone who can merge without a
 second person in `alone`), **release** (who published the last 30 GitHub releases) and
 **admin** (repository admins, when visible). Like dependencies, they are written with
-`source`, `evidence` and `confirmed: false`. Other functions (restore the database, rotate
-signing keys, grant production access) are added by hand.
+`source`, `evidence` and `confirmed: false`. With `hrg scan github --org ORG` they are drafted
+for every scanned repository and named after it (`payments-api/release`), so a person who is
+the only releaser of several services is a single point of every one of them. Other
+functions (restore the database, rotate signing keys, grant production access) are added by
+hand.
 
 ## 2. Definitions
 

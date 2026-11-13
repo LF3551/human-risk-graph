@@ -23,6 +23,9 @@ keywords = [
     "dora",
     "soc2",
     "iso27001",
+    "gdpr",
+    "segregation-of-duties",
+    "github",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
