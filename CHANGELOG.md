@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `hrg pseudonyms FILE`: the pseudonym, id and name of everyone, for re-identification by the key holder.
 - [docs/privacy.md](docs/privacy.md): what HRG processes, what it is not for, pseudonymization, re-identification, and a deployment checklist (purpose and legal basis, works council, DPIA, retention).
 - **Organization scan**: `hrg scan github --org ORG` scans the most recently pushed repositories (`--max-repos`, default 30; archived repositories and forks skipped unless `--include-archived` / `--include-forks`) and merges them into one draft. People appear once; dependencies between the same people are merged (a bypass outranks approvals, the highest weight wins); the `merge`, `release` and `admin` functions stay per repository (`REPO/release`), so hrg-3 shows everything one person's absence stops. Repositories that cannot be read become coverage gaps; a rate limit stops the scan. Re-scans keep human decisions.
-- GitHub Action inputs `scan-org`, `max-repos` and `pseudonymize`. With `pseudonymize: true` the draft with real logins is not uploaded with the artifact; a self-test checks that no login reaches the reports.
+- GitHub Action inputs `scan-org`, `max-repos` and `pseudonymize`. With `pseudonymize: true` the draft with real logins is not uploaded with the artifact, and report file names are pseudonymized too; a self-test checks that no login reaches the reports or their names.
 
 ### 🔧 Changed
 
