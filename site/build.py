@@ -149,6 +149,8 @@ which controls can be bypassed, and the changes that help most.</p>
   <a href="https://github.com/marketplace/actions/human-risk-graph">GitHub Action</a>
   <a href="https://pypi.org/project/human-risk-graph/">PyPI</a>
   <a href="{REPO}/blob/main/docs/model.md">How the score works</a>
+  <a href="{REPO}/blob/main/docs/validation-hrg3.md">Validation</a>
+  <a href="{REPO}/blob/main/docs/privacy.md">Privacy &amp; GDPR</a>
   <a href="{REPO}/blob/main/docs/benchmark.md">Benchmark</a>
 </div>
 
@@ -162,7 +164,9 @@ Each report is a single offline HTML file: open the map, click a person, print i
 <h2>Try it on your organization</h2>
 <pre><code>pip install human-risk-graph
 hrg analyze org.yaml                       # describe people and dependencies in YAML
-hrg scan github my-org/my-repo             # or draft them from a GitHub repository</code></pre>
+hrg scan github my-org/my-repo             # or draft them from a GitHub repository
+hrg scan github --org my-org               # or from a whole GitHub organization
+hrg analyze org.yaml --pseudonymize        # reports without names (GDPR)</code></pre>
 <p>In CI, with findings in code scanning and a job summary on every pull request:</p>
 <pre><code>- uses: LF3551/human-risk-graph@v{escape(__version__)}
   with:
@@ -173,6 +177,8 @@ hrg scan github my-org/my-repo             # or draft them from a GitHub reposit
 <ul>
   <li>Not a code-ownership tool: it models authority (who may approve), not who knows the code.</li>
   <li>Not a probability of an incident: the score is a structural index; read the findings.</li>
+  <li>Not for judging people: it measures the organization; reports can use keyed pseudonyms
+    instead of names (<a href="{REPO}/blob/main/docs/privacy.md">privacy</a>).</li>
   <li>Nothing leaves your machine: the CLI and the action run locally or in your own CI.</li>
 </ul>
 

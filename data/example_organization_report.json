@@ -3,8 +3,8 @@
     "input_file": "data/example_organization.json",
     "input_name": "example_organization.json",
     "input_sha256": "824985be282b635f6b341a91b8731172b1c7e8d0b62f723b4ef0c631da1e1034",
-    "tool_version": "0.7.0",
-    "analysis_date": "2026-11-13T07:20:26",
+    "tool_version": "0.15.1",
+    "analysis_date": "2026-11-13T14:55:08",
     "organization_size": 10,
     "dependencies_count": 14,
     "person_lookup": {
@@ -64,7 +64,13 @@
       "escalation": 3,
       "bypass": 3
     },
-    "config_file": null
+    "config_file": null,
+    "unconfirmed_dependencies": 0,
+    "functions_count": 0,
+    "unconfirmed_functions": 0,
+    "coverage_gaps": [],
+    "confirmed_only": null,
+    "pseudonymized": null
   },
   "results": {
     "model": "hrg-2",
@@ -74,20 +80,41 @@
       "gamma": 0.3
     },
     "critical_threshold": 0.7,
-    "bus_factor": 0.22555555555555554,
+    "bus_factor": 0.425,
     "decision_concentration": 0.28732897085068415,
     "bypass_risk": 0.4155844155844156,
-    "composite_score": 0.3856848026632976,
-    "score": 61,
+    "composite_score": 0.4760701811228193,
+    "score": 52,
     "grade": "D",
     "bus_factor_people": 1,
     "key_people": [
+      {
+        "id": "anna.mueller",
+        "criticality": 0.85,
+        "impact": 0.5,
+        "cut_off": 3,
+        "risk": 0.425
+      },
+      {
+        "id": "luca.rossi",
+        "criticality": 0.92,
+        "impact": 0.3888888888888889,
+        "cut_off": 2,
+        "risk": 0.3577777777777778
+      },
       {
         "id": "johan.lindberg",
         "criticality": 0.58,
         "impact": 0.3888888888888889,
         "cut_off": 2,
         "risk": 0.22555555555555554
+      },
+      {
+        "id": "marie.dubois",
+        "criticality": 0.78,
+        "impact": 0.2222222222222222,
+        "cut_off": 1,
+        "risk": 0.17333333333333334
       },
       {
         "id": "ines.silva",
@@ -124,6 +151,7 @@
         "peter.novak"
       ]
     ],
+    "break_glass_approvals": [],
     "critical_nodes": [
       "anna.mueller",
       "carlos.garcia",
@@ -131,13 +159,60 @@
       "marie.dubois"
     ],
     "articulation_points": [
+      "anna.mueller",
       "ines.silva",
-      "johan.lindberg"
+      "johan.lindberg",
+      "luca.rossi",
+      "marie.dubois"
     ],
     "risk_level": "Moderate"
   },
-  "generated_at": "2026-11-13T07:20:26.188065",
+  "generated_at": "2026-11-13T14:55:08.754442",
   "findings": [
+    {
+      "rule_id": "HRG001",
+      "rule": "single-point-of-failure",
+      "level": "error",
+      "message": "Anna Mueller (anna.mueller) is a single point of failure (criticality 0.85): losing them cuts off 3 people and 50% of the connections between the others.",
+      "person": "anna.mueller",
+      "dependency": null,
+      "function": null,
+      "remediation": "Name a deputy, cross-train them, and document the approvals and emergency procedures this person handles.",
+      "controls": {
+        "iso27001": [
+          {
+            "id": "A.5.29",
+            "title": "Information security during disruption"
+          },
+          {
+            "id": "A.5.30",
+            "title": "ICT readiness for business continuity"
+          }
+        ],
+        "soc2": [
+          {
+            "id": "CC1.4",
+            "title": "Competent individuals, including succession planning"
+          },
+          {
+            "id": "CC9.1",
+            "title": "Mitigation of business disruption risk"
+          }
+        ],
+        "dora": [
+          {
+            "id": "Art. 10(1)",
+            "title": "Identification of material single points of failure"
+          },
+          {
+            "id": "Art. 11(2)(a)",
+            "title": "Continuity of critical or important functions"
+          }
+        ]
+      },
+      "accepted": false,
+      "acceptance": null
+    },
     {
       "rule_id": "HRG001",
       "rule": "single-point-of-failure",
@@ -145,6 +220,7 @@
       "message": "Ines Silva (ines.silva) is a single point of failure (criticality 0.55): losing them cuts off 1 person and 22% of the connections between the others.",
       "person": "ines.silva",
       "dependency": null,
+      "function": null,
       "remediation": "Name a deputy, cross-train them, and document the approvals and emergency procedures this person handles.",
       "controls": {
         "iso27001": [
@@ -188,6 +264,95 @@
       "message": "Johan Lindberg (johan.lindberg) is a single point of failure (criticality 0.58): losing them cuts off 2 people and 39% of the connections between the others.",
       "person": "johan.lindberg",
       "dependency": null,
+      "function": null,
+      "remediation": "Name a deputy, cross-train them, and document the approvals and emergency procedures this person handles.",
+      "controls": {
+        "iso27001": [
+          {
+            "id": "A.5.29",
+            "title": "Information security during disruption"
+          },
+          {
+            "id": "A.5.30",
+            "title": "ICT readiness for business continuity"
+          }
+        ],
+        "soc2": [
+          {
+            "id": "CC1.4",
+            "title": "Competent individuals, including succession planning"
+          },
+          {
+            "id": "CC9.1",
+            "title": "Mitigation of business disruption risk"
+          }
+        ],
+        "dora": [
+          {
+            "id": "Art. 10(1)",
+            "title": "Identification of material single points of failure"
+          },
+          {
+            "id": "Art. 11(2)(a)",
+            "title": "Continuity of critical or important functions"
+          }
+        ]
+      },
+      "accepted": false,
+      "acceptance": null
+    },
+    {
+      "rule_id": "HRG001",
+      "rule": "single-point-of-failure",
+      "level": "error",
+      "message": "Luca Rossi (luca.rossi) is a single point of failure (criticality 0.92): losing them cuts off 2 people and 39% of the connections between the others.",
+      "person": "luca.rossi",
+      "dependency": null,
+      "function": null,
+      "remediation": "Name a deputy, cross-train them, and document the approvals and emergency procedures this person handles.",
+      "controls": {
+        "iso27001": [
+          {
+            "id": "A.5.29",
+            "title": "Information security during disruption"
+          },
+          {
+            "id": "A.5.30",
+            "title": "ICT readiness for business continuity"
+          }
+        ],
+        "soc2": [
+          {
+            "id": "CC1.4",
+            "title": "Competent individuals, including succession planning"
+          },
+          {
+            "id": "CC9.1",
+            "title": "Mitigation of business disruption risk"
+          }
+        ],
+        "dora": [
+          {
+            "id": "Art. 10(1)",
+            "title": "Identification of material single points of failure"
+          },
+          {
+            "id": "Art. 11(2)(a)",
+            "title": "Continuity of critical or important functions"
+          }
+        ]
+      },
+      "accepted": false,
+      "acceptance": null
+    },
+    {
+      "rule_id": "HRG001",
+      "rule": "single-point-of-failure",
+      "level": "error",
+      "message": "Marie Dubois (marie.dubois) is a single point of failure (criticality 0.78): losing them cuts off 1 person and 22% of the connections between the others.",
+      "person": "marie.dubois",
+      "dependency": null,
+      "function": null,
       "remediation": "Name a deputy, cross-train them, and document the approvals and emergency procedures this person handles.",
       "controls": {
         "iso27001": [
@@ -231,6 +396,7 @@
       "message": "Approval authority is concentrated (3.5 effective approvers of 5); Luca Rossi (luca.rossi) holds 44% of the approval weight.",
       "person": "luca.rossi",
       "dependency": null,
+      "function": null,
       "remediation": "Add secondary approvers for sensitive workflows and spread ownership of high-impact decisions.",
       "controls": {
         "iso27001": [
@@ -277,6 +443,7 @@
         "from": "elena.popescu",
         "to": "anna.mueller"
       },
+      "function": null,
       "remediation": "Require a second person for the bypass, log every use, and review each use after the fact.",
       "controls": {
         "iso27001": [
@@ -331,6 +498,7 @@
         "from": "luca.rossi",
         "to": "carlos.garcia"
       },
+      "function": null,
       "remediation": "Require a second person for the bypass, log every use, and review each use after the fact.",
       "controls": {
         "iso27001": [
@@ -385,6 +553,7 @@
         "from": "marie.dubois",
         "to": "carlos.garcia"
       },
+      "function": null,
       "remediation": "Require a second person for the bypass, log every use, and review each use after the fact.",
       "controls": {
         "iso27001": [
@@ -439,30 +608,30 @@
       ],
       "title": "Require a second person for Elena Popescu's bypass of Anna Mueller",
       "reason": "bypass involving a critical person",
-      "score_before": 61,
-      "score_after": 70,
-      "risk_before": 0.3856848026632976,
-      "risk_after": 0.2985149062871246
+      "score_before": 52,
+      "score_after": 60,
+      "risk_before": 0.4760701811228193,
+      "risk_after": 0.39654415206443966
     },
     {
       "action": "deputy",
-      "target": "johan.lindberg",
-      "title": "Add a deputy for Johan Lindberg",
+      "target": "anna.mueller",
+      "title": "Add a deputy for Anna Mueller",
+      "reason": "single point of failure, cuts off 3 people",
+      "score_before": 60,
+      "score_after": 66,
+      "risk_before": 0.39654415206443966,
+      "risk_after": 0.3390184538084377
+    },
+    {
+      "action": "deputy",
+      "target": "luca.rossi",
+      "title": "Add a deputy for Luca Rossi",
       "reason": "single point of failure, cuts off 2 people",
-      "score_before": 70,
+      "score_before": 66,
       "score_after": 76,
-      "risk_before": 0.2985149062871246,
-      "risk_after": 0.24100107638745183
-    },
-    {
-      "action": "deputy",
-      "target": "ines.silva",
-      "title": "Add a deputy for Ines Silva",
-      "reason": "single point of failure, cuts off 1 person",
-      "score_before": 76,
-      "score_after": 81,
-      "risk_before": 0.24100107638745183,
-      "risk_after": 0.1869018098449943
+      "risk_before": 0.3390184538084377,
+      "risk_after": 0.23501770057596705
     }
   ]
 }

@@ -22,6 +22,8 @@
   <a href="#html-report">HTML report</a> ·
   <a href="#github-action">GitHub Action</a> ·
   <a href="docs/compliance.md">ISO 27001 · SOC 2 · DORA</a> ·
+  <a href="docs/privacy.md">Privacy · GDPR</a> ·
+  <a href="docs/validation-hrg3.md">Validation</a> ·
   <a href="docs/model.md">Model</a> ·
   <a href="https://doi.org/10.5281/zenodo.20260930">Paper</a>
 </p>
@@ -36,8 +38,14 @@ afford to lose, and tells you **which three changes raise your score the most**.
   effective number of approvers, and how many critical approvals can be bypassed.
 - **A fix plan, not just a diagnosis**: deputies and second-person checks simulated on your
   data and ranked by score gain.
+- **No YAML to start**: `hrg scan github` drafts the organization from one repository or
+  a whole GitHub organization (who reviews, merges, releases and can bypass).
 - **Built for pipelines and audits**: SARIF for GitHub code scanning, JUnit, a `--min-score`
   gate, `hrg diff` between snapshots, findings mapped to ISO/IEC 27001, SOC 2 and DORA.
+- **Privacy by design**: `--pseudonymize` replaces people by keyed pseudonyms in every
+  report, for GDPR and works-council requirements; nothing leaves your machine.
+- **Tested against outcomes**: in a [pre-registered study](docs/validation-hrg3.md), a single
+  releaser predicted which popular PyPI projects stopped releasing (4.8 times the rate).
 - **A report you can hand over**: one offline HTML file with an interactive dependency map,
   readable on a phone and printable as PDF.
 
@@ -55,7 +63,7 @@ The model, its properties and its tests are in [docs/model.md](docs/model.md).
 
 ## Quick start
 
-**See it first:** [live example reports](https://lf3551.github.io/human-risk-graph/) of two
+**See it first:** [live example reports](https://lf3551.github.io/human-risk-graph/) of three
 fictional organizations, nothing to install.
 
 Try it on the example organization, nothing to set up (needs [uv](https://docs.astral.sh/uv/)):
@@ -74,7 +82,7 @@ hrg analyze my-org.yaml
 ```
 
 ```
-Human Risk Graph 0.15.0 · organization.yaml · 5 people · 5 dependencies
+Human Risk Graph 0.15.1 · organization.yaml · 5 people · 5 dependencies
 
   Score  25/100  ██░░░░░░░░  F · Critical risk  model hrg-2
 
@@ -257,7 +265,9 @@ control. It does not measure who **knows** the code. Tools that mine Git history
 [CodeScene](https://codescene.com) or [Busfactor](https://busfactor.tech), are better at
 knowledge islands and code ownership; the two questions are complementary, since an
 expert may not be allowed to approve a production change and an approver may not know
-the system. HRG is also not an employee-behaviour or phishing-risk platform.
+the system. HRG is also not an employee-behaviour or phishing-risk platform, and it is not
+meant for judging how well people work: share pseudonymized reports beyond those who act on
+the findings ([docs/privacy.md](docs/privacy.md)).
 
 The score is a structural index, not the probability of an incident, and the fix plan
 shows changes that improve the structure; whether a deputy can really do the job is for
@@ -422,7 +432,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: LF3551/human-risk-graph@v0.15.0
+      - uses: LF3551/human-risk-graph@v0.15.1
         with:
           file: org/organization.yaml
           min-score: 70
@@ -432,7 +442,7 @@ Or draft the organization from the repository itself (approvals, CODEOWNERS, bra
 rules) and report on it, for example on a schedule:
 
 ```yaml
-      - uses: LF3551/human-risk-graph@v0.15.0
+      - uses: LF3551/human-risk-graph@v0.15.1
         with:
           scan: ${{ github.repository }}
 ```
@@ -441,7 +451,7 @@ Or the whole organization, with pseudonymized reports (the draft with real login
 not uploaded):
 
 ```yaml
-      - uses: LF3551/human-risk-graph@v0.15.0
+      - uses: LF3551/human-risk-graph@v0.15.1
         env:
           HRG_PSEUDONYM_KEY: ${{ secrets.HRG_PSEUDONYM_KEY }}
         with:
@@ -510,7 +520,8 @@ for fix in hrg.fix_plan():
 
 - `src/human_risk_graph/` — the package (model, CLI, reports)
 - `tests/` — unit, property and CLI tests
-- `docs/` — formal model, compliance mapping, figures
+- `docs/` — formal model, compliance mapping, privacy, benchmark and validation study
+- `benchmark/` — scanner benchmark and the validation study (code, data, results)
 - `examples/`, `data/` — example organizations and generated reports
 - `experiments/` — synthetic data and benchmarks from the paper
 - `paper/` — LaTeX source of the [paper](https://doi.org/10.5281/zenodo.20260930)

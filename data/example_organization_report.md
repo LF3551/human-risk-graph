@@ -1,39 +1,39 @@
 # Human Risk Graph Analysis Report
 
-**Generated:** 2026-11-13 07:20:26
+**Generated:** 2026-11-13 14:55:08
 **Input File:** `data/example_organization.json`
 **Organization Size:** 10 people
 **Dependencies:** 14
 
 ## 📊 Executive Summary
 
-**Score: 61/100 · grade D · Moderate risk** (composite risk 0.386, model `hrg-2`)
+**Score: 52/100 · grade D · Moderate risk** (composite risk 0.476, model `hrg-2`)
 
 Human dependency risks are manageable; the top fixes below are worth doing.
 
 ## 🧠 Why This Score
 
-- Key-person risk K = 0.226: losing Johan Lindberg cuts off 2 people and 39% of the connections between the others (bus factor 1).
+- Key-person risk K = 0.425: losing Anna Mueller cuts off 3 people and 50% of the connections between the others (bus factor 1).
 - Approval concentration D = 0.287: 3.5 effective approvers of 5; Luca Rossi holds 44% of the approval weight.
 - Override exposure B = 0.416: 4 of 7 critical approvals can be overridden through a bypass.
-- Composite risk = (1 − (1 − 0.4·K)(1 − 0.3·D)(1 − 0.3·B)) / (1 − (1 − 0.4)(1 − 0.3)(1 − 0.3)) = 0.386; score = 100·(1 − risk) = 61
+- Composite risk = (1 − (1 − 0.4·K)(1 − 0.3·D)(1 − 0.3·B)) / (1 − (1 − 0.4)(1 − 0.3)(1 − 0.3)) = 0.476; score = 100·(1 − risk) = 52
 
 ## 🛠️ Top Fixes
 
 | # | Fix | Why | Score |
 |---|-----|-----|-------|
-| 1 | Require a second person for Elena Popescu's bypass of Anna Mueller | bypass involving a critical person | 61 → 70 (+9) |
-| 2 | Add a deputy for Johan Lindberg | single point of failure, cuts off 2 people | 70 → 76 (+6) |
-| 3 | Add a deputy for Ines Silva | single point of failure, cuts off 1 person | 76 → 81 (+5) |
+| 1 | Require a second person for Elena Popescu's bypass of Anna Mueller | bypass involving a critical person | 52 → 60 (+8) |
+| 2 | Add a deputy for Anna Mueller | single point of failure, cuts off 3 people | 60 → 66 (+6) |
+| 3 | Add a deputy for Luca Rossi | single point of failure, cuts off 2 people | 66 → 76 (+10) |
 
 ## 📈 Risk Metrics
 
 | Metric | Value | Weight | Level |
 |--------|-------|--------|-------|
-| **Key-person risk** | 0.226 | 40% | Low |
+| **Key-person risk** | 0.425 | 40% | Moderate |
 | **Approval concentration** | 0.287 | 30% | Low |
 | **Override exposure** | 0.416 | 30% | Moderate |
-| **Composite risk** | 0.386 | | Moderate |
+| **Composite risk** | 0.476 | | Moderate |
 
 Critical people (criticality ≥ 0.7): **4/10** · Dependencies: approval: 8, bypass: 3, escalation: 3
 
@@ -41,10 +41,13 @@ Critical people (criticality ≥ 0.7): **4/10** · Dependencies: approval: 8, by
 
 These individuals are **single points of failure**. Their removal would disconnect the organizational graph:
 
+- `Anna Mueller (Security Lead)` — criticality: 0.85
 - `Ines Silva (Product Security Engineer)` — criticality: 0.55
 - `Johan Lindberg (DevOps Engineer)` — criticality: 0.58
+- `Luca Rossi (Principal SRE)` — criticality: 0.92
+- `Marie Dubois (Engineering Manager)` — criticality: 0.78
 
-**Total Critical People:** 2
+**Total Critical People:** 5
 
 ## 🧾 Findings and Related Controls
 
@@ -52,8 +55,11 @@ _Related controls are informative pointers for audits, not an assessment of comp
 
 | Rule | Level | Finding | ISO/IEC 27001:2022 | SOC 2 | DORA |
 |------|-------|---------|--------------------|-------|------|
+| HRG001 | error | Anna Mueller (anna.mueller) is a single point of failure (criticality 0.85): losing them cuts off 3 people and 50% of the connections between the others. | A.5.29; A.5.30 | CC1.4; CC9.1 | Art. 10(1); Art. 11(2)(a) |
 | HRG001 | warning | Ines Silva (ines.silva) is a single point of failure (criticality 0.55): losing them cuts off 1 person and 22% of the connections between the others. | A.5.29; A.5.30 | CC1.4; CC9.1 | Art. 10(1); Art. 11(2)(a) |
 | HRG001 | warning | Johan Lindberg (johan.lindberg) is a single point of failure (criticality 0.58): losing them cuts off 2 people and 39% of the connections between the others. | A.5.29; A.5.30 | CC1.4; CC9.1 | Art. 10(1); Art. 11(2)(a) |
+| HRG001 | error | Luca Rossi (luca.rossi) is a single point of failure (criticality 0.92): losing them cuts off 2 people and 39% of the connections between the others. | A.5.29; A.5.30 | CC1.4; CC9.1 | Art. 10(1); Art. 11(2)(a) |
+| HRG001 | error | Marie Dubois (marie.dubois) is a single point of failure (criticality 0.78): losing them cuts off 1 person and 22% of the connections between the others. | A.5.29; A.5.30 | CC1.4; CC9.1 | Art. 10(1); Art. 11(2)(a) |
 | HRG002 | warning | Approval authority is concentrated (3.5 effective approvers of 5); Luca Rossi (luca.rossi) holds 44% of the approval weight. | A.5.2; A.5.3 | CC1.3; CC5.1 | Art. 5(2)(c); Art. 6(4) |
 | HRG003 | warning | Elena Popescu (elena.popescu) can bypass Anna Mueller (anna.mueller) and override the controls they enforce; one of them is critical. | A.5.3; A.8.2; A.8.32 | CC5.1; CC6.3; CC8.1 | Art. 9(4)(c); Art. 9(4)(e) |
 | HRG003 | warning | Luca Rossi (luca.rossi) can bypass Carlos Garcia (carlos.garcia) and override the controls they enforce; one of them is critical. | A.5.3; A.8.2; A.8.32 | CC5.1; CC6.3; CC8.1 | Art. 9(4)(c); Art. 9(4)(e) |
