@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 from typing import Any, Dict, List, Optional
 
 from . import __version__
-from .findings import FRAMEWORKS, RULES, Finding, Rule, acceptance_text
+from .findings import FRAMEWORKS, RULES, Finding, Rule, acceptance_text, rules_for_model
 
 INFORMATION_URI = "https://github.com/LF3551/human-risk-graph"
 SARIF_SCHEMA = "https://json.schemastore.org/sarif-2.1.0.json"
@@ -33,6 +33,12 @@ def _find_line(lines: List[str], finding: Finding) -> int:
                     break
                 if target.search(nxt):
                     return i + 1
+    if finding.function:
+        function = _key_value("id", finding.function)
+        start = next((i for i, line in enumerate(lines) if re.match(r'\s*"?functions', line)), 0)
+        for i, line in enumerate(lines[start:], start):
+            if function.search(line):
+                return i + 1
     if finding.person:
         person = _key_value("id", finding.person)
         for i, line in enumerate(lines):
@@ -156,7 +162,7 @@ def generate_junit_report(
         ET.SubElement(props, "property", name=key, value=f"{results[key]:.3f}")
 
     failures = skipped = 0
-    for rule in RULES.values():
+    for rule in rules_for_model(results.get("model")):
         case = ET.SubElement(
             suite, "testcase", classname="human-risk-graph", name=f"{rule.id} {rule.name}"
         )
@@ -183,7 +189,11 @@ def generate_junit_report(
                 + ["", f"Remediation: {rule.remediation}"]
             )
 
-    counts = {"tests": str(len(RULES)), "failures": str(failures), "errors": "0"}
+    counts = {
+        "tests": str(len(rules_for_model(results.get("model")))),
+        "failures": str(failures),
+        "errors": "0",
+    }
     suite.attrib.update({**counts, "skipped": str(skipped)})
     root = ET.Element("testsuites", name="human-risk-graph", **counts)
     root.append(suite)

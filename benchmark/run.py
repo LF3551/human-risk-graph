@@ -8,6 +8,8 @@ gave approving reviews on recent merged pull requests. Reported per repository:
 - precision: share of observed approvers who are declared approvers
 - recall: share of declared approvers seen approving in the window
 - approvals by declared: share of all approving reviews given by declared approvers
+- release authors declared: share of people who published releases (the hrg-3 release
+  function) who are declared approvers
 
 Usage:
     python benchmark/run.py [--max-prs 100] [--only OWNER/REPO] [--output FILE]
@@ -75,6 +77,15 @@ def evaluate(declared: Set[str], approvals: Dict[str, int]) -> Dict[str, Any]:
     }
 
 
+def evaluate_releases(declared: Set[str], functions: List[Dict[str, Any]]) -> Dict[str, Any]:
+    release = next((f for f in functions if f["id"] == "release"), None)
+    authors = {p.lower() for p in release["performers"]} if release else set()
+    return {
+        "release_authors": len(authors),
+        "release_authors_declared": len(authors & declared) / len(authors) if authors else None,
+    }
+
+
 def _file(client: GitHubClient, repo: str, path: str) -> Optional[str]:
     data = client.get(f"repos/{repo}/contents/{path}")
     if not data or not data.get("content"):
@@ -106,22 +117,31 @@ def markdown(run: Dict[str, Any]) -> str:
         f"up to {run['max_prs']} merged pull requests per repository.",
         "",
         "| Repository | PRs | Declared | Approvers | Precision | Recall "
-        "| Approvals by declared | Top approver declared | Reviews required |",
-        "|---|---:|---:|---:|---:|---:|---:|:---:|:---:|",
+        "| Approvals by declared | Top approver declared | Release authors declared "
+        "| Reviews required |",
+        "|---|---:|---:|---:|---:|---:|---:|:---:|---:|:---:|",
     ]
     for r in rows:
         m = r["metrics"]
+        rel = r.get("releases") or {}
+        authors = rel.get("release_authors")
+        release_cell = (
+            f"{_pct(rel.get('release_authors_declared'))} of {authors}" if authors else "n/a"
+        )
         lines.append(
             f"| {r['repo']} | {r['pull_requests']} | {m['declared']} | {m['approvers']} "
             f"| {_pct(m['precision'])} | {_pct(m['recall'])} "
             f"| {_pct(m['approvals_by_declared'])} "
-            f"| {'yes' if m['top_approver_declared'] else 'no'} | {r['review_required']} |"
+            f"| {'yes' if m['top_approver_declared'] else 'no'} | {release_cell} "
+            f"| {r['review_required']} |"
         )
     totals = run["totals"]
     lines += [
         f"| **All** | {totals['pull_requests']} | {totals['declared']} | {totals['approvers']} "
         f"| **{_pct(totals['precision'])}** | **{_pct(totals['recall'])}** "
-        f"| **{_pct(totals['approvals_by_declared'])}** | | |",
+        f"| **{_pct(totals['approvals_by_declared'])}** | "
+        f"| **{_pct(totals.get('release_authors_declared'))}** of "
+        f"{totals.get('release_authors', 0)} | |",
         "",
     ]
     for r in run["repos"]:
@@ -147,12 +167,22 @@ def totals(repos: List[Dict[str, Any]]) -> Dict[str, Any]:
         for r in ok
         if r["metrics"]["approvals_by_declared"] is not None
     )
+    releases = [r.get("releases") or {} for r in ok]
+    release_authors = sum(rel.get("release_authors") or 0 for rel in releases)
+    release_declared = sum(
+        (rel.get("release_authors_declared") or 0) * (rel.get("release_authors") or 0)
+        for rel in releases
+    )
     return {
         **s,
         "pull_requests": sum(r["pull_requests"] for r in ok),
         "precision": s["matched"] / s["approvers"] if s["approvers"] else None,
         "recall": s["matched"] / s["declared"] if s["declared"] else None,
         "approvals_by_declared": by_declared / approvals if approvals else None,
+        "release_authors": release_authors,
+        "release_authors_declared": (
+            release_declared / release_authors if release_authors else None
+        ),
     }
 
 
@@ -187,6 +217,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                 "gaps": len(result.gaps),
                 "approvals_given": result.approvals_given,
                 "metrics": evaluate(declared, result.approvals_given),
+                "releases": evaluate_releases(declared, result.functions),
             }
         )
     run = {

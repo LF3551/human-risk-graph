@@ -5,6 +5,28 @@ All notable changes to Human Risk Graph will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2026-11-13
+
+### ✨ Added
+
+- Model `hrg-3` (experimental, `--model hrg-3`): critical functions and the two-person rule. See [docs/model-hrg3.md](docs/model-hrg3.md).
+  - Each function in a new `functions` section has a criticality, the people it `requires`, its `performers`, and who can complete it `alone`.
+  - Metrics: function loss (what stops when one person is unavailable), authority concentration (HHI of function weight) and solo control (critical functions one person can complete alone, the SLSA Source Level 4 two-party question).
+  - Availability and integrity sub-scores; a fix plan of backups and two-person rules.
+  - Findings HRG005 (function depends on too few people) and HRG006 (critical function one person can complete alone), mapped to ISO/IEC 27001, SOC 2 and DORA.
+  - A table of functions in every report; `examples/functions.yaml`; a third example on the live demo.
+- `hrg scan github` drafts the `merge`, `release` and `admin` functions of a repository, with `source`, `evidence` and `confirmed: false`. Re-scans keep their criticality, `requires` and confirmation, and keep hand-written functions.
+- Benchmark: release authors against declared maintainers (86% of 7).
+
+### 🔧 Changed
+
+- Reports count unconfirmed functions together with unconfirmed dependencies, and the score on confirmed data leaves out both.
+- JUnit reports one test case per rule of the model used (HRG001-HRG004 for hrg-1 and hrg-2, HRG002, HRG004-HRG006 for hrg-3).
+
+### 🐛 Fixed
+
+- `hrg scan github` counted machine users named like bots (`prombot`, `jetstack-release-bot`, `k8s-ci-robot`) as people. Found by the benchmark: release-author agreement went from 60% to 86%, and flux2 approver recall from 30% to 60%.
+
 ## [0.11.0] - 2026-11-13
 
 ### ✨ Added

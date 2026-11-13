@@ -10,12 +10,10 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List
 
+from .reports import _metric_labels, unconfirmed_text
+
 MAX_FINDINGS = 10
-METRICS = (
-    ("Key-person risk", "bus_factor"),
-    ("Approval concentration", "decision_concentration"),
-    ("Override exposure", "bypass_risk"),
-)
+METRIC_KEYS = ("bus_factor", "decision_concentration", "bypass_risk")
 
 
 def _cell(text: Any) -> str:
@@ -68,11 +66,10 @@ def summary(report: Dict[str, Any]) -> str:
         f"model {results.get('model', '')}",
         "",
     ]
-    if metadata.get("unconfirmed_dependencies"):
+    if unconfirmed_text(metadata):
         only = metadata.get("confirmed_only")
         lines += [
-            f"> [!WARNING]\n> {metadata['unconfirmed_dependencies']} of "
-            f"{metadata.get('dependencies_count')} dependencies are unconfirmed"
+            f"> [!WARNING]\n> {unconfirmed_text(metadata)}"
             + (f"; on confirmed data only the score is {only['score']}/100." if only else ".")
             + " Review them before relying on the score.",
             "",
@@ -85,7 +82,12 @@ def summary(report: Dict[str, Any]) -> str:
             "",
         ]
     lines += ["| Metric | Value |", "|---|---:|"]
-    lines += [f"| {label} | {results[key]:.2f} |" for label, key in METRICS if key in results]
+    labels = _metric_labels(results)
+    lines += [
+        f"| {label} | {results[key]:.2f} |"
+        for label, key in zip(labels, METRIC_KEYS)
+        if key in results
+    ]
     lines.append("")
 
     lines.append(

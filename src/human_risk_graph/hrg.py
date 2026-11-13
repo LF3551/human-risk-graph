@@ -7,7 +7,7 @@ Human Risk Graphs.
 
 import networkx as nx
 import numpy as np
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 from .metrics import (
     bus_factor_score,
     decision_concentration_score,
@@ -22,11 +22,13 @@ from .graph_analysis import (
 from .model_v2 import (
     MODEL_V1,
     MODEL_V2,
+    MODEL_V3,
     MODELS,
     calculate_v2,
     risk_level_from_score,
     score_and_grade,
 )
+from .model_v3 import calculate_v3, fix_plan_v3
 
 REVIEW_VALUES = ("none", "after")
 
@@ -67,6 +69,31 @@ def _validate(people, dependencies) -> None:
             )
 
 
+def _validate_functions(functions, ids) -> None:
+    if not isinstance(functions, list):
+        raise ValueError("'functions' must be a list")
+    seen = set()
+    for i, f in enumerate(functions):
+        where = f"functions[{i}]"
+        if not isinstance(f, dict) or not isinstance(f.get("id"), str) or not f["id"]:
+            raise ValueError(f"{where} must be an object with a non-empty string 'id'")
+        if f["id"] in seen:
+            raise ValueError(f"{where}: duplicate function id {f['id']!r}")
+        seen.add(f["id"])
+        if "criticality" in f:
+            _check_unit_interval(f["criticality"], f"{where}.criticality")
+        requires = f.get("requires", 1)
+        if isinstance(requires, bool) or not isinstance(requires, int) or requires < 1:
+            raise ValueError(f"{where}.requires must be a whole number of at least 1")
+        for key in ("performers", "alone"):
+            members = f.get(key) or []
+            if not isinstance(members, list):
+                raise ValueError(f"{where}.{key} must be a list of person ids")
+            for member in members:
+                if member not in ids:
+                    raise ValueError(f"{where}.{key}: unknown person id {member!r}")
+
+
 class HumanRiskGraph:
     """
     Main class for Human Risk Graph analysis.
@@ -86,7 +113,9 @@ class HumanRiskGraph:
         >>> scores = hrg.calculate()
     """
 
-    def __init__(self, people: List[Dict], dependencies: List[Dict]):
+    def __init__(
+        self, people: List[Dict], dependencies: List[Dict], functions: Optional[List[Dict]] = None
+    ):
         """
         Initialize a Human Risk Graph.
 
@@ -100,12 +129,16 @@ class HumanRiskGraph:
                 - to: target person ID (str)
                 - type: 'approval', 'escalation', or 'bypass' (str)
                 - weight: dependency strength [0,1] (float)
+            functions: Optional critical functions for model hrg-3, each with id,
+                criticality, requires, performers and alone.
 
         Raises:
             ValueError: If the input is malformed, for example a duplicate or unknown
                 person ID, or a criticality or weight outside [0, 1].
         """
         _validate(people, dependencies)
+        self.functions = functions or []
+        _validate_functions(self.functions, {p["id"] for p in people})
         self.people = people
         self.dependencies = dependencies
 
@@ -177,6 +210,17 @@ class HumanRiskGraph:
         """
         if model not in MODELS:
             raise ValueError(f"Unknown model {model!r}; expected one of {', '.join(MODELS)}")
+
+        if model == MODEL_V3:
+            if not np.isclose(alpha + beta + gamma, 1.0):
+                raise ValueError("Weights must sum to 1.0")
+            if not self.functions:
+                raise ValueError("Model hrg-3 needs a 'functions' section in the organization")
+            result = calculate_v3(
+                self.functions, self.criticality, alpha, beta, gamma, critical_threshold
+            )
+            result["risk_level"] = risk_level_from_score(result["score"])
+            return result
 
         if model == MODEL_V2:
             if not np.isclose(alpha + beta + gamma, 1.0):
@@ -336,6 +380,15 @@ class HumanRiskGraph:
         """
         from .fixes import fix_plan
 
+        if calculate_kwargs.get("model") == MODEL_V3:
+            kwargs = {k: v for k, v in calculate_kwargs.items() if k != "model"}
+            return fix_plan_v3(
+                self.people,
+                self.functions,
+                lambda people: {p["id"]: p.get("criticality", 0.5) for p in people},
+                steps=steps,
+                **kwargs,
+            )
         return fix_plan(self.people, self.dependencies, steps=steps, **calculate_kwargs)
 
     def export_graph(self) -> nx.DiGraph:

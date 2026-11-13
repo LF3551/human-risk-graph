@@ -9,7 +9,9 @@ from rich.text import Text
 
 from . import __version__
 from .findings import Finding, acceptance_text
-from .model_v2 import MODEL_V1
+from .model_v2 import MODEL_V1, MODEL_V3
+from .model_v3 import describe as describe_v3
+from .reports import unconfirmed_text
 
 GRADE_STYLE = {"A": "bold green", "B": "green", "C": "yellow", "D": "dark_orange", "F": "bold red"}
 LEVEL_STYLE = {"error": "red", "warning": "yellow", "note": "blue"}
@@ -32,6 +34,23 @@ def _metric_rows(results: Dict[str, Any], name) -> List[tuple]:
             ("Decision", f"{results['decision_concentration']:.3f} (Gini)"),
             ("Bypass", f"{results['bypass_risk']:.3f}"),
         ]
+    if results.get("model") == MODEL_V3:
+        scores = results.get("scores", {})
+        rows = [
+            (label, f"{headline} · {detail}")
+            for label, (headline, detail) in zip(
+                ("Functions", "Authority", "Solo control"), describe_v3(results, name)
+            )
+        ]
+        if scores:
+            rows.append(
+                (
+                    "Sub-scores",
+                    f"availability {scores['availability']}/100 · "
+                    f"integrity {scores['integrity']}/100",
+                )
+            )
+        return rows
 
     rows = []
     key_people = results.get("key_people", [])
@@ -93,7 +112,17 @@ def render_summary(
         return names.get(person_id, person_id)
 
     people, deps = len(data["people"]), len(data["dependencies"])
-    unconfirmed = sum(1 for d in data["dependencies"] if d.get("confirmed") is False)
+    functions = data.get("functions") or []
+    unconfirmed = unconfirmed_text(
+        {
+            "dependencies_count": deps,
+            "unconfirmed_dependencies": sum(
+                1 for d in data["dependencies"] if d.get("confirmed") is False
+            ),
+            "functions_count": len(functions),
+            "unconfirmed_functions": sum(1 for f in functions if f.get("confirmed") is False),
+        }
+    )
     console.print()
     console.print(
         Text.assemble(
@@ -109,7 +138,7 @@ def render_summary(
     if unconfirmed:
         console.print(
             Text(
-                f"  {unconfirmed} of {deps} dependencies are unconfirmed (from hrg scan): "
+                f"  {unconfirmed} (from hrg scan): "
                 "review them before relying on the score."
                 + (
                     f" On confirmed data only: {confirmed_only['score']}/100 "

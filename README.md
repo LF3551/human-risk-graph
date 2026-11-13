@@ -74,7 +74,7 @@ hrg analyze my-org.yaml
 ```
 
 ```
-Human Risk Graph 0.11.0 · organization.yaml · 5 people · 5 dependencies
+Human Risk Graph 0.12.0 · organization.yaml · 5 people · 5 dependencies
 
   Score  25/100  ██░░░░░░░░  F · Critical risk  model hrg-2
 
@@ -166,6 +166,39 @@ On top of the score, HRG simulates remediations (a deputy for a key person, a se
 check on a bypass) and lists the three that raise the score most.
 
 The original model from the paper is still available as `--model hrg-1`.
+
+### Critical functions and the two-person rule (hrg-3, experimental)
+
+Connections do not tell you who can **replace** someone. Model `hrg-3` works on the things
+the organization must be able to do, such as merging to main, publishing a release,
+changing repository settings or restoring the database. For each function it asks:
+
+- **who can perform it, and what stops if one of them is unavailable** (function loss,
+  availability sub-score);
+- **can one person complete it alone** (solo control, integrity sub-score), the
+  [SLSA Source Level 4](https://slsa.dev/spec/v1.2/source-requirements) two-party question.
+
+```yaml
+functions:
+  - id: release
+    criticality: 0.9
+    requires: 1                 # 2 for a two-person rule
+    performers: [alice, bob]
+  - id: merge
+    criticality: 0.8
+    requires: 2
+    performers: [alice, bob, carol]
+    alone: [alice]              # can bypass the second person
+```
+
+```bash
+hrg analyze examples/functions.yaml --model hrg-3
+```
+
+`hrg scan github` drafts the `merge`, `release` and `admin` functions of a repository. A
+single-maintainer repository with no reviewers scores 100 under hrg-2 (there are no
+dependencies to break) and 0 under hrg-3, because one person merges, releases and
+administers alone. Definitions and properties: [docs/model-hrg3.md](docs/model-hrg3.md).
 
 ### What HRG is not
 

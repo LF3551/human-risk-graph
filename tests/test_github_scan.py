@@ -7,6 +7,7 @@ import pytest
 import yaml
 from click.testing import CliRunner
 
+from human_risk_graph import HumanRiskGraph
 from human_risk_graph import cli as cli_module
 from human_risk_graph.cli import cli
 from human_risk_graph.github_scan import (
@@ -126,7 +127,10 @@ def test_scan_reviews_unreviewed_merges_and_bots():
     assert deps[("lead", "dev")]["type"] == "approval"
     assert deps[("lead", "dev")]["weight"] == 0.5
     assert any("not counted as bypasses" in n for n in result.notes)
-    assert result.gaps == []
+    assert result.gaps == [
+        "Repository admins are not visible (they can change settings and branch protection; "
+        "needs push access)."
+    ]
     # dev approved lead's only PR; self-approval on PR 1 is ignored
     assert deps[("dev", "lead")]["type"] == "approval"
     assert deps[("dev", "lead")]["weight"] == 1.0
@@ -304,6 +308,81 @@ def test_draft_loads_and_merge_keeps_decisions(tmp_path):
     assert len(notes) == 2
 
 
+def _release(login, draft=False):
+    return {"author": {"login": login}, "draft": draft}
+
+
+def test_scan_drafts_functions():
+    routes = _routes(
+        **REVIEW_RULE,
+        **{
+            "repos/acme/api/releases": [_release("lead"), _release("lead"), _release("dev", True)],
+            "repos/acme/api/collaborators": [{"login": "lead"}],
+        },
+    )
+    result = GitHubScanner(FakeClient(routes), "acme/api").scan()
+    functions = {f["id"]: f for f in result.functions}
+
+    merge = functions["merge"]
+    assert (merge["requires"], merge["confirmed"]) == (2, False)
+    assert merge["performers"] == ["dev", "lead"]
+    assert merge["alone"] == ["lead"]  # merged dev's PR 2 without review
+    assert "SLSA Source Level 4" in merge["evidence"]
+    assert functions["release"]["performers"] == ["lead"]  # drafts are not releases
+    assert "2 of the last 2 releases" in functions["release"]["evidence"]
+    assert functions["admin"]["performers"] == ["lead"]
+
+    hrg = HumanRiskGraph(result.people, result.dependencies, result.functions)
+    assert hrg.calculate(model="hrg-3")["solo_functions"] == ["merge", "release", "admin"]
+
+
+@pytest.mark.parametrize(
+    "login, bot",
+    [
+        ("dependabot[bot]", True),
+        ("prombot", True),
+        ("jetstack-release-bot", True),
+        ("k8s-ci-robot", True),
+        ("my-bot-account", True),
+        ("bottomline", False),
+        ("ivanvc", False),
+        ("roboto", False),
+    ],
+)
+def test_bot_names(login, bot):
+    from human_risk_graph.github_scan import _is_bot
+
+    assert _is_bot(login) is bot
+
+
+def test_releases_by_automation_are_a_gap():
+    routes = _routes(
+        **{"repos/acme/api/releases": [_release("github-actions[bot]"), _release("prombot")]}
+    )
+    result = GitHubScanner(FakeClient(routes), "acme/api").scan()
+    assert "release" not in {f["id"] for f in result.functions}
+    assert any("published by automation" in g for g in result.gaps)
+
+
+def test_rescan_keeps_function_decisions(tmp_path):
+    routes = _routes(**{"repos/acme/api/releases": [_release("lead")]})
+    result = GitHubScanner(FakeClient(routes), "acme/api").scan()
+    path = tmp_path / "org.yaml"
+    path.write_text(draft_yaml(result), encoding="utf-8")
+    data = load_organization(path)
+    release = next(f for f in data["functions"] if f["id"] == "release")
+    release.update(criticality=0.5, requires=2, confirmed=True)
+    data["functions"].append({"id": "restore-db", "performers": ["dev"], "criticality": 0.9})
+
+    again = GitHubScanner(FakeClient(routes), "acme/api").scan()
+    notes = merge_with_existing(again, data)
+    functions = {f["id"]: f for f in again.functions}
+    assert (functions["release"]["criticality"], functions["release"]["requires"]) == (0.5, 2)
+    assert functions["release"]["confirmed"] is True
+    assert "restore-db" in functions
+    assert "Kept 1 functions the scan does not draft." in notes
+
+
 def test_merge_without_existing():
     result = GitHubScanner(FakeClient(_routes()), "acme/api").scan()
     assert merge_with_existing(result, None) == []
@@ -333,7 +412,7 @@ def test_cli_scan_then_analyze(tmp_path, fake_github, monkeypatch):
     assert "Gap:" in result.output
     coverage = yaml.safe_load(draft.read_text())["coverage"]
     assert coverage["review_required"] == "unknown"
-    assert len(coverage["gaps"]) == 2
+    assert len(coverage["gaps"]) == 3
 
     analyzed = runner.invoke(
         cli, ["analyze", str(draft), "--format", "json", "--output", "out.json", "--no-visualize"]
@@ -341,7 +420,7 @@ def test_cli_scan_then_analyze(tmp_path, fake_github, monkeypatch):
     assert analyzed.exit_code in (0, 3), analyzed.output
     output = " ".join(analyzed.output.split())
     assert "unconfirmed" in output
-    assert "2 data gaps" in output
+    assert "3 data gaps" in output
 
     report = json.loads((tmp_path / "out.json").read_text())
     total = report["metadata"]["dependencies_count"]
@@ -353,7 +432,7 @@ def test_cli_scan_then_analyze(tmp_path, fake_github, monkeypatch):
             cli, ["analyze", str(draft), "--format", fmt, "--output", name, "--no-visualize"]
         )
         text = (tmp_path / name).read_text()
-        assert f"{total} dependencies are unconfirmed" in text
+        assert f"{total} of {total} dependencies and 1 of 1 functions are unconfirmed" in text
         assert "protection settings are not visible" in text
 
 

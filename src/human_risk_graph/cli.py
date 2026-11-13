@@ -55,7 +55,7 @@ EXTENSIONS = {
 def _load(input_file):
     try:
         data = load_organization(input_file)
-        return data, HumanRiskGraph(data["people"], data["dependencies"])
+        return data, HumanRiskGraph(data["people"], data["dependencies"], data.get("functions"))
     except (OSError, ValueError) as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
@@ -85,11 +85,18 @@ def _setting(ctx, name, cli_value, config_value):
 
 
 def _confirmed_only(data, calc):
-    """Score without the dependencies marked ``confirmed: false``, or None if there are none."""
+    """Score without dependencies and functions marked ``confirmed: false``, or None."""
     kept = [d for d in data["dependencies"] if d.get("confirmed") is not False]
-    if len(kept) == len(data["dependencies"]):
+    functions = data.get("functions") or []
+    kept_functions = [f for f in functions if f.get("confirmed") is not False]
+    if len(kept) == len(data["dependencies"]) and len(kept_functions) == len(functions):
         return None
-    results = HumanRiskGraph(data["people"], kept).calculate(with_bus_factor=False, **calc)
+    try:
+        results = HumanRiskGraph(data["people"], kept, kept_functions).calculate(
+            with_bus_factor=False, **calc
+        )
+    except ValueError:  # e.g. hrg-3 with no confirmed function left
+        return None
     return {"score": results["score"], "grade": results["grade"], "dependencies": len(kept)}
 
 
@@ -176,7 +183,11 @@ def analyze(
     calc = {"model": model, **config.calculate_kwargs()}
 
     data, hrg = _load(input_file)
-    results = hrg.calculate(**calc)
+    try:
+        results = hrg.calculate(**calc)
+    except ValueError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
     findings = collect_findings(hrg, results, fail_above, min_score)
     findings, unused = apply_acceptances(findings, config.accept)
     fixes = hrg.fix_plan(steps=fix_steps, **calc) if fix_steps else []
@@ -218,6 +229,10 @@ def analyze(
         "config_file": config.path.name if config.path else None,
         "unconfirmed_dependencies": sum(
             1 for d in data["dependencies"] if d.get("confirmed") is False
+        ),
+        "functions_count": len(data.get("functions") or []),
+        "unconfirmed_functions": sum(
+            1 for f in data.get("functions") or [] if f.get("confirmed") is False
         ),
         "coverage_gaps": [
             str(gap) for gap in ((data.get("coverage") or {}).get("gaps") or []) if gap
@@ -368,7 +383,11 @@ def diff(ctx, old_file, new_file, fmt, output, fail_on_increase, model, config_p
     model = _setting(ctx, "model", model, config.model)
     old_data, _ = _load(old_file)
     new_data, _ = _load(new_file)
-    changes = diff_module.compare(old_data, new_data, model=model, **config.calculate_kwargs())
+    try:
+        changes = diff_module.compare(old_data, new_data, model=model, **config.calculate_kwargs())
+    except ValueError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
 
     formatter = {
         "text": diff_module.format_text,

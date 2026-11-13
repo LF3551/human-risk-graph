@@ -54,6 +54,18 @@ def test_evaluate():
     assert (empty["precision"], empty["recall"], empty["top_approver_declared"]) == (None, 0, None)
 
 
+def test_evaluate_releases():
+    functions = [{"id": "release", "performers": ["Ann", "bot-free", "eve"]}]
+    assert bench.evaluate_releases({"ann", "eve"}, functions) == {
+        "release_authors": 3,
+        "release_authors_declared": pytest.approx(2 / 3),
+    }
+    assert bench.evaluate_releases({"ann"}, []) == {
+        "release_authors": 0,
+        "release_authors_declared": None,
+    }
+
+
 def test_totals_and_markdown():
     repos = [
         {
@@ -70,6 +82,6 @@ def test_totals_and_markdown():
     assert totals["approvals_by_declared"] == pytest.approx(0.6)
     run = {"date": "2026-11-13", "tool_version": "x", "max_prs": 10, "repos": repos}
     text = bench.markdown({**run, "totals": totals})
-    assert "| a/b | 10 | 2 | 2 | 50% | 50% | 60% | yes | yes |" in text
+    assert "| a/b | 10 | 2 | 2 | 50% | 50% | 60% | yes | n/a | yes |" in text
     assert "1 approvers not declared (4 approvals); 1 declared approvers" in text
     assert "c/d**: error" in text

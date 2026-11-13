@@ -21,7 +21,8 @@ import networkx as nx
 
 MODEL_V1 = "hrg-1"
 MODEL_V2 = "hrg-2"
-MODELS = (MODEL_V2, MODEL_V1)
+MODEL_V3 = "hrg-3"
+MODELS = (MODEL_V2, MODEL_V3, MODEL_V1)
 
 # Herfindahl-Hirschman thresholds: below 4 effective approvers is concentrated, below 2 severe.
 CONCENTRATION_WARNING = 0.25
@@ -147,7 +148,7 @@ def override_factors(edge_types: Dict[Edge, str], reviewed: Set[Edge]) -> Dict[s
     return factors
 
 
-def composite_risk(metrics: Tuple[float, float, float], weights: Tuple[float, float, float]):
+def composite_risk(metrics: Tuple[float, ...], weights: Tuple[float, ...]):
     """
     Normalised noisy-OR: R = (1 - prod(1 - w_i m_i)) / (1 - prod(1 - w_i)).
 
