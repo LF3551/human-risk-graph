@@ -2,7 +2,10 @@
 Unit tests for report generation consistency.
 """
 
+import html
 import json
+import math
+import re
 
 import pytest
 
@@ -76,7 +79,7 @@ def test_html_report(model):
     assert f">{results['grade']}</b>" in report
     assert f"model {model}" in report
     assert f'aria-label="Score {results["score"]} of 100"' in report
-    assert report.count('tabindex="0" role="button"') == len(PEOPLE)
+    assert len(re.findall(r'<g class="node[ "]', report)) == len(PEOPLE)
     assert 'class="edge edge-bypass"' in report
 
 
@@ -137,6 +140,92 @@ def test_html_report_panel_data():
     assert "Approves B" in people["A"]["links"]
     assert "Can be bypassed by D" in people["A"]["links"]
     assert people["A"]["share"] == 1.0
+    # A is the only link between B and C (a tie: either counts as cut off, as in the model);
+    # the bypass from D does not hold anyone in.
+    assert len(people["A"]["cut"]) == 1 and people["A"]["cut"][0] in ("B", "C")
+    assert people["B"]["cut"] == []
+
+
+def test_html_report_animates_flow_direction():
+    results, _ = _analyze()
+    report = generate_html_report(results, _metadata(), hrg=HumanRiskGraph(PEOPLE, DEPENDENCIES))
+    edges = report.count('<line class="edge ')
+    assert edges == len(DEPENDENCIES)
+    assert report.count('<line class="flow ') == edges
+    assert 'class="flow flow-bypass" data-from="D" data-to="A"' in report
+    assert "prefers-reduced-motion: reduce" in report
+
+
+def test_html_report_edges_explain_themselves_on_hover():
+    results, _ = _analyze()
+    report = generate_html_report(results, _metadata(), hrg=HumanRiskGraph(PEOPLE, DEPENDENCIES))
+    assert report.count('<line class="edge-hit"') == len(DEPENDENCIES)
+    assert "<title>Ivan Petrov approves B · weight 0.90</title>" in report
+    assert "<title>D can bypass Ivan Petrov · weight 0.70</title>" in report
+
+
+def test_html_report_what_if_hrg2():
+    results, _ = _analyze()
+    report = generate_html_report(results, _metadata(), hrg=HumanRiskGraph(PEOPLE, DEPENDENCIES))
+    data = json.loads(report.split('id="hrg-data">')[1].split("</script>")[0])
+    assert data["score"] == results["score"]
+    assert data["people"]["A"]["orphaned"] == ["B", "C"]  # A is their only approver
+    assert data["people"]["D"]["orphaned"] == []  # a bypass is not an approval
+
+
+def test_html_report_what_if_hrg3():
+    people = [{"id": i, "criticality": 0.5} for i in ("a", "b", "c")]
+    functions = [
+        {"id": "merge", "name": "Merge", "criticality": 0.9, "performers": ["a"]},
+        {"id": "release", "criticality": 0.8, "requires": 2, "performers": ["a", "b", "c"]},
+    ]
+    hrg = HumanRiskGraph(people, [], functions)
+    results = hrg.calculate(model="hrg-3")
+    fixes = hrg.fix_plan(model="hrg-3")
+    report = generate_html_report(results, _metadata(), fixes=fixes, hrg=hrg)
+    data = json.loads(report.split('id="hrg-data">')[1].split("</script>")[0])
+
+    assert data["people"]["a"]["stops"] == ["Merge"]
+    assert data["people"]["a"]["without_score"] < results["score"]
+    assert "without_score" not in data["people"]["b"]
+    # A backup for merge points at its performers on the map.
+    assert 'data-targets="[&quot;a&quot;]"' in report
+
+
+def test_html_report_fixes_point_at_the_map():
+    results, fixes = _analyze()
+    report = generate_html_report(
+        results, _metadata(), fixes=fixes, hrg=HumanRiskGraph(PEOPLE, DEPENDENCIES)
+    )
+    targets = [
+        json.loads(html.unescape(t.split('"')[0]))
+        for t in report.split('class="fix" data-targets="')[1:]
+    ]
+    assert len(targets) == len(fixes)
+    # A simulated deputy ("A~deputy") is shown as the person they stand in for.
+    assert targets == [["A"], ["D", "A"], ["D", "A"]]
+
+
+def test_map_layout_spreads_nodes_and_labels():
+    from human_risk_graph.html_report import _overlap, _place_labels, _spread
+
+    crowded = {str(i): (400 + i * 0.5, 300 + (i % 3)) for i in range(12)}
+    spread = _spread(crowded)
+    pts = list(spread.values())
+    closest = min(math.dist(a, b) for i, a in enumerate(pts) for b in pts[i + 1 :])  # noqa: E203
+    assert closest > 60
+
+    names = {n: f"Person number {n}" for n in spread}
+    labels = _place_labels(sorted(spread), names, spread, {n: 10 for n in spread}, [])
+    boxes = []
+    for n, (x, y, anchor) in labels.items():
+        w = len(names[n]) * 7.6
+        left = {"middle": x - w / 2, "start": x, "end": x - w}[anchor]
+        boxes.append((left, y - 12, left + w, y + 4))
+    overlaps = sum(
+        1 for i, a in enumerate(boxes) for b in boxes[i + 1 :] if _overlap(a, b)  # noqa: E203
+    )
+    assert overlaps <= 1
 
 
 def test_json_report_includes_fix_plan():

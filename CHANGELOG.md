@@ -5,6 +5,22 @@ All notable changes to Human Risk Graph will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.0] - 2026-11-13
+
+### ✨ Added
+
+- HTML map: moving dots on every edge show the direction of approvals, escalations and bypasses.
+- Selecting a person shows what happens if they are unavailable: who is cut off (they pulse red on the map), who has no approver left, which functions stop, and for `hrg-3` the score without them.
+- Clicking a fix highlights the people it is about on the map.
+- Hovering an edge explains it ("Anna approves Luca · weight 0.80").
+- Zoom buttons and drag to pan.
+
+### 🔧 Changed
+
+- Map layout spreads crowded nodes apart and places labels where they do not overlap other labels, nodes or edges.
+- Map colours: red is a critical single point of failure, amber a single point of failure, an amber ring a critical person who is not one.
+- Animations respect `prefers-reduced-motion`.
+
 ## [0.12.0] - 2026-11-13
 
 ### ✨ Added

@@ -74,7 +74,7 @@ hrg analyze my-org.yaml
 ```
 
 ```
-Human Risk Graph 0.12.0 · organization.yaml · 5 people · 5 dependencies
+Human Risk Graph 0.13.0 · organization.yaml · 5 people · 5 dependencies
 
   Score  25/100  ██░░░░░░░░  F · Critical risk  model hrg-2
 

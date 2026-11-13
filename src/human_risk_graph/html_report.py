@@ -16,8 +16,8 @@ import networkx as nx
 
 from . import __version__
 from .findings import FRAMEWORKS, RULES, Finding
-from .model_v2 import MODEL_V1, MODEL_V2, MODEL_V3, grade_for_score
-from .model_v3 import describe as describe_v3
+from .model_v2 import MODEL_V1, MODEL_V2, MODEL_V3, grade_for_score, support_graph
+from .model_v3 import calculate_v3, describe as describe_v3
 from .reports import (
     CONTROLS_DISCLAIMER,
     METRIC_KEYS,
@@ -36,6 +36,11 @@ LINK_VERBS = {
     "escalation": ("Escalates to", "Escalation from"),
     "bypass": ("Can bypass", "Can be bypassed by"),
 }
+EDGE_VERBS = {"approval": "approves", "escalation": "escalates to", "bypass": "can bypass"}
+# Label box estimate at the 14px label font of the map.
+CHAR_WIDTH, LABEL_HEIGHT = 7.6, 16
+SPREAD_LIMIT = 300  # above this many people the layout is not post-processed
+WHAT_IF_LIMIT = 40  # people for whom the report precomputes the hrg-3 score without them
 
 
 def _e(value: Any) -> str:
@@ -185,7 +190,20 @@ def _tiles_html(tiles: List[Dict[str, Any]], weights) -> str:
 # Fix plan
 
 
-def _fixes_html(fixes: List[Dict[str, Any]], score: int, v3: bool = False) -> str:
+def _fix_targets(fix: Dict[str, Any], results: Dict[str, Any]) -> List[str]:
+    """People a fix is about, for highlighting them on the map."""
+    target = fix.get("target")
+    if fix.get("action") in ("backup", "two-person"):
+        f = next((f for f in results.get("functions", []) if f["id"] == target), None)
+        return list(f["performers"]) if f else []
+    targets = [str(t) for t in target] if isinstance(target, list) else [str(target)]
+    # A simulated deputy is not on the map; show the person they stand in for.
+    return list(dict.fromkeys(t.removesuffix("~deputy") for t in targets))
+
+
+def _fixes_html(
+    fixes: List[Dict[str, Any]], score: int, v3: bool = False, results: Optional[Dict] = None
+) -> str:
     if not fixes:
         return """<p class="muted">No simulated remediation raises the score by at least half
         a point. Keep the data current and re-run after organizational changes.</p>"""
@@ -194,7 +212,9 @@ def _fixes_html(fixes: List[Dict[str, Any]], score: int, v3: bool = False) -> st
     for i, fix in enumerate(fixes, 1):
         gain = fix["score_after"] - fix["score_before"]
         kind = FIX_KINDS.get(fix["action"], fix["action"])
-        cards.append(f"""<li class="fix">
+        targets = _e(json.dumps(_fix_targets(fix, results or {})))
+        cards.append(f"""<li class="fix" data-targets="{targets}" tabindex="0" role="button"
+    title="Show on the map">
   <span class="fix-step">{i}</span>
   <div class="fix-body"><span class="fix-kind">{kind}</span>
     <p class="fix-title">{_e(fix['title'])}</p>
@@ -243,13 +263,142 @@ def _layout(graph: nx.DiGraph) -> Dict[str, tuple]:
         pos = nx.circular_layout(undirected)
     xs, ys = [p[0] for p in pos.values()], [p[1] for p in pos.values()]
     span_x, span_y = (max(xs) - min(xs)) or 1, (max(ys) - min(ys)) or 1
-    return {
+    scaled = {
         n: (
             MAP_MARGIN + (x - min(xs)) / span_x * (MAP_WIDTH - 2 * MAP_MARGIN),
             MAP_MARGIN + (y - min(ys)) / span_y * (MAP_HEIGHT - 2 * MAP_MARGIN - 16),
         )
         for n, (x, y) in pos.items()
     }
+    return _spread(scaled) if len(scaled) <= SPREAD_LIMIT else scaled
+
+
+def _spread(pos: Dict[str, tuple], iterations: int = 120) -> Dict[str, tuple]:
+    """Push apart nodes that are too close to label, keeping them inside the map."""
+    area = (MAP_WIDTH - 2 * MAP_MARGIN) * (MAP_HEIGHT - 2 * MAP_MARGIN)
+    min_dist = min(110.0, 0.75 * math.sqrt(area / max(1, len(pos))))
+    pts = {n: [x, y] for n, (x, y) in sorted(pos.items())}
+    names = list(pts)
+    for _ in range(iterations):
+        moved = False
+        for i, a in enumerate(names):
+            for b in names[i + 1 :]:
+                dx, dy = pts[b][0] - pts[a][0], pts[b][1] - pts[a][1]
+                dist = math.hypot(dx, dy)
+                if dist >= min_dist:
+                    continue
+                if dist < 1e-6:
+                    dx, dy, dist = 1.0, 0.0, 1.0
+                push = (min_dist - dist) / 2
+                pts[a][0] -= dx / dist * push
+                pts[a][1] -= dy / dist * push
+                pts[b][0] += dx / dist * push
+                pts[b][1] += dy / dist * push
+                moved = True
+        for p in pts.values():
+            p[0] = min(max(p[0], MAP_MARGIN), MAP_WIDTH - MAP_MARGIN)
+            p[1] = min(max(p[1], MAP_MARGIN), MAP_HEIGHT - MAP_MARGIN - 16)
+        if not moved:
+            break
+    return {n: (x, y) for n, (x, y) in pts.items()}
+
+
+def _overlap(a, b) -> float:
+    """Overlapping area of two rectangles (x1, y1, x2, y2)."""
+    w = min(a[2], b[2]) - max(a[0], b[0])
+    h = min(a[3], b[3]) - max(a[1], b[1])
+    return w * h if w > 0 and h > 0 else 0.0
+
+
+def _crosses(segment, rect) -> bool:
+    (x1, y1), (x2, y2) = segment
+    for i in range(13):
+        t = i / 12
+        x, y = x1 + (x2 - x1) * t, y1 + (y2 - y1) * t
+        if rect[0] <= x <= rect[2] and rect[1] <= y <= rect[3]:
+            return True
+    return False
+
+
+def _place_labels(order, names, pos, radii, segments) -> Dict[str, tuple]:
+    """
+    Greedy label placement: for each person, in order of importance, the first of eight
+    positions around the node that overlaps the fewest labels, nodes and edges.
+
+    Returns person id -> (x, y, text-anchor).
+    """
+    placed: List[tuple] = []
+    circles = [
+        (x - radii[n], y - radii[n], x + radii[n], y + radii[n]) for n, (x, y) in pos.items()
+    ]
+    out = {}
+    for pid in order:
+        x, y = pos[pid]
+        r, w, h = radii[pid], len(names[pid]) * CHAR_WIDTH, LABEL_HEIGHT
+        candidates = [
+            ("middle", x, y + r + 14),
+            ("middle", x, y - r - 6),
+            ("start", x + r + 5, y + 5),
+            ("end", x - r - 5, y + 5),
+            ("start", x + r * 0.6, y + r + 12),
+            ("end", x - r * 0.6, y + r + 12),
+            ("start", x + r * 0.6, y - r - 4),
+            ("end", x - r * 0.6, y - r - 4),
+        ]
+        options = []
+        for rank, (anchor, tx, ty) in enumerate(candidates):
+            left = {"middle": tx - w / 2, "start": tx, "end": tx - w}[anchor]
+            rect = (left, ty - h + 4, left + w, ty + 4)
+            outside = max(0, -rect[0]) + max(0, rect[2] - MAP_WIDTH) + max(0, -rect[1])
+            outside += max(0, rect[3] - MAP_HEIGHT)
+            cost = (
+                outside * 50
+                + sum(_overlap(rect, p) for p in placed) * 4
+                + sum(_overlap(rect, c) for c in circles) * 2
+                + sum(30 for s in segments if _crosses(s, rect))
+                + rank
+            )
+            options.append((cost, (tx, ty, anchor), rect))
+        _, out[pid], rect = min(options, key=lambda o: o[0])
+        placed.append(rect)
+    return out
+
+
+def _cut_off(hrg, people) -> Dict[str, List[str]]:
+    """For each person, who is separated from the largest remaining group without them."""
+    support = support_graph(hrg.graph)
+    out: Dict[str, List[str]] = {}
+    for pid in people:
+        if pid not in support:
+            continue
+        component = nx.node_connected_component(support, pid) - {pid}
+        parts = sorted(
+            nx.connected_components(support.subgraph(component)),
+            key=lambda part: (-len(part), min(part)),
+        )
+        out[pid] = sorted(set().union(*parts[1:])) if len(parts) > 1 else []
+    return out
+
+
+def _score_without_v3(hrg, results: Dict[str, Any], pid: str) -> int:
+    """hrg-3 score if the person were unavailable: they leave every function."""
+    functions = [
+        {
+            **f,
+            "performers": [p for p in f.get("performers") or [] if p != pid],
+            "alone": [p for p in f.get("alone") or [] if p != pid],
+        }
+        for f in hrg.functions
+    ]
+    w = results.get("weights", {})
+    return calculate_v3(
+        functions,
+        hrg.criticality,
+        w.get("alpha", 0.4),
+        w.get("beta", 0.3),
+        w.get("gamma", 0.3),
+        results.get("critical_threshold", 0.7),
+    )["score"]
 
 
 def _person_rows(results, people, hrg, findings) -> Dict[str, Dict[str, Any]]:
@@ -271,7 +420,28 @@ def _person_rows(results, people, hrg, findings) -> Dict[str, Dict[str, Any]]:
             "spof": pid in spof,
             "findings": [f"{f.rule_id}: {f.message}" for f in findings if f.person == pid],
             "links": [],
+            "cut": [],
         }
+    if hrg is not None and results.get("model") != MODEL_V3:
+        for pid, cut in _cut_off(hrg, spof).items():
+            if pid in rows:
+                rows[pid]["cut"] = [c for c in cut if c in rows]
+        approvers: Dict[str, set] = {}
+        for (source, target), edge_type in hrg.edge_types.items():
+            if edge_type == "approval" and source != target:
+                approvers.setdefault(target, set()).add(source)
+        for pid, row in rows.items():
+            row["orphaned"] = sorted(
+                rows[t]["name"] for t, who in approvers.items() if who == {pid} and t in rows
+            )
+    if hrg is not None and results.get("model") == MODEL_V3:
+        names = {f["id"]: f["name"] for f in results.get("functions", [])}
+        for person in results.get("key_people", []):
+            if person["id"] in rows:
+                rows[person["id"]]["stops"] = [names.get(f, f) for f in person["functions"]]
+        for pid in sorted(set(results.get("articulation_points", [])))[:WHAT_IF_LIMIT]:
+            if pid in rows:
+                rows[pid]["without_score"] = _score_without_v3(hrg, results, pid)
     if hrg is not None:
         for (source, target), edge_type in sorted(hrg.edge_types.items()):
             if source in rows and target in rows and source != target:
@@ -291,7 +461,7 @@ def _map_html(hrg, rows: Dict[str, Dict[str, Any]]) -> str:
     def radius(row):
         return 7 + 9 * row["criticality"] + 10 * row["impact"] / max_impact
 
-    edges = []
+    edges, segments = [], []
     for (source, target), edge_type in sorted(hrg.edge_types.items()):
         if source == target or source not in pos or target not in pos:
             continue
@@ -300,12 +470,29 @@ def _map_html(hrg, rows: Dict[str, Dict[str, Any]]) -> str:
         r1, r2 = radius(rows[source]), radius(rows[target]) + 6
         ux, uy = (x2 - x1) / length, (y2 - y1) / length
         kind = edge_type if edge_type in ("approval", "escalation", "bypass") else "other"
-        edges.append(
-            f'<line class="edge edge-{kind}" data-from="{_e(source)}" data-to="{_e(target)}" '
+        coords = (
             f'x1="{x1 + ux * r1:.1f}" y1="{y1 + uy * r1:.1f}" '
-            f'x2="{x2 - ux * r2:.1f}" y2="{y2 - uy * r2:.1f}" marker-end="url(#arrow-{kind})">'
-            f"<title>{_e(rows[source]['name'])} → {_e(rows[target]['name'])}: {_e(edge_type)}</title></line>"
+            f'x2="{x2 - ux * r2:.1f}" y2="{y2 - uy * r2:.1f}"'
         )
+        ends = f'data-from="{_e(source)}" data-to="{_e(target)}"'
+        verb = EDGE_VERBS.get(edge_type, edge_type)
+        weight = hrg.weights.get((source, target), 0.5)
+        review = ", reviewed after use" if (source, target) in hrg.reviewed_bypasses else ""
+        segments.append(((x1, y1), (x2, y2)))
+        edges.append(
+            f'<line class="edge edge-{kind}" {ends} {coords} marker-end="url(#arrow-{kind})"/>'
+            # Moving dots from source to target show the direction at a glance.
+            f'<line class="flow flow-{kind}" {ends} {coords}/>'
+            # A wide invisible line makes thin edges easy to hover.
+            f'<line class="edge-hit" {ends} {coords}><title>{_e(rows[source]["name"])} {_e(verb)} '
+            f"{_e(rows[target]['name'])} · weight {weight:.2f}{review}</title></line>"
+        )
+
+    labelled = [pid for pid in pos if not many or rows[pid]["spof"] or rows[pid]["critical"]]
+    order = sorted(labelled, key=lambda p: (-rows[p]["impact"], -rows[p]["criticality"], p))
+    labels = _place_labels(
+        order, {p: rows[p]["name"] for p in pos}, pos, {p: radius(rows[p]) for p in pos}, segments
+    )
 
     nodes = []
     for pid, (x, y) in sorted(pos.items(), key=lambda kv: rows[kv[0]]["impact"]):
@@ -316,12 +503,10 @@ def _map_html(hrg, rows: Dict[str, Dict[str, Any]]) -> str:
             + (" node-critical" if row["critical"] else "")
         )
         label = ""
-        if not many or row["spof"] or row["critical"]:
-            # Labels near the sides grow inwards so they are not clipped.
-            anchor = "start" if x < MAP_WIDTH * 0.2 else "end" if x > MAP_WIDTH * 0.8 else "middle"
-            shift = {"start": -radius(row), "end": radius(row), "middle": 0}[anchor]
+        if pid in labels:
+            tx, ty, anchor = labels[pid]
             label = (
-                f'<text x="{x + shift:.1f}" y="{y + radius(row) + 13:.1f}" class="node-label" '
+                f'<text x="{tx:.1f}" y="{ty:.1f}" class="node-label" '
                 f'style="text-anchor:{anchor}">{_e(row["name"])}</text>'
             )
         nodes.append(
@@ -336,23 +521,32 @@ def _map_html(hrg, rows: Dict[str, Dict[str, Any]]) -> str:
         for k in ("approval", "escalation", "bypass", "other")
     )
     return f"""<div class="map-wrap">
+  <div class="map-box">
   <svg class="map" viewBox="0 0 {MAP_WIDTH} {MAP_HEIGHT}" role="img" aria-label="Dependency map">
     <defs>{markers}</defs>
     <g class="edges">{''.join(edges)}</g>
     <g class="nodes">{''.join(nodes)}</g>
   </svg>
+  <div class="zoom" role="group" aria-label="Zoom">
+    <button type="button" data-zoom="in" aria-label="Zoom in">+</button>
+    <button type="button" data-zoom="out" aria-label="Zoom out">−</button>
+    <button type="button" data-zoom="fit" aria-label="Fit the whole map">⤢</button>
+  </div>
+  </div>
   <aside class="panel" id="panel" aria-live="polite">
-    <p class="muted">Select a person on the map or in the table to see who depends on them.</p>
+    <p class="muted">Select a person on the map or in the table to see who depends on them
+      and what happens if they are unavailable.</p>
   </aside>
 </div>
 <div class="legend">
+  <span><i class="dot dot-spof-critical"></i>Critical single point of failure</span>
   <span><i class="dot dot-spof"></i>Single point of failure</span>
   <span><i class="dot dot-critical"></i>Critical (≥ threshold)</span>
   <span><i class="dot"></i>Other</span>
   <span><i class="line line-approval"></i>Approval</span>
   <span><i class="line line-escalation"></i>Escalation</span>
   <span><i class="line line-bypass"></i>Bypass</span>
-  <span class="muted">Node size: criticality and impact</span>
+  <span class="muted">Moving dots run from who approves, escalates or bypasses to whom · Select a key person: the people cut off without them pulse red · Node size: criticality and impact · Drag to pan when zoomed</span>
 </div>"""  # fmt: skip
 
 
@@ -616,13 +810,13 @@ def render(
         )
         + _gaps_html(metadata.get("coverage_gaps") or []),
         tiles=_tiles_html(tiles, _weights(results)),
-        fixes=_fixes_html(fixes, results["score"], v3),
+        fixes=_fixes_html(fixes, results["score"], v3, results),
         map=_map_html(hrg, rows),
         people=_people_html(rows, people_labels) + _functions_html(results, people),
         findings=_findings_html(findings),
         method=_method_html(results),
         audit=_audit_html(results, metadata),
-        data=_json_for_script({"people": rows, "labels": people_labels}),
+        data=_json_for_script({"people": rows, "labels": people_labels, "score": results["score"]}),
     )
 
 
@@ -707,15 +901,47 @@ details.notice ul { margin: 6px 0 0; padding-left: 18px; }
 .edge-escalation { stroke: var(--escalation); stroke-dasharray: 4 4; }
 .edge-bypass { stroke: var(--bypass); stroke-dasharray: 7 4; stroke-width: 2; }
 .edge-other { stroke: var(--other); }
+.flow { fill: none; stroke-width: 2.6; stroke-linecap: round; stroke-dasharray: 0.1 13;
+  pointer-events: none; opacity: 0.55; animation: hrg-flow 2.4s linear infinite; }
+.flow-approval { stroke: var(--approval); } .flow-escalation { stroke: var(--escalation); }
+.flow-bypass { stroke: var(--bypass); stroke-width: 3.4; animation-duration: 1.1s; }
+.flow-other { stroke: var(--other); }
+@keyframes hrg-flow { to { stroke-dashoffset: -13.1; } }
+@keyframes hrg-pulse { 50% { stroke-width: 8; } }
 .arrow-approval { fill: var(--approval); } .arrow-escalation { fill: var(--escalation); }
 .arrow-bypass { fill: var(--bypass); } .arrow-other { fill: var(--other); }
 .node circle { fill: var(--node); stroke: var(--card); stroke-width: 2.5; cursor: pointer; }
-.node-critical circle { fill: var(--critical); }
-.node-spof circle { fill: var(--spof); }
+.node-critical circle { stroke: var(--critical); stroke-width: 3.5; }
+.node-spof circle { fill: var(--critical); }
+.node-spof.node-critical circle { fill: var(--spof); stroke: var(--card); stroke-width: 2.5; }
+.edge-hit { stroke: transparent; stroke-width: 12; pointer-events: stroke; cursor: help; }
+.map-box { position: relative; }
+.map-box .map { touch-action: none; }
+.map.panning { cursor: grabbing; }
+.zoom { position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; }
+.zoom button { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--card); color: var(--text); font-size: 16px; cursor: pointer; }
+.zoom button:hover { border-color: var(--accent); }
+.fix[data-targets] { cursor: pointer; }
+.fix[data-targets]:hover, .fix[data-targets]:focus-visible { border-color: var(--accent); outline: none; }
+.node.hint circle { stroke: var(--accent); stroke-width: 4; }
+.whatif { border: 1px solid var(--line); border-left: 3px solid var(--spof); border-radius: 10px;
+  padding: 8px 12px; margin: 10px 0; }
+.whatif strong { display: block; margin-bottom: 4px; }
+.whatif .score-drop { font-size: 18px; font-weight: 750; color: var(--spof); }
 .node-label { font-size: 14px; font-weight: 550; text-anchor: middle; fill: var(--text); pointer-events: none;
   paint-order: stroke; stroke: var(--bg); stroke-width: 4px; }
 .map.focus .edge, .map.focus .node { opacity: 0.18; transition: opacity .15s; }
 .map.focus .is-on { opacity: 1; }
+.map.focus .flow { opacity: 0; }
+.map.focus .flow.is-on { opacity: 1; animation-duration: 1s; }
+.map.focus .flow-bypass.is-on { animation-duration: 0.55s; }
+.node.cut circle { stroke: var(--spof); stroke-width: 3; animation: hrg-pulse 1.2s ease-in-out infinite; }
+.edge.cut { stroke: var(--spof); } .flow.cut { stroke: var(--spof); }
+@media (prefers-reduced-motion: reduce) {
+  .flow, .node.cut circle { animation: none; }
+  .flow { stroke-dasharray: none; opacity: 0.25; }
+}
 .node.selected circle { stroke: var(--text); stroke-width: 3; }
 .panel { border: 1px solid var(--line); border-radius: 12px; padding: 16px; font-size: 14px;
   max-height: 540px; overflow: auto; }
@@ -726,7 +952,8 @@ details.notice ul { margin: 6px 0 0; padding-left: 18px; }
 .legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; color: var(--muted); margin-top: 12px; }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
 .dot { width: 11px; height: 11px; border-radius: 50%; background: var(--node); display: inline-block; }
-.dot-spof { background: var(--spof); } .dot-critical { background: var(--critical); }
+.dot-spof { background: var(--critical); } .dot-spof-critical { background: var(--spof); }
+.dot-critical { background: var(--node); box-shadow: 0 0 0 2px var(--critical); }
 .line { width: 22px; height: 0; border-top: 2px solid; display: inline-block; }
 .line-approval { border-color: var(--approval); }
 .line-escalation { border-color: var(--escalation); border-top-style: dashed; }
@@ -787,7 +1014,7 @@ footer.page { color: var(--muted); font-size: 13px; text-align: center; margin-t
   .count { float: none; margin-left: 6px; }
 }
 @media print {
-  body { background: #fff; } nav, .panel, th[data-sort]::after { display: none; }
+  body { background: #fff; } nav, .panel, th[data-sort]::after, .flow, .zoom { display: none; }
   .card { break-inside: avoid; border-color: #ddd; } .map-wrap { grid-template-columns: 1fr; }
   details { display: block; } details > summary { list-style: none; }
 }
@@ -829,11 +1056,25 @@ JS = """
       panel.appendChild(ul);
     }
     list('Dependencies', p.links);
+    var names = function (ids) { return (ids || []).map(function (n) { return data[n] ? data[n].name : n; }); };
+    if ((p.cut || []).length || (p.orphaned || []).length || (p.stops || []).length ||
+        p.without_score !== undefined) {
+      var box = el('div', undefined, 'whatif');
+      box.appendChild(el('strong', 'If ' + p.name + ' is unavailable'));
+      if (p.without_score !== undefined && p.without_score !== payload.score) {
+        box.appendChild(el('div', 'Score ' + payload.score + ' \u2192 ' + p.without_score, 'score-drop'));
+      }
+      [['Cut off', names(p.cut)], ['No approver left for', p.orphaned || []],
+       ['Stops', p.stops || []]].forEach(function (kv) {
+        if (kv[1].length) box.appendChild(el('div', kv[0] + ': ' + kv[1].join(', ')));
+      });
+      panel.appendChild(box);
+    }
     list('Findings', p.findings);
     if (map && focus !== false) {
       map.classList.add('focus');
-      map.querySelectorAll('.is-on, .selected').forEach(function (n) { n.classList.remove('is-on', 'selected'); });
-      map.querySelectorAll('.edge').forEach(function (e) {
+      map.querySelectorAll('.is-on, .selected, .cut, .hint').forEach(function (n) { n.classList.remove('is-on', 'selected', 'cut', 'hint'); });
+      map.querySelectorAll('.edge, .flow').forEach(function (e) {
         if (e.dataset.from === id || e.dataset.to === id) {
           e.classList.add('is-on');
           [e.dataset.from, e.dataset.to].forEach(function (n) {
@@ -844,6 +1085,14 @@ JS = """
       });
       var node = map.querySelector('.node[data-id="' + CSS.escape(id) + '"]');
       if (node) node.classList.add('is-on', 'selected');
+      (p.cut || []).forEach(function (n) {
+        var cut = map.querySelector('.node[data-id="' + CSS.escape(n) + '"]');
+        if (cut) cut.classList.add('is-on', 'cut');
+      });
+      var island = new Set(p.cut || []);
+      map.querySelectorAll('.edge, .flow').forEach(function (e) {
+        if (island.has(e.dataset.from) && island.has(e.dataset.to)) e.classList.add('is-on', 'cut');
+      });
     }
     document.querySelectorAll('.people tr.selected').forEach(function (r) { r.classList.remove('selected'); });
     var row = document.querySelector('.people tr[data-id="' + CSS.escape(id) + '"]');
@@ -854,9 +1103,68 @@ JS = """
     n.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') show(n.dataset.id); });
   });
   if (map) map.addEventListener('click', function () {
+    if (dragged) { dragged = false; return; }
     map.classList.remove('focus');
-    map.querySelectorAll('.selected').forEach(function (n) { n.classList.remove('selected'); });
+    map.querySelectorAll('.selected, .cut, .hint').forEach(function (n) { n.classList.remove('selected', 'cut', 'hint'); });
   });
+  document.querySelectorAll('.fix[data-targets]').forEach(function (f) {
+    function go() {
+      var targets = JSON.parse(f.dataset.targets).filter(function (t) { return data[t]; });
+      if (!targets.length || !map) return;
+      show(targets[0]);
+      var all = new Set(targets);
+      targets.forEach(function (t) {
+        var node = map.querySelector('.node[data-id="' + CSS.escape(t) + '"]');
+        if (node) node.classList.add('is-on', 'hint');
+      });
+      map.querySelectorAll('.edge, .flow').forEach(function (e) {
+        if (all.has(e.dataset.from) && all.has(e.dataset.to)) e.classList.add('is-on');
+      });
+      map.scrollIntoView({behavior: 'smooth', block: 'center'});
+    }
+    f.addEventListener('click', go);
+    f.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') go(); });
+  });
+  var full = map ? map.viewBox.baseVal : null;
+  var W = full ? full.width : 0, H = full ? full.height : 0;
+  var view = {x: 0, y: 0, w: W, h: H}, drag = null, dragged = false;
+  function setView(x, y, w) {
+    w = Math.min(W, Math.max(W / 6, w));
+    var h = w * H / W;
+    view = {x: Math.min(Math.max(x, 0), W - w), y: Math.min(Math.max(y, 0), H - h), w: w, h: h};
+    map.setAttribute('viewBox', [view.x, view.y, view.w, view.h].map(function (v) { return v.toFixed(1); }).join(' '));
+  }
+  function zoom(factor) {
+    var cx = view.x + view.w / 2, cy = view.y + view.h / 2, w = view.w * factor;
+    setView(cx - w / 2, cy - w * H / W / 2, w);
+  }
+  document.querySelectorAll('.zoom button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      if (b.dataset.zoom === 'in') zoom(0.75);
+      else if (b.dataset.zoom === 'out') zoom(1 / 0.75);
+      else setView(0, 0, W);
+    });
+  });
+  if (map) {
+    map.addEventListener('pointerdown', function (ev) {
+      if (view.w >= W || ev.target.closest('.node')) return;
+      drag = {x: ev.clientX, y: ev.clientY, vx: view.x, vy: view.y};
+    });
+    map.addEventListener('pointermove', function (ev) {
+      if (!drag) return;
+      var k = view.w / map.getBoundingClientRect().width;
+      var dx = ev.clientX - drag.x, dy = ev.clientY - drag.y;
+      if (!dragged && Math.abs(dx) + Math.abs(dy) < 4) return;
+      if (!dragged) { dragged = true; map.setPointerCapture(ev.pointerId); map.classList.add('panning'); }
+      setView(drag.vx - dx * k, drag.vy - dy * k, view.w);
+    });
+    ['pointerup', 'pointercancel'].forEach(function (type) {
+      map.addEventListener(type, function () {
+        drag = null; map.classList.remove('panning');
+        setTimeout(function () { dragged = false; }, 0);
+      });
+    });
+  }
   document.querySelectorAll('.people tbody tr').forEach(function (r) {
     r.addEventListener('click', function () {
       show(r.dataset.id);
