@@ -259,19 +259,33 @@ def generate_markdown_report(
         md.append(f"**Total Critical People:** {len(results['articulation_points'])}")
         md.append("")
 
-    if findings:
+    open_findings = [f for f in findings or [] if not f.accepted]
+    accepted = [f for f in findings or [] if f.accepted]
+    if open_findings:
         md.append("## 🧾 Findings and Related Controls")
         md.append("")
         md.append(f"_{CONTROLS_DISCLAIMER}_")
         md.append("")
         md.append("| Rule | Level | Finding | ISO/IEC 27001:2022 | SOC 2 | DORA |")
         md.append("|------|-------|---------|--------------------|-------|------|")
-        for f in findings:
+        for f in open_findings:
             message = f.message.replace("|", "\\|")
             md.append(
                 f"| {f.rule_id} | {f.level} | {message} | {_controls_text(f, 'iso27001')} "
                 f"| {_controls_text(f, 'soc2')} | {_controls_text(f, 'dora')} |"
             )
+        md.append("")
+
+    if accepted:
+        md.append("## ✅ Accepted Risks")
+        md.append("")
+        md.append("| Rule | Finding | Reason | Ticket | Expires |")
+        md.append("|------|---------|--------|--------|---------|")
+        for f in accepted:
+            a = f.acceptance
+            cells = [f.message, a.reason, a.ticket or "", a.expires.isoformat() if a.expires else ""]
+            cells = [c.replace("|", "\\|") for c in cells]
+            md.append(f"| {f.rule_id} | " + " | ".join(cells) + " |")
         md.append("")
 
     # Recommendations

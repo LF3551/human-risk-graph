@@ -351,9 +351,25 @@ def _people_html(rows: Dict[str, Dict[str, Any]]) -> str:
 # Findings
 
 
+def _accepted_html(accepted: List[Finding]) -> str:
+    if not accepted:
+        return ""
+    rows = "".join(
+        f'<tr><td><span class="rule">{f.rule_id}</span>{_e(f.message)}</td>'
+        f"<td>{_e(f.acceptance.reason)}</td><td>{_e(f.acceptance.ticket or '—')}</td>"
+        f"<td>{_e(f.acceptance.expires.isoformat() if f.acceptance.expires else '—')}</td></tr>"
+        for f in accepted
+    )
+    return f"""<h3 class="accepted-title">Accepted risks <span class="count">{len(accepted)}</span></h3>
+<table class="accepted"><thead><tr><th>Finding</th><th>Reason</th><th>Ticket</th><th>Expires</th></tr></thead>
+<tbody>{rows}</tbody></table>"""  # fmt: skip
+
+
 def _findings_html(findings: List[Finding]) -> str:
+    accepted = [f for f in findings if f.accepted]
+    findings = [f for f in findings if not f.accepted]
     if not findings:
-        return '<p class="muted">No findings.</p>'
+        return '<p class="muted">No open findings.</p>' + _accepted_html(accepted)
     groups = []
     for rule in RULES.values():
         items = [f for f in findings if f.rule_id == rule.id]
@@ -379,7 +395,11 @@ def _findings_html(findings: List[Finding]) -> str:
   <p class="remediation"><strong>Remediation.</strong> {_e(rule.remediation)}</p>
   {controls}
 </details>""")  # fmt: skip
-    return f'<p class="muted small">{_e(CONTROLS_DISCLAIMER)}</p>' + "".join(groups)
+    return (
+        f'<p class="muted small">{_e(CONTROLS_DISCLAIMER)}</p>'
+        + "".join(groups)
+        + _accepted_html(accepted)
+    )
 
 
 # Methodology and audit
@@ -422,6 +442,7 @@ def _audit_html(results: Dict[str, Any], metadata: Dict[str, Any]) -> str:
         ("Model", results.get("model", MODEL_V2)),
         ("Weights", f"α {w.get('alpha', 0.4)} · β {w.get('beta', 0.3)} · γ {w.get('gamma', 0.3)}"),
         ("Critical threshold", results.get("critical_threshold", 0.7)),
+        ("Config", metadata.get("config_file") or "none"),
         ("People / dependencies", f"{metadata.get('organization_size', '')} / {metadata.get('dependencies_count', '')}"),
     ]  # fmt: skip
     rows = "".join(f"<tr><th>{_e(k)}</th><td><code>{_e(v)}</code></td></tr>" for k, v in items)
@@ -447,7 +468,14 @@ def render(
     tiles = _tiles(results, people)
     grade = results["grade"]
     color = GRADE_COLORS.get(grade, "#334155")
-    errors = sum(1 for f in findings if f.level == "error")
+    open_findings = [f for f in findings if not f.accepted]
+    errors = sum(1 for f in open_findings if f.level == "error")
+    accepted = len(findings) - len(open_findings)
+    warnings = len(open_findings) - errors
+    finding_summary = (
+        f"{errors} error{'s' if errors != 1 else ''} · {warnings} warning{'s' if warnings != 1 else ''}"
+        + (f" · {accepted} accepted" if accepted else "")
+    )
 
     return TEMPLATE.substitute(
         title=_e(f"Human Risk Graph · {metadata.get('input_name') or 'report'}"),
@@ -465,8 +493,7 @@ def render(
         risk_level=_e(results["risk_level"]),
         interpretation=_e(RISK_INTERPRETATION.get(results["risk_level"], "")),
         verdict=_e(_verdict(results, tiles)),
-        finding_summary=f"{errors} error{'s' if errors != 1 else ''} · "
-        f"{len(findings) - errors} warning{'s' if len(findings) - errors != 1 else ''}",
+        finding_summary=finding_summary,
         tiles=_tiles_html(tiles, _weights(results)),
         fixes=_fixes_html(fixes, results["score"]),
         map=_map_html(hrg, rows),
@@ -597,6 +624,8 @@ th[data-sort]:hover { color: var(--text); }
 .sev { font-size: 11px; font-weight: 700; text-transform: uppercase; margin-right: 8px; }
 .sev-error { color: var(--error); } .sev-warning { color: var(--warn); }
 .remediation { margin: 6px 0 10px; }
+.accepted-title { font-size: 15px; margin: 22px 0 6px; }
+.accepted td { color: var(--muted); }
 .controls { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 4px 0; font-size: 13px; }
 .fw { color: var(--muted); min-width: 230px; }
 .control { border: 1px solid var(--line); border-radius: 6px; padding: 1px 7px;

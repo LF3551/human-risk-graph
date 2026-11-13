@@ -8,7 +8,7 @@ from rich.table import Table
 from rich.text import Text
 
 from . import __version__
-from .findings import Finding
+from .findings import Finding, acceptance_text
 from .model_v2 import MODEL_V1
 
 GRADE_STYLE = {"A": "bold green", "B": "green", "C": "yellow", "D": "dark_orange", "F": "bold red"}
@@ -82,6 +82,7 @@ def render_summary(
     fixes: List[Dict[str, Any]],
     generated: List[str],
     breach: Optional[str] = None,
+    config_file: Optional[str] = None,
 ) -> None:
     names = {p["id"]: p.get("name") or p["id"] for p in data["people"]}
 
@@ -98,6 +99,7 @@ def render_summary(
             (Path(input_file).name, "cyan"),
             f" · {people} {'person' if people == 1 else 'people'}",
             f" · {deps} {'dependency' if deps == 1 else 'dependencies'}",
+            (f" · config {config_file}" if config_file else "", "dim"),
         )
     )
     console.print()
@@ -142,6 +144,8 @@ def render_summary(
             )
         console.print(table)
 
+    accepted = [f for f in findings if f.accepted]
+    findings = [f for f in findings if not f.accepted]
     errors = sum(1 for f in findings if f.level == "error")
     console.print()
     console.print(
@@ -150,6 +154,7 @@ def render_summary(
             (_plural(errors, "error"), "red" if errors else "dim"),
             " · ",
             (_plural(len(findings) - errors, "warning"), "yellow" if findings else "dim"),
+            (f" · {len(accepted)} accepted" if accepted else "", "dim"),
         )
     )
     rows = Table.grid(padding=(0, 1))
@@ -161,6 +166,12 @@ def render_summary(
             Text("   ▲" if finding.level == "error" else "   △", LEVEL_STYLE[finding.level]),
             finding.rule_id,
             finding.message,
+        )
+    for finding in accepted:
+        rows.add_row(
+            Text("   ✓", "green"),
+            Text(finding.rule_id, style="dim"),
+            Text(f"Accepted: {finding.message} ({acceptance_text(finding)})", style="dim"),
         )
     console.print(rows)
 

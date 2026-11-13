@@ -45,10 +45,17 @@ class Finding:
     message: str
     person: Optional[str] = None
     dependency: Optional[Tuple[str, str]] = None
+    acceptance: Optional[Any] = None  # config.Acceptance that matched this finding
+    acceptance_expired: bool = False
 
     @property
     def rule(self) -> Rule:
         return RULES[self.rule_id]
+
+    @property
+    def accepted(self) -> bool:
+        """True when a valid (unexpired) risk acceptance covers this finding."""
+        return self.acceptance is not None and not self.acceptance_expired
 
     @property
     def key(self) -> str:
@@ -72,6 +79,12 @@ class Finding:
                 fw: [{"id": ref, "title": title} for ref, title in refs]
                 for fw, refs in self.rule.controls.items()
             },
+            "accepted": self.accepted,
+            "acceptance": (
+                {**self.acceptance.to_dict(), "expired": self.acceptance_expired}
+                if self.acceptance
+                else None
+            ),
         }
 
 
@@ -191,6 +204,20 @@ def _label(hrg: HumanRiskGraph, person_id: str) -> str:
     person = next((p for p in hrg.people if p["id"] == person_id), {})
     name = person.get("name")
     return f"{name} ({person_id})" if name and name != person_id else person_id
+
+
+def acceptance_text(finding: Finding) -> str:
+    """Reason, ticket and expiry of a finding's risk acceptance, e.g. for SARIF justifications."""
+    a = finding.acceptance
+    if a is None:
+        return ""
+    parts = [a.reason]
+    if a.ticket:
+        parts.append(a.ticket)
+    if a.expires:
+        verb = "expired" if finding.acceptance_expired else "until"
+        parts.append(f"{verb} {a.expires.isoformat()}")
+    return "; ".join(parts)
 
 
 def _people(count: int) -> str:

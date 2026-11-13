@@ -1,6 +1,6 @@
 # Human Risk Graph Analysis Report
 
-**Generated:** 2026-11-13 07:02:20
+**Generated:** 2026-11-13 07:20:26
 **Input File:** `data/example_organization.json`
 **Organization Size:** 10 people
 **Dependencies:** 14

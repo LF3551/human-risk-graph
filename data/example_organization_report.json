@@ -3,8 +3,8 @@
     "input_file": "data/example_organization.json",
     "input_name": "example_organization.json",
     "input_sha256": "824985be282b635f6b341a91b8731172b1c7e8d0b62f723b4ef0c631da1e1034",
-    "tool_version": "0.6.0",
-    "analysis_date": "2026-11-13T07:02:20",
+    "tool_version": "0.7.0",
+    "analysis_date": "2026-11-13T07:20:26",
     "organization_size": 10,
     "dependencies_count": 14,
     "person_lookup": {
@@ -63,7 +63,8 @@
       "approval": 8,
       "escalation": 3,
       "bypass": 3
-    }
+    },
+    "config_file": null
   },
   "results": {
     "model": "hrg-2",
@@ -135,7 +136,7 @@
     ],
     "risk_level": "Moderate"
   },
-  "generated_at": "2026-11-13T07:02:20.411405",
+  "generated_at": "2026-11-13T07:20:26.188065",
   "findings": [
     {
       "rule_id": "HRG001",
@@ -176,7 +177,9 @@
             "title": "Continuity of critical or important functions"
           }
         ]
-      }
+      },
+      "accepted": false,
+      "acceptance": null
     },
     {
       "rule_id": "HRG001",
@@ -217,7 +220,9 @@
             "title": "Continuity of critical or important functions"
           }
         ]
-      }
+      },
+      "accepted": false,
+      "acceptance": null
     },
     {
       "rule_id": "HRG002",
@@ -258,7 +263,9 @@
             "title": "Segregation of ICT risk management, control and audit functions"
           }
         ]
-      }
+      },
+      "accepted": false,
+      "acceptance": null
     },
     {
       "rule_id": "HRG003",
@@ -310,7 +317,9 @@
             "title": "Controlled approval of ICT changes"
           }
         ]
-      }
+      },
+      "accepted": false,
+      "acceptance": null
     },
     {
       "rule_id": "HRG003",
@@ -362,7 +371,9 @@
             "title": "Controlled approval of ICT changes"
           }
         ]
-      }
+      },
+      "accepted": false,
+      "acceptance": null
     },
     {
       "rule_id": "HRG003",
@@ -414,7 +425,9 @@
             "title": "Controlled approval of ICT changes"
           }
         ]
-      }
+      },
+      "accepted": false,
+      "acceptance": null
     }
   ],
   "fix_plan": [

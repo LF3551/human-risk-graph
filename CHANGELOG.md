@@ -5,6 +5,19 @@ All notable changes to Human Risk Graph will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-11-13
+
+### ✨ Added
+
+- Project configuration in `hrg.toml`, `.hrg.toml` or `[tool.hrg]` in `pyproject.toml` (or `--config FILE`): `model`, `min-score`, `fail-above`, `fixes`, `critical-threshold` and `[weights]`. Options on the command line take precedence. Unknown keys and invalid values are errors. Used by `hrg analyze` and `hrg diff`.
+- Risk acceptance: `[[accept]]` entries with `rule`, optional `target`, a required `reason`, optional `ticket` and `expires`. Accepted findings are listed under *Accepted risks* in the reports, marked as suppressed with the justification in SARIF, passed in JUnit (with the acceptance in `system-out`) and do not fail CI. Accepting `HRG004` lets a pipeline pass below `--min-score` until the acceptance expires. Expired acceptances stop suppressing and are reported; acceptances that match nothing are reported as removable.
+- `examples/hrg.toml`.
+- Findings in JSON include `accepted` and `acceptance`; report metadata includes `config_file`.
+
+### 🔧 Changed
+
+- New dependency on Python 3.10: tomli.
+
 ## [0.6.0] - 2026-11-13
 
 ### ✨ Added
