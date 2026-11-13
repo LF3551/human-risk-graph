@@ -89,10 +89,12 @@ def _explanations(results: Dict[str, Any], metadata: Dict[str, Any]) -> List[str
     else:
         lines.append(f"{labels[1]} D = {d:.3f}: no approvals in the data.")
 
+    break_glass = len(results.get("break_glass_approvals", []))
     lines.append(
         f"{labels[2]} B = {b:.3f}: {len(results.get('overridable_approvals', []))} of "
         f"{results.get('critical_approvals', 0)} critical approvals can be overridden "
-        "through a bypass."
+        "through a bypass"
+        + (f" ({break_glass} only via break-glass, counted at half weight)." if break_glass else ".")
     )
     return lines
 
@@ -182,6 +184,12 @@ def generate_markdown_report(
         md.append(
             f"> **Note:** {metadata['unconfirmed_dependencies']} dependencies are unconfirmed "
             "(from `hrg scan`). Review them before relying on the score."
+            + (
+                f" On confirmed data only: {metadata['confirmed_only']['score']}/100 "
+                f"({metadata['confirmed_only']['grade']})."
+                if metadata.get("confirmed_only")
+                else ""
+            )
         )
     if metadata.get("coverage_gaps"):
         md.append("")

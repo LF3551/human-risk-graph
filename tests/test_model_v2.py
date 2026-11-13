@@ -129,6 +129,25 @@ def test_override_exposure():
     assert calc(people, overrides_dev)["bypass_risk"] == 0
 
 
+def test_break_glass_bypass_counts_half():
+    people = [{"id": "boss", "criticality": 0.9}, {"id": "dev"}, {"id": "ops"}, {"id": "sre"}]
+    approval = [{"from": "boss", "to": "dev", "type": "approval", "weight": 1.0}]
+    glass = {"from": "ops", "to": "boss", "type": "bypass", "review": "after"}
+
+    r = calc(people, approval + [glass])
+    assert r["bypass_risk"] == pytest.approx(0.5)
+    assert r["break_glass_approvals"] == [["boss", "dev"]]
+    # One unreviewed way around the approver is enough for a full override.
+    r = calc(people, approval + [glass, {"from": "sre", "to": "boss", "type": "bypass"}])
+    assert r["bypass_risk"] == pytest.approx(1.0)
+    assert r["break_glass_approvals"] == []
+
+
+def test_review_value_is_validated():
+    with pytest.raises(ValueError, match="review must be one of none, after"):
+        calc([{"id": "a"}, {"id": "b"}], [{"from": "a", "to": "b", "review": "later"}])
+
+
 def test_empty_and_edgeless_organizations():
     r = calc([{"id": "solo"}], [])
     assert (r["score"], r["grade"], r["bus_factor_people"]) == (100, "A", None)
@@ -208,6 +227,15 @@ def test_new_bypass_never_improves_the_score(people, deps):
         assert after["composite_score"] >= before["composite_score"] - 1e-12
         assert after["bus_factor"] == pytest.approx(before["bus_factor"])
         assert after["bus_factor_people"] == before["bus_factor_people"]
+
+
+@pytest.mark.parametrize("people, deps", ORGS)
+def test_reviewing_a_bypass_never_raises_risk(people, deps):
+    risk = calc(people, deps)["composite_score"]
+    for dep in deps:
+        if dep["type"] == "bypass":
+            reviewed = [{**d, "review": "after"} if d is dep else d for d in deps]
+            assert calc(people, reviewed)["composite_score"] <= risk + 1e-12
 
 
 def test_bypass_does_not_relieve_a_key_person():

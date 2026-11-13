@@ -51,6 +51,17 @@ def test_critical_single_point_of_failure_is_error():
     assert [(f.rule_id, f.level, f.person) for f in findings] == [("HRG001", "error", "hub")]
 
 
+def test_break_glass_bypass_finding():
+    people = [{"id": "boss", "criticality": 0.9}, {"id": "dev"}, {"id": "ops"}]
+    deps = [
+        {"from": "boss", "to": "dev", "type": "approval"},
+        {"from": "ops", "to": "boss", "type": "bypass", "review": "after"},
+    ]
+    hrg = HumanRiskGraph(people, deps)
+    [finding] = [f for f in collect_findings(hrg, hrg.calculate()) if f.rule_id == "HRG003"]
+    assert "break-glass" in finding.message
+
+
 def test_threshold_finding():
     _, results, findings = analyze(EXAMPLE, fail_above=0.2)
     assert findings[-1].rule_id == "HRG004"

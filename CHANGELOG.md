@@ -5,6 +5,22 @@ All notable changes to Human Risk Graph will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-11-13
+
+### ✨ Added
+
+- Score on confirmed data: when some dependencies are `confirmed: false`, every report also gives the score on confirmed dependencies only (`confirmed_only` in JSON metadata), so it is visible how much the result rests on unverified data.
+- Break-glass bypasses: `review: after` on a bypass whose every use is reviewed afterwards. It still counts as an override, at half weight in override exposure, and is labelled in the metrics and in HRG003 findings (`break_glass_approvals` in the results). `hrg diff` lists changes to `review`.
+- README: *What HRG is not*. HRG models authority, not code knowledge; for that, tools that mine Git history such as CodeScene or Busfactor are the better fit.
+
+### 📝 Documentation
+
+- docs/model.md:
+  - when approval concentration is a deliberate control and how to record it;
+  - the noisy-OR is a modelling choice, not a claim that the risks are independent;
+  - the fix plan shows structural improvements, not that they are feasible;
+  - the break-glass factor in B.
+
 ## [0.8.1] - 2026-11-13
 
 ### 🐛 Fixed

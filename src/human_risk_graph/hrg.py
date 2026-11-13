@@ -28,6 +28,8 @@ from .model_v2 import (
     score_and_grade,
 )
 
+REVIEW_VALUES = ("none", "after")
+
 
 def _check_unit_interval(value, where: str) -> None:
     if isinstance(value, bool) or not isinstance(value, (int, float)) or not 0 <= value <= 1:
@@ -58,6 +60,11 @@ def _validate(people, dependencies) -> None:
                 raise ValueError(f"dependencies[{i}].{end}: unknown person id {dep[end]!r}")
         if "weight" in dep:
             _check_unit_interval(dep["weight"], f"dependencies[{i}].weight")
+        if dep.get("review", "none") not in REVIEW_VALUES:
+            raise ValueError(
+                f"dependencies[{i}].review must be one of {', '.join(REVIEW_VALUES)}, "
+                f"got {dep['review']!r}"
+            )
 
 
 class HumanRiskGraph:
@@ -129,6 +136,12 @@ class HumanRiskGraph:
             (dep["from"], dep["to"]): dep.get("type", "unknown") for dep in dependencies
         }
         self.weights = {(dep["from"], dep["to"]): dep.get("weight", 0.5) for dep in dependencies}
+        # Break-glass bypasses: every use is reviewed afterwards.
+        self.reviewed_bypasses = {
+            (dep["from"], dep["to"])
+            for dep in dependencies
+            if dep.get("type") == "bypass" and dep.get("review") == "after"
+        }
 
     def calculate(
         self,
@@ -178,6 +191,7 @@ class HumanRiskGraph:
                 gamma,
                 critical_threshold,
                 with_bus_factor,
+                self.reviewed_bypasses,
             )
             result["risk_level"] = risk_level_from_score(result["score"])
             return result

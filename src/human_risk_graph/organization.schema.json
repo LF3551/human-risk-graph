@@ -89,6 +89,11 @@
             "default": 0.5,
             "description": "Strength of the dependency, from 0 to 1."
           },
+          "review": {
+            "enum": ["none", "after"],
+            "default": "none",
+            "description": "For bypasses: 'after' if every use is reviewed afterwards (break-glass). Counted at half weight in override exposure."
+          },
           "source": {
             "type": "string",
             "description": "Where the dependency comes from, e.g. pr-reviews, codeowners, branch-rules (set by hrg scan)."

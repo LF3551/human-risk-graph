@@ -42,6 +42,17 @@ def test_compare_structure():
     json.dumps(diff)
 
 
+def test_break_glass_change_is_listed():
+    reviewed = {
+        **NEW,
+        "dependencies": [{**NEW["dependencies"][0], "review": "after"}, NEW["dependencies"][1]],
+    }
+    diff = compare(NEW, reviewed)
+    [changed] = diff["dependencies"]["changed"]
+    assert changed["new"]["review"] == "after"
+    assert "(bypass, 0.90, reviewed after use)" in format_text(diff)
+
+
 def test_identical_snapshots():
     diff = compare(OLD, OLD)
     assert all(m["delta"] == 0 for m in diff["metrics"].values())

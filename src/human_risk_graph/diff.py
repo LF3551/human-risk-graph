@@ -34,6 +34,7 @@ def _dependencies(data: Dict[str, Any]) -> Dict[Tuple[str, str], Dict[str, Any]]
             "to": dep["to"],
             "type": dep.get("type", "unknown"),
             "weight": dep.get("weight", 0.5),
+            "review": dep.get("review", "none"),
         }
         for dep in data["dependencies"]
     }
@@ -108,7 +109,8 @@ def risk_increased(diff: Dict[str, Any]) -> bool:
 
 
 def _dep(dep: Dict[str, Any]) -> str:
-    return f"{dep['from']} -> {dep['to']} ({dep['type']}, {dep['weight']:.2f})"
+    review = ", reviewed after use" if dep.get("review") == "after" else ""
+    return f"{dep['from']} -> {dep['to']} ({dep['type']}, {dep['weight']:.2f}{review})"
 
 
 def _person_change(change: Dict[str, Any]) -> str:
