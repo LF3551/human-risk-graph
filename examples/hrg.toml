@@ -1,0 +1,22 @@
+# Human Risk Graph settings for examples/organization.yaml.
+# Run from this directory: hrg analyze organization.yaml
+
+model = "hrg-2"
+min-score = 20
+fixes = 3
+critical-threshold = 0.7
+
+[weights]
+key-person = 0.4
+concentration = 0.3
+override = 0.3
+
+# A documented, time-limited decision to live with a finding.
+# Accepted findings do not fail CI, are marked as suppressed in SARIF
+# and listed under "Accepted risks" in the reports.
+[[accept]]
+rule = "HRG003"
+target = "bob->alice"
+reason = "Break-glass access for incidents; every use is reviewed by the CISO"
+ticket = "SEC-123"
+expires = 2027-06-30

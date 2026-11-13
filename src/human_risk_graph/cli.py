@@ -18,10 +18,12 @@ from pathlib import Path
 from datetime import datetime
 
 from rich.console import Console
+from click.core import ParameterSource
 
 from . import __version__
 from . import diff as diff_module
 from .ci_reports import generate_junit_report, generate_sarif_report
+from .config import Config, ConfigError, apply_acceptances, load_config
 from .console import render_summary
 from .findings import collect_findings, threshold_breach
 from .hrg import HumanRiskGraph
@@ -48,6 +50,29 @@ def _load(input_file):
     except (OSError, ValueError) as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
+
+
+CONFIG_OPTION = click.option(
+    "--config",
+    "config_path",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    help="Config file (default: hrg.toml, .hrg.toml or [tool.hrg] in pyproject.toml).",
+)
+
+
+def _config(path) -> Config:
+    try:
+        return load_config(path)
+    except (OSError, ConfigError) as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
+def _setting(ctx, name, cli_value, config_value):
+    """The command-line value unless it was left at its default and the config sets one."""
+    if config_value is not None and ctx.get_parameter_source(name) == ParameterSource.DEFAULT:
+        return config_value
+    return cli_value
 
 
 def _artifact_uri(path: Path) -> str:
@@ -106,22 +131,40 @@ def cli():
     help="Number of remediations to simulate and rank (0 to skip).",
 )
 @click.option("--quiet", "-q", is_flag=True, help="Only print errors.")
-def analyze(input_file, formats, output, visualize, fail_above, min_score, model, fix_steps, quiet):
+@CONFIG_OPTION
+@click.pass_context
+def analyze(
+    ctx, input_file, formats, output, visualize, fail_above, min_score, model, fix_steps, quiet,
+    config_path,
+):  # fmt: skip
     """
     Analyze an organization's human risk graph.
 
     INPUT_FILE: JSON or YAML file with people and dependencies.
+
+    Settings and risk acceptances are read from hrg.toml (or [tool.hrg] in
+    pyproject.toml) in the current directory; options on the command line win.
 
     Example:
         hrg analyze data/example_organization.json
         hrg analyze data/example_organization.json --format html --output report.html
         hrg analyze org.yaml --format sarif --format junit --no-visualize --min-score 70
     """
+    config = _config(config_path)
+    model = _setting(ctx, "model", model, config.model)
+    fix_steps = _setting(ctx, "fix_steps", fix_steps, config.fixes)
+    min_score = _setting(ctx, "min_score", min_score, config.min_score)
+    fail_above = _setting(ctx, "fail_above", fail_above, config.fail_above)
+    calc = {"model": model, **config.calculate_kwargs()}
+
     data, hrg = _load(input_file)
-    results = hrg.calculate(model=model)
+    results = hrg.calculate(**calc)
     findings = collect_findings(hrg, results, fail_above, min_score)
-    fixes = hrg.fix_plan(steps=fix_steps, model=model) if fix_steps else []
+    findings, unused = apply_acceptances(findings, config.accept)
+    fixes = hrg.fix_plan(steps=fix_steps, **calc) if fix_steps else []
     breach = threshold_breach(results, fail_above, min_score)
+    if breach and any(f.rule_id == "HRG004" and f.accepted for f in findings):
+        breach = None
 
     # Prepare metadata
     input_path = Path(input_file)
@@ -154,6 +197,7 @@ def analyze(input_file, formats, output, visualize, fail_above, min_score, model
         "dependencies_count": len(data["dependencies"]),
         "person_lookup": person_lookup,
         "dependency_type_counts": dependency_type_counts,
+        "config_file": config.path.name if config.path else None,
     }
 
     # Generate reports
@@ -211,7 +255,22 @@ def analyze(input_file, formats, output, visualize, fail_above, min_score, model
             fixes,
             generated_files,
             breach,
+            config_file=metadata["config_file"],
         )
+    for acceptance in unused:
+        target = f" {acceptance.target}" if acceptance.target else ""
+        click.echo(
+            f"Warning: risk acceptance {acceptance.rule}{target} matches no finding "
+            "and can be removed from the config.",
+            err=True,
+        )
+    for finding in findings:
+        if finding.acceptance_expired:
+            click.echo(
+                f"Warning: risk acceptance for {finding.key} expired on "
+                f"{finding.acceptance.expires.isoformat()}.",
+                err=True,
+            )
 
     if failed:
         sys.exit(1)
@@ -267,7 +326,9 @@ def visualize(input_file, output):
     help=f"Exit with code {EXIT_RISK} if the composite risk went up.",
 )
 @click.option("--model", type=click.Choice(MODELS), default=MODEL_V2, show_default=True)
-def diff(old_file, new_file, fmt, output, fail_on_increase, model):
+@CONFIG_OPTION
+@click.pass_context
+def diff(ctx, old_file, new_file, fmt, output, fail_on_increase, model, config_path):
     """
     Compare two snapshots of an organization.
 
@@ -277,9 +338,11 @@ def diff(old_file, new_file, fmt, output, fail_on_increase, model):
     Example:
         hrg diff org-2026-q1.yaml org-2026-q2.yaml --format markdown
     """
+    config = _config(config_path)
+    model = _setting(ctx, "model", model, config.model)
     old_data, _ = _load(old_file)
     new_data, _ = _load(new_file)
-    changes = diff_module.compare(old_data, new_data, model=model)
+    changes = diff_module.compare(old_data, new_data, model=model, **config.calculate_kwargs())
 
     formatter = {
         "text": diff_module.format_text,

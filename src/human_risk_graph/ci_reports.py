@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 from typing import Any, Dict, List, Optional
 
 from . import __version__
-from .findings import FRAMEWORKS, RULES, Finding, Rule
+from .findings import FRAMEWORKS, RULES, Finding, Rule, acceptance_text
 
 INFORMATION_URI = "https://github.com/LF3551/human-risk-graph"
 SARIF_SCHEMA = "https://json.schemastore.org/sarif-2.1.0.json"
@@ -92,8 +92,9 @@ def generate_sarif_report(findings: List[Finding], artifact_uri: str, source_tex
     rule_index = {rule.id: i for i, rule in enumerate(rules)}
     lines = source_text.splitlines()
 
-    results = [
-        {
+    results = []
+    for f in findings:
+        result = {
             "ruleId": f.rule_id,
             "ruleIndex": rule_index[f.rule_id],
             "level": f.level,
@@ -108,8 +109,11 @@ def generate_sarif_report(findings: List[Finding], artifact_uri: str, source_tex
             ],
             "partialFingerprints": {"hrgFinding/v1": f.key},
         }
-        for f in findings
-    ]
+        if f.accepted:
+            result["suppressions"] = [
+                {"kind": "external", "status": "accepted", "justification": acceptance_text(f)}
+            ]
+        results.append(result)
 
     log = {
         "$schema": SARIF_SCHEMA,
@@ -140,8 +144,9 @@ def generate_junit_report(
     """
     Build a JUnit XML report with one test case per rule.
 
-    A rule's test case fails when the analysis produced findings for it. The threshold
-    rule (HRG004) is skipped when neither ``fail_above`` nor ``min_score`` was given.
+    A rule's test case fails when the analysis produced findings for it that are not covered
+    by a risk acceptance. The threshold rule (HRG004) is skipped when neither ``fail_above``
+    nor ``min_score`` was given.
     """
     suite = ET.Element("testsuite", name="human-risk-graph")
     props = ET.SubElement(suite, "properties")
@@ -155,7 +160,12 @@ def generate_junit_report(
         case = ET.SubElement(
             suite, "testcase", classname="human-risk-graph", name=f"{rule.id} {rule.name}"
         )
-        rule_findings = [f for f in findings if f.rule_id == rule.id]
+        rule_findings = [f for f in findings if f.rule_id == rule.id and not f.accepted]
+        accepted = [f for f in findings if f.rule_id == rule.id and f.accepted]
+        if accepted:
+            ET.SubElement(case, "system-out").text = "\n".join(
+                f"Accepted: {f.message} ({acceptance_text(f)})" for f in accepted
+            )
         if rule.id == "HRG004" and fail_above is None and min_score is None:
             ET.SubElement(case, "skipped", message="No --fail-above or --min-score threshold set")
             skipped += 1

@@ -69,7 +69,7 @@ hrg analyze my-org.yaml
 ```
 
 ```
-Human Risk Graph 0.6.0 · organization.yaml · 5 people · 5 dependencies
+Human Risk Graph 0.7.0 · organization.yaml · 5 people · 5 dependencies
 
   Score  25/100  ██░░░░░░░░  F · Critical risk  model hrg-2
 
@@ -208,6 +208,35 @@ Exit codes: `0` success, `1` invalid input or error, `2` usage error,
 Each run writes the reports next to the input file: JSON (all results, findings and the fix
 plan), Markdown, the HTML report, and with `--visualize` (default) a standalone interactive
 graph.
+
+### Configuration and risk acceptance
+
+Put the settings your team agreed on in `hrg.toml` (or `[tool.hrg]` in `pyproject.toml`)
+next to where you run `hrg`; options on the command line win. When a finding is a
+conscious decision, record it as an **accepted risk** with a reason, a ticket and an
+expiry date instead of lowering the bar for everyone:
+
+```toml
+min-score = 70
+
+[weights]            # optional, must add up to 1
+key-person = 0.4
+concentration = 0.3
+override = 0.3
+
+[[accept]]
+rule = "HRG003"
+target = "bob->alice"          # a person ID, "from->to" for bypasses, or omit for the whole rule
+reason = "Break-glass access for incidents; every use is reviewed by the CISO"
+ticket = "SEC-123"
+expires = 2027-06-30
+```
+
+Accepted findings stay visible but do not fail CI: they are listed under *Accepted risks*
+in the reports, marked as suppressed (with the justification) in SARIF, and reported as
+passed in JUnit. When `expires` passes, the finding counts again and `hrg` says so. An
+acceptance that no longer matches anything is reported as safe to remove. See
+[examples/hrg.toml](examples/hrg.toml).
 
 ### Findings and Compliance Mapping
 

@@ -36,5 +36,8 @@ Control titles are short paraphrases. Read the standard or regulation for the ex
   show which single points of failure were resolved or introduced, and how the scores changed.
 - **Risk tolerance:** `--min-score` (or `--fail-above`) makes the agreed tolerance explicit
   and enforces it in CI. The HRG004 finding records every breach.
+- **Risk acceptance:** `[[accept]]` entries in `hrg.toml` record who accepted which finding,
+  why, under which ticket and until when. They live in version control, so the history of
+  every decision is reviewable, and expired acceptances surface the finding again.
 - **Code scanning:** upload the SARIF report to GitHub code scanning to track findings as
   alerts, with history and dismissal reasons.
