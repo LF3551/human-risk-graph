@@ -1,0 +1,40 @@
+name: Bug report
+description: Something does not work or a result looks wrong.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Do not paste real names or internal data: replace them with
+        placeholders. Security vulnerabilities go through
+        [private reporting](https://github.com/LF3551/human-risk-graph/security/advisories/new).
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you ran, what you expected, and what you got instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce
+      description: The command, and a minimal organization file if possible.
+      render: shell
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `hrg --version`, or the action version.
+    validations:
+      required: true
+  - type: dropdown
+    id: model
+    attributes:
+      label: Model
+      options: [hrg-2 (default), hrg-3, hrg-1, not sure]
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: macOS 15, Python 3.13 / GitHub Actions ubuntu-latest
