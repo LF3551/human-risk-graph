@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/LF3551/human-risk-graph/security/advisories/new
+    about: Privately, so it can be fixed before it is public.
+  - name: Try it in the browser first
+    url: https://lf3551.github.io/human-risk-graph/
+    about: Live demo reports, to check how a result is meant to look.
