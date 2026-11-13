@@ -17,7 +17,7 @@ SOC 2 and DORA. The findings appear in the JSON, Markdown, HTML, SARIF and JUnit
 | `HRG003` critical-bypass | A `bypass` dependency starts or ends at a critical person. | `warning` |
 | `HRG004` risk-above-threshold | The score is below `--min-score`, or the composite risk is above `--fail-above`. | `error` |
 | `HRG005` function-single-point-of-failure | Model hrg-3: a function cannot be performed, or stops when one of its performers is unavailable. | `error` if the function is critical (criticality ≥ 0.7), otherwise `warning` |
-| `HRG006` solo-critical-function | Model hrg-3: one person can complete a critical function alone, because it requires one person or someone in `alone` can bypass the second person ([SLSA Source Level 4](https://slsa.dev/spec/v1.2/source-requirements) two-party review). | `warning` |
+| `HRG006` solo-critical-function | Model hrg-3: one person can complete a critical function alone, because it requires one person or someone in `alone` can bypass the second person ([SLSA Source Level 4](https://slsa.dev/spec/v1.2/source-requirements) two-party review). Functions marked `separation: not-required` are exempt. | `warning` |
 
 Models hrg-1 and hrg-2 raise HRG001-HRG004. Model hrg-3 raises HRG002 (for authority
 over functions: Herfindahl-Hirschman index of function weight ≥ 0.25, `error` from 0.5),

@@ -371,7 +371,7 @@ def test_rescan_keeps_function_decisions(tmp_path):
     path.write_text(draft_yaml(result), encoding="utf-8")
     data = load_organization(path)
     release = next(f for f in data["functions"] if f["id"] == "release")
-    release.update(criticality=0.5, requires=2, confirmed=True)
+    release.update(criticality=0.5, requires=2, separation="not-required", confirmed=True)
     data["functions"].append({"id": "restore-db", "performers": ["dev"], "criticality": 0.9})
 
     again = GitHubScanner(FakeClient(routes), "acme/api").scan()
@@ -379,6 +379,7 @@ def test_rescan_keeps_function_decisions(tmp_path):
     functions = {f["id"]: f for f in again.functions}
     assert (functions["release"]["criticality"], functions["release"]["requires"]) == (0.5, 2)
     assert functions["release"]["confirmed"] is True
+    assert functions["release"]["separation"] == "not-required"
     assert "restore-db" in functions
     assert "Kept 1 functions the scan does not draft." in notes
 

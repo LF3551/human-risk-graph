@@ -36,7 +36,9 @@ def _metric_labels(results: Dict[str, Any]):
 def unconfirmed_text(metadata: Dict[str, Any]) -> str:
     """'2 of 9 dependencies and 1 of 3 functions are unconfirmed', or '' if none are."""
     parts = []
-    deps, functions = (metadata.get(k) or 0 for k in ("unconfirmed_dependencies", "unconfirmed_functions"))
+    deps, functions = (
+        metadata.get(k) or 0 for k in ("unconfirmed_dependencies", "unconfirmed_functions")
+    )
     if deps:
         parts.append(f"{deps} of {metadata.get('dependencies_count', '?')} dependencies")
     if functions:
@@ -116,7 +118,11 @@ def _explanations(results: Dict[str, Any], metadata: Dict[str, Any]) -> List[str
         f"{labels[2]} B = {b:.3f}: {len(results.get('overridable_approvals', []))} of "
         f"{results.get('critical_approvals', 0)} critical approvals can be overridden "
         "through a bypass"
-        + (f" ({break_glass} only via break-glass, counted at half weight)." if break_glass else ".")
+        + (
+            f" ({break_glass} only via break-glass, counted at half weight)."
+            if break_glass
+            else "."
+        )
     )
     return lines
 
@@ -266,13 +272,16 @@ def generate_markdown_report(
         md.append(
             f"| **{label}** | {results[key]:.3f} | {weight:.0%} | {_get_metric_level(results[key])} |"
         )
-    md.append(f"| **Composite risk** | {results['composite_score']:.3f} | | {results['risk_level']} |")
+    md.append(
+        f"| **Composite risk** | {results['composite_score']:.3f} | | {results['risk_level']} |"
+    )
     md.append("")
 
     dep_type_counts = metadata.get("dependency_type_counts", {})
-    dep_profile = ", ".join(
-        f"{dep_type}: {count}" for dep_type, count in sorted(dep_type_counts.items())
-    ) or "No typed dependencies provided"
+    dep_profile = (
+        ", ".join(f"{dep_type}: {count}" for dep_type, count in sorted(dep_type_counts.items()))
+        or "No typed dependencies provided"
+    )
     critical_node_count = len(results.get("critical_nodes", []))
     org_size = metadata.get("organization_size", 0)
     md.append(
@@ -289,6 +298,8 @@ def generate_markdown_report(
         for f in results["functions"]:
             performers = ", ".join(_format_person_display(p, metadata) for p in f["performers"])
             alone = ", ".join(_format_person_display(p, metadata) for p in f["alone"]) or "—"
+            if f["alone"] and f.get("separation") == "not-required":
+                alone += " (by policy)"
             md.append(
                 f"| {f['name']} | {f['criticality']:.2f} | {f['requires']} | "
                 f"{performers or '—'} | {f['margin']} | {alone} |"
@@ -296,7 +307,8 @@ def generate_markdown_report(
         md.append("")
         md.append(
             "Margin: how many performers can be unavailable before the function stops. "
-            "One person alone: who can complete it without a second person."
+            "One person alone: who can complete it without a second person; "
+            "(by policy): allowed, not counted as solo control."
         )
         md.append("")
 
@@ -346,7 +358,12 @@ def generate_markdown_report(
         md.append("|------|---------|--------|--------|---------|")
         for f in accepted:
             a = f.acceptance
-            cells = [f.message, a.reason, a.ticket or "", a.expires.isoformat() if a.expires else ""]
+            cells = [
+                f.message,
+                a.reason,
+                a.ticket or "",
+                a.expires.isoformat() if a.expires else "",
+            ]
             cells = [c.replace("|", "\\|") for c in cells]
             md.append(f"| {f.rule_id} | " + " | ".join(cells) + " |")
         md.append("")

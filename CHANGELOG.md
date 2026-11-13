@@ -5,12 +5,21 @@ All notable changes to Human Risk Graph will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.14.0] - 2026-11-13
+
+### ✨ Added
+
+- hrg-3: functions take `separation: required | not-required` (default `required`). With `not-required`, completing the function alone is the intended policy, for example a database restore by the on-call engineer: the function is left out of solo control S (numerator and denominator) and HRG006, and reports mark its solo performers "(by policy)". It still counts for function loss and HRG005. Re-scans keep the setting.
+- Scenario tests for solo control: routine single-person operations, low criticality, policy functions next to a bypassed two-person rule, and the property that adding a policy function never changes S.
+
+### 🔧 Changed
+
+- `examples/functions.yaml`: the database restore is solo by policy, so the example's solo control is 2 of 3 critical functions instead of 3 of 4.
 
 ### 📝 Documentation
 
 - [docs/compliance.md](docs/compliance.md) and the README list HRG005 and HRG006 with their ISO/IEC 27001, SOC 2 and DORA controls, and which rules each model raises. A test keeps the document in step with the rules.
-- README workflow examples use `@v0.13.0`.
+- README workflow examples use `@v0.14.0`.
 
 ## [0.13.0] - 2026-11-13
 

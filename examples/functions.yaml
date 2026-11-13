@@ -31,6 +31,7 @@ functions:
     name: Restore the production database
     criticality: 0.9
     requires: 1
+    separation: not-required   # the on-call engineer restores alone by design
     performers: [bob]
   - id: rotate-keys
     name: Rotate signing keys

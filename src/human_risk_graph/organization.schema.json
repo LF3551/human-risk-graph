@@ -83,6 +83,10 @@
             "type": "array", "items": { "type": "string" },
             "description": "Person IDs who can complete it without the others, despite requires."
           },
+          "separation": {
+            "enum": ["required", "not-required"], "default": "required",
+            "description": "required: one person completing it alone is a risk (segregation of duties). not-required: completing it alone is the intended policy, for example a restore by the on-call engineer; it is left out of solo control and HRG006."
+          },
           "source": { "type": "string" },
           "evidence": { "type": "string" },
           "confirmed": { "type": "boolean" }

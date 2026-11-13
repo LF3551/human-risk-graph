@@ -600,18 +600,23 @@ def _functions_html(results: Dict[str, Any], people: Dict[str, Dict[str, Any]]) 
     def names(ids):
         return ", ".join(_e(people.get(i, {}).get("name", i)) for i in ids) or "—"
 
+    def alone(f):
+        policy = f["alone"] and f.get("separation") == "not-required"
+        return names(f["alone"]) + (' <span class="muted">(by policy)</span>' if policy else "")
+
     body = "".join(
         f'<tr><td><strong>{_e(f["name"])}</strong></td>'
         f'<td data-label="Criticality">{f["criticality"]:.2f}</td>'
         f'<td data-label="Requires">{f["requires"]}</td>'
         f'<td data-label="Performers">{names(f["performers"])}</td>'
         f'<td data-label="Margin"><span class="chip chip-{"high" if f["margin"] <= 1 else "low"}">{f["margin"]}</span></td>'
-        f'<td data-label="Alone">{names(f["alone"])}</td></tr>'
+        f'<td data-label="Alone">{alone(f)}</td></tr>'
         for f in functions
     )  # fmt: skip
     return f"""<h3>Critical functions</h3>
 <p class="muted">Margin: how many performers can be unavailable before the function stops.
-  Alone: who can complete it without a second person.</p>
+  Alone: who can complete it without a second person; (by policy): allowed, not counted as
+  solo control.</p>
 <table class="people functions">
   <thead><tr><th>Function</th><th>Criticality</th><th>Requires</th><th>Performers</th>
   <th>Margin</th><th>Alone</th></tr></thead>
