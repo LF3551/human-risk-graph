@@ -13,6 +13,7 @@ from .model_v2 import (
     CONCENTRATION_ERROR,
     CONCENTRATION_WARNING,
     MODEL_V1,
+    MODEL_V3,
     approval_shares,
     key_person_impacts,
 )
@@ -45,6 +46,7 @@ class Finding:
     message: str
     person: Optional[str] = None
     dependency: Optional[Tuple[str, str]] = None
+    function: Optional[str] = None
     acceptance: Optional[Any] = None  # config.Acceptance that matched this finding
     acceptance_expired: bool = False
 
@@ -62,6 +64,8 @@ class Finding:
         """Stable identifier of the finding across runs."""
         if self.dependency:
             return f"{self.rule_id}:{self.dependency[0]}->{self.dependency[1]}"
+        if self.function:
+            return f"{self.rule_id}:{self.function}"
         return f"{self.rule_id}:{self.person or ''}"
 
     def to_dict(self) -> Dict[str, Any]:
@@ -74,6 +78,7 @@ class Finding:
             "dependency": (
                 {"from": self.dependency[0], "to": self.dependency[1]} if self.dependency else None
             ),
+            "function": self.function,
             "remediation": self.rule.remediation,
             "controls": {
                 fw: [{"id": ref, "title": title} for ref, title in refs]
@@ -196,8 +201,75 @@ RULES: Dict[str, Rule] = {
                 "dora": (("Art. 6(8)(b)", "ICT risk tolerance level"),),
             },
         ),
+        Rule(
+            id="HRG005",
+            name="function-single-point-of-failure",
+            title="Function depends on too few people",
+            description=(
+                "Model hrg-3: a function cannot be performed, or stops if one of its "
+                "performers is unavailable, because it has no more performers than it requires."
+            ),
+            remediation=(
+                "Train and authorize another person for the function, document the procedure, "
+                "and rehearse it."
+            ),
+            controls={
+                "iso27001": (
+                    ("A.5.29", "Information security during disruption"),
+                    ("A.5.30", "ICT readiness for business continuity"),
+                ),
+                "soc2": (
+                    ("CC1.4", "Competent individuals, including succession planning"),
+                    ("CC9.1", "Mitigation of business disruption risk"),
+                ),
+                "dora": (
+                    ("Art. 10(1)", "Identification of material single points of failure"),
+                    ("Art. 11(2)(a)", "Continuity of critical or important functions"),
+                ),
+            },
+        ),
+        Rule(
+            id="HRG006",
+            name="solo-critical-function",
+            title="Critical function one person can complete alone",
+            description=(
+                "Model hrg-3: a critical function can be completed by a single person, "
+                "either because it requires one person or because someone can bypass the "
+                "second person. SLSA Source Level 4 asks for two-party review of changes."
+            ),
+            remediation=(
+                "Require a second, independent person to complete the function, and remove "
+                "or log and review every way to complete it alone."
+            ),
+            controls={
+                "iso27001": (
+                    ("A.5.3", "Segregation of duties"),
+                    ("A.8.2", "Privileged access rights"),
+                    ("A.8.32", "Change management"),
+                ),
+                "soc2": (
+                    ("CC5.1", "Control activities, including segregation of duties"),
+                    ("CC6.3", "Role-based access, least privilege and segregation of duties"),
+                    ("CC8.1", "Authorization of changes"),
+                ),
+                "dora": (
+                    ("Art. 9(4)(c)", "Access limited to approved functions"),
+                    ("Art. 9(4)(e)", "Controlled approval of ICT changes"),
+                ),
+            },
+        ),
     )
 }
+
+
+def rules_for_model(model: Optional[str]) -> List[Rule]:
+    """Rules a model can produce: hrg-3 works on functions, the others on the graph."""
+    ids = V3_RULES if model == MODEL_V3 else GRAPH_RULES
+    return [RULES[i] for i in ids]
+
+
+GRAPH_RULES = ("HRG001", "HRG002", "HRG003", "HRG004")
+V3_RULES = ("HRG002", "HRG004", "HRG005", "HRG006")
 
 
 def _label(hrg: HumanRiskGraph, person_id: str) -> str:
@@ -222,6 +294,79 @@ def acceptance_text(finding: Finding) -> str:
 
 def _people(count: int) -> str:
     return f"{count} {'person' if count == 1 else 'people'}"
+
+
+def _labels(hrg: HumanRiskGraph, ids) -> str:
+    names = [_label(hrg, pid) for pid in ids]
+    return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " or " + names[-1]
+
+
+def _function_findings(hrg: HumanRiskGraph, results: Dict[str, Any]) -> List[Finding]:
+    findings: List[Finding] = []
+    functions = results.get("functions", [])
+    for f in functions:
+        if f["margin"] > 1:
+            continue
+        n, r = len(f["performers"]), f["requires"]
+        if f["margin"] == 0:
+            message = (
+                f"{f['name']} cannot be performed: it needs {_people(r)} and "
+                f"{'nobody' if n == 0 else 'only ' + _people(n)} can do it."
+            )
+        elif len(f["single_points"]) == 1 and n == 1:
+            message = (
+                f"{f['name']} stops if {_labels(hrg, f['single_points'])} is unavailable: "
+                "nobody else can perform it."
+            )
+        else:
+            message = (
+                f"{f['name']} stops if {_labels(hrg, f['single_points'])} is unavailable: "
+                f"it needs {r} of the {n} people who can perform it."
+            )
+        findings.append(
+            Finding(
+                rule_id="HRG005",
+                level="error" if f["critical"] else "warning",
+                message=message,
+                person=f["single_points"][0] if len(f["single_points"]) == 1 else None,
+                function=f["id"],
+            )
+        )
+
+    shares = results.get("approval_shares", {})
+    concentration = results.get("decision_concentration", 0.0)
+    if concentration >= CONCENTRATION_WARNING and len(shares) > 1:
+        top = max(sorted(shares), key=shares.get)
+        findings.append(
+            Finding(
+                rule_id="HRG002",
+                level="error" if concentration >= CONCENTRATION_ERROR else "warning",
+                message=(
+                    f"Authority over functions is concentrated "
+                    f"({1 / concentration:.1f} effective people of {len(shares)}); "
+                    f"{_label(hrg, top)} holds {shares[top]:.0%} of the function weight."
+                ),
+                person=top,
+            )
+        )
+
+    by_id = {f["id"]: f for f in functions}
+    for fid in results.get("solo_functions", []):
+        f = by_id[fid]
+        how = (
+            f"it requires {f['requires']} people but {_labels(hrg, f['alone'])} can complete it alone"
+            if f["requires"] > 1
+            else f"it requires one person, so {_labels(hrg, f['alone'])} can complete it alone"
+        )
+        findings.append(
+            Finding(
+                rule_id="HRG006",
+                level="warning",
+                message=f"{f['name']} is critical (criticality {f['criticality']:.2f}) and {how}.",
+                function=fid,
+            )
+        )
+    return findings
 
 
 def threshold_breach(
@@ -255,6 +400,12 @@ def collect_findings(
         Findings ordered by rule, then by person.
     """
     findings: List[Finding] = []
+    if results.get("model") == MODEL_V3:
+        findings = _function_findings(hrg, results)
+        breach = threshold_breach(results, fail_above, min_score)
+        if breach:
+            findings.append(Finding(rule_id="HRG004", level="error", message=breach))
+        return findings
     critical = set(results.get("critical_nodes", []))
     impacts = key_person_impacts(hrg.graph)
 

@@ -16,7 +16,8 @@ import networkx as nx
 
 from . import __version__
 from .findings import FRAMEWORKS, RULES, Finding
-from .model_v2 import MODEL_V1, MODEL_V2, grade_for_score
+from .model_v2 import MODEL_V1, MODEL_V2, MODEL_V3, grade_for_score
+from .model_v3 import describe as describe_v3
 from .reports import (
     CONTROLS_DISCLAIMER,
     METRIC_KEYS,
@@ -24,6 +25,7 @@ from .reports import (
     _formula,
     _metric_labels,
     _weights,
+    unconfirmed_text,
 )
 
 GRADE_COLORS = {"A": "#15803d", "B": "#4d7c0f", "C": "#a16207", "D": "#c2410c", "F": "#b91c1c"}
@@ -111,6 +113,15 @@ def _tiles(results: Dict[str, Any], people: Dict[str, Dict[str, Any]]) -> List[D
              "detail": "share of critical paths with a bypass shortcut"},
         ]  # fmt: skip
 
+    if results.get("model") == MODEL_V3:
+        levels = (_level(k, 0.15, 0.5), _level(d, 0.25, 0.5), _level(b))
+        return [
+            {"label": label, "value": value, "level": level, "headline": headline, "detail": detail}
+            for label, value, level, (headline, detail) in zip(
+                labels, (k, d, b), levels, describe_v3(results, name)
+            )
+        ]
+
     key_people = results.get("key_people", [])
     bus = results.get("bus_factor_people")
     if key_people:
@@ -174,7 +185,7 @@ def _tiles_html(tiles: List[Dict[str, Any]], weights) -> str:
 # Fix plan
 
 
-def _fixes_html(fixes: List[Dict[str, Any]], score: int) -> str:
+def _fixes_html(fixes: List[Dict[str, Any]], score: int, v3: bool = False) -> str:
     if not fixes:
         return """<p class="muted">No simulated remediation raises the score by at least half
         a point. Keep the data current and re-run after organizational changes.</p>"""
@@ -182,7 +193,7 @@ def _fixes_html(fixes: List[Dict[str, Any]], score: int) -> str:
     cards = []
     for i, fix in enumerate(fixes, 1):
         gain = fix["score_after"] - fix["score_before"]
-        kind = "Deputy" if fix["action"] == "deputy" else "Bypass control"
+        kind = FIX_KINDS.get(fix["action"], fix["action"])
         cards.append(f"""<li class="fix">
   <span class="fix-step">{i}</span>
   <div class="fix-body"><span class="fix-kind">{kind}</span>
@@ -194,8 +205,24 @@ def _fixes_html(fixes: List[Dict[str, Any]], score: int) -> str:
     return f"""<p class="lead">Doing all {len(fixes)} raises the score from <strong>{score}</strong>
   to <strong>{final}</strong> (grade {grade_for_score(score)} → {grade_for_score(final)}).</p>
 <ol class="fixes">{''.join(cards)}</ol>
-<p class="muted small">Simulated on the model: a deputy shares the person's approvals and
-  escalations; a bypass control means no single person can override, so the bypass is removed.</p>"""
+<p class="muted small">{FIX_NOTE_V3 if v3 else FIX_NOTE}</p>"""
+
+
+FIX_KINDS = {
+    "deputy": "Deputy",
+    "control-bypass": "Bypass control",
+    "backup": "Backup",
+    "two-person": "Two-person rule",
+}
+FIX_NOTE = (
+    "Simulated on the model: a deputy shares the person's approvals and escalations; a bypass "
+    "control means no single person can override, so the bypass is removed."
+)
+FIX_NOTE_V3 = (
+    "Simulated on the model: a backup is one more trained and authorized performer; a "
+    "two-person rule means nobody can complete the function alone. Whether it is feasible "
+    "is for you to judge."
+)
 
 
 # Dependency map
@@ -329,7 +356,7 @@ def _map_html(hrg, rows: Dict[str, Dict[str, Any]]) -> str:
 </div>"""  # fmt: skip
 
 
-def _people_html(rows: Dict[str, Dict[str, Any]]) -> str:
+def _people_html(rows: Dict[str, Dict[str, Any]], labels: Dict[str, Any]) -> str:
     ordered = sorted(rows.values(), key=lambda r: (-r["impact"], -r["criticality"], r["name"]))
     body = []
     for r in ordered:
@@ -343,16 +370,60 @@ def _people_html(rows: Dict[str, Dict[str, Any]]) -> str:
             f'<tr data-id="{_e(r["id"])}"><td><strong>{_e(r["name"])}</strong>'
             f'<div class="muted small">{_e(r["role"])}</div></td>'
             f'<td data-label="Criticality" data-v="{r["criticality"]}">{r["criticality"]:.2f}</td>'
-            f'<td data-label="Impact" data-v="{r["impact"]}">{_pct(r["impact"]) if r["impact"] else "—"}</td>'
-            f'<td data-label="Cuts off" data-v="{r["cut_off"]}">{r["cut_off"] or "—"}</td>'
-            f'<td data-label="Approval share" data-v="{r["share"]}">{_pct(r["share"]) if r["share"] else "—"}</td>'
+            f'<td data-label="{labels["impact"]}" data-v="{r["impact"]}">{_pct(r["impact"]) if r["impact"] else "—"}</td>'
+            f'<td data-label="{labels["cut"]}" data-v="{r["cut_off"]}">{r["cut_off"] or "—"}</td>'
+            f'<td data-label="{labels["share"]}" data-v="{r["share"]}">{_pct(r["share"]) if r["share"] else "—"}</td>'
             f'<td class="flags">{flags}</td></tr>'
         )  # fmt: skip
-    return f"""<table class="people sortable">
+    return f"""<p class="muted">{labels['intro']}</p>
+<table class="people sortable">
   <thead><tr><th data-sort="text">Person</th><th data-sort="num">Criticality</th>
-  <th data-sort="num">Impact</th><th data-sort="num">Cuts off</th>
-  <th data-sort="num">Approval share</th><th>Flags</th></tr></thead>
+  <th data-sort="num">{labels['impact']}</th><th data-sort="num">{labels['cut']}</th>
+  <th data-sort="num">{labels['share']}</th><th>Flags</th></tr></thead>
   <tbody>{''.join(body)}</tbody>
+</table>"""
+
+
+PEOPLE_LABELS = {
+    "intro": "Impact is the share of connections between the others that depend on the person.",
+    "impact": "Impact",
+    "cut": "Cuts off",
+    "units": ["person", "people"],
+    "share": "Approval share",
+}
+PEOPLE_LABELS_V3 = {
+    "intro": "Weight lost is the share of function weight that stops if the person is unavailable.",
+    "impact": "Weight lost",
+    "cut": "Functions lost",
+    "units": ["function", "functions"],
+    "share": "Function share",
+}
+
+
+def _functions_html(results: Dict[str, Any], people: Dict[str, Dict[str, Any]]) -> str:
+    functions = results.get("functions") or []
+    if not functions:
+        return ""
+
+    def names(ids):
+        return ", ".join(_e(people.get(i, {}).get("name", i)) for i in ids) or "—"
+
+    body = "".join(
+        f'<tr><td><strong>{_e(f["name"])}</strong></td>'
+        f'<td data-label="Criticality">{f["criticality"]:.2f}</td>'
+        f'<td data-label="Requires">{f["requires"]}</td>'
+        f'<td data-label="Performers">{names(f["performers"])}</td>'
+        f'<td data-label="Margin"><span class="chip chip-{"high" if f["margin"] <= 1 else "low"}">{f["margin"]}</span></td>'
+        f'<td data-label="Alone">{names(f["alone"])}</td></tr>'
+        for f in functions
+    )  # fmt: skip
+    return f"""<h3>Critical functions</h3>
+<p class="muted">Margin: how many performers can be unavailable before the function stops.
+  Alone: who can complete it without a second person.</p>
+<table class="people functions">
+  <thead><tr><th>Function</th><th>Criticality</th><th>Requires</th><th>Performers</th>
+  <th>Margin</th><th>Alone</th></tr></thead>
+  <tbody>{body}</tbody>
 </table>"""
 
 
@@ -424,6 +495,14 @@ def _method_html(results: Dict[str, Any]) -> str:
           points divided by the number of people.</li>
         <li><strong>Decision concentration</strong>: Gini coefficient of approval weight.</li>
         <li><strong>Bypass risk</strong>: share of critical paths with a bypass shortcut.</li>"""
+    elif results.get("model") == MODEL_V3:
+        definitions = """<li><strong>Function loss L</strong>: the largest share of function weight
+          that stops when one person is unavailable (a function stops when fewer performers are
+          left than it requires).</li>
+        <li><strong>Authority concentration D</strong>: Herfindahl-Hirschman index of function
+          weight, each function's criticality split among its performers.</li>
+        <li><strong>Solo control S</strong>: weighted share of critical functions one person can
+          complete alone, the SLSA Source Level 4 two-party question. Model hrg-3 is experimental.</li>"""
     else:
         definitions = """<li><strong>Key-person risk K</strong>: the largest criticality × impact,
           where impact is the share of connections between the others that are lost without the person.</li>
@@ -498,6 +577,8 @@ def render(
     rows = _person_rows(results, people, hrg, findings)
     tiles = _tiles(results, people)
     grade = results["grade"]
+    v3 = results.get("model") == MODEL_V3
+    people_labels = PEOPLE_LABELS_V3 if v3 else PEOPLE_LABELS
     color = GRADE_COLORS.get(grade, "#334155")
     open_findings = [f for f in findings if not f.accepted]
     errors = sum(1 for f in open_findings if f.level == "error")
@@ -526,23 +607,22 @@ def render(
         verdict=_e(_verdict(results, tiles)),
         finding_summary=finding_summary,
         unconfirmed=(
-            f'<p class="notice">{metadata["unconfirmed_dependencies"]} of '
-            f'{metadata.get("dependencies_count", "")} dependencies are unconfirmed (from '
+            f'<p class="notice">{_e(unconfirmed_text(metadata))} (from '
             "<code>hrg scan</code>): review them before relying on the score."
             + _confirmed_only_text(metadata.get("confirmed_only"))
             + "</p>"
-            if metadata.get("unconfirmed_dependencies")
+            if unconfirmed_text(metadata)
             else ""
         )
         + _gaps_html(metadata.get("coverage_gaps") or []),
         tiles=_tiles_html(tiles, _weights(results)),
-        fixes=_fixes_html(fixes, results["score"]),
+        fixes=_fixes_html(fixes, results["score"], v3),
         map=_map_html(hrg, rows),
-        people=_people_html(rows),
+        people=_people_html(rows, people_labels) + _functions_html(results, people),
         findings=_findings_html(findings),
         method=_method_html(results),
         audit=_audit_html(results, metadata),
-        data=_json_for_script({"people": rows}),
+        data=_json_for_script({"people": rows, "labels": people_labels}),
     )
 
 
@@ -715,7 +795,8 @@ footer.page { color: var(--muted); font-size: 13px; text-align: center; margin-t
 
 JS = """
 (function () {
-  var data = JSON.parse(document.getElementById('hrg-data').textContent).people;
+  var payload = JSON.parse(document.getElementById('hrg-data').textContent);
+  var data = payload.people, L = payload.labels;
   var map = document.querySelector('.map');
   var panel = document.getElementById('panel');
   function el(tag, text, cls) {
@@ -732,9 +813,9 @@ JS = """
     panel.appendChild(el('h3', p.name));
     if (p.role) panel.appendChild(el('div', p.role, 'muted'));
     var dl = el('dl');
-    [['Criticality', p.criticality.toFixed(2)], ['Impact', pct(p.impact)],
-     ['Cuts off', p.cut_off ? p.cut_off + (p.cut_off === 1 ? ' person' : ' people') : '—'],
-     ['Approval share', pct(p.share)],
+    [['Criticality', p.criticality.toFixed(2)], [L.impact, pct(p.impact)],
+     [L.cut, p.cut_off ? p.cut_off + ' ' + L.units[p.cut_off === 1 ? 0 : 1] : '—'],
+     [L.share, pct(p.share)],
      ['Status', (p.spof ? 'Single point of failure' : '') + (p.spof && p.critical ? ' · ' : '') +
        (p.critical ? 'Critical' : '') || '—']].forEach(function (kv) {
       dl.appendChild(el('dt', kv[0])); dl.appendChild(el('dd', kv[1]));
@@ -852,7 +933,6 @@ TEMPLATE = Template("""<!DOCTYPE html>
 
   <section class="card" id="people">
     <h2>People</h2>
-    <p class="muted">Impact is the share of connections between the others that depend on the person.</p>
     $people
   </section>
 

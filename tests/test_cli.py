@@ -79,6 +79,45 @@ def test_confirmed_only_score(tmp_path):
     assert report["metadata"]["confirmed_only"] is None
 
 
+FUNCTIONS = Path(__file__).resolve().parent.parent / "examples" / "functions.yaml"
+
+
+def test_model_v3_end_to_end(tmp_path):
+    path = tmp_path / "functions.yaml"
+    shutil.copy(FUNCTIONS, path)
+    result = run(
+        "analyze", path, "--model", "hrg-3", "--format", "all", "--format", "sarif",
+        "--format", "junit", "--no-visualize",
+    )  # fmt: skip
+    assert result.exit_code == 0, result.output
+    output = " ".join(result.output.split())
+    assert "model hrg-3" in output
+    assert "Solo control 3 of 4 critical functions" in output
+    assert "integrity" in output
+
+    report = json.loads((tmp_path / "functions_report.json").read_text())
+    assert report["results"]["model"] == "hrg-3"
+    assert {f["rule_id"] for f in report["findings"]} == {"HRG002", "HRG005", "HRG006"}
+    assert "## 🔑 Critical Functions" in (tmp_path / "functions_report.md").read_text()
+    html = (tmp_path / "functions_report.html").read_text()
+    assert "Critical functions" in html and "Functions lost" in html
+
+    lines = path.read_text().splitlines()
+    sarif = json.loads((tmp_path / "functions_report.sarif").read_text())
+    for res in sarif["runs"][0]["results"]:
+        if res["ruleId"] in ("HRG005", "HRG006"):
+            line = lines[res["locations"][0]["physicalLocation"]["region"]["startLine"] - 1]
+            assert line.strip().startswith("- id:"), line
+    junit = (tmp_path / "functions_report.junit.xml").read_text()
+    assert 'tests="4"' in junit and "HRG006" in junit and "HRG001" not in junit
+
+
+def test_model_v3_needs_functions(org):
+    result = run("analyze", org, "--model", "hrg-3", "--format", "json", "--no-visualize")
+    assert result.exit_code == 1
+    assert "needs a 'functions' section" in result.output
+
+
 def test_ci_formats_and_threshold(org):
     result = run(
         "analyze",

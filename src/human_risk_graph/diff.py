@@ -50,12 +50,12 @@ def compare(
         Dict with score and metric deltas, risk level change, added/removed/changed people,
         added/removed/changed dependencies, and introduced/resolved single points of failure.
     """
-    old_results = HumanRiskGraph(old["people"], old["dependencies"]).calculate(
-        model=model, **calculate_kwargs
-    )
-    new_results = HumanRiskGraph(new["people"], new["dependencies"]).calculate(
-        model=model, **calculate_kwargs
-    )
+    old_results = HumanRiskGraph(
+        old["people"], old["dependencies"], old.get("functions")
+    ).calculate(model=model, **calculate_kwargs)
+    new_results = HumanRiskGraph(
+        new["people"], new["dependencies"], new.get("functions")
+    ).calculate(model=model, **calculate_kwargs)
 
     old_people, new_people = _people(old), _people(new)
     old_deps, new_deps = _dependencies(old), _dependencies(new)

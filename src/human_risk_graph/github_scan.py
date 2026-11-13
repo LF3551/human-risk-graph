@@ -186,6 +186,8 @@ class ScanResult:
     # Approving reviews given per person, and code owners seen, before dependencies are merged.
     approvals_given: Dict[str, int] = field(default_factory=dict)
     code_owners: List[str] = field(default_factory=list)
+    # Critical functions for model hrg-3: merge, release, admin.
+    functions: List[Dict[str, Any]] = field(default_factory=list)
 
     def coverage(self) -> Dict[str, Any]:
         return {
@@ -200,7 +202,9 @@ class ScanResult:
 
 
 def _is_bot(login: str) -> bool:
-    return login.endswith("[bot]")
+    """GitHub Apps ("name[bot]") and machine users named like bots (prombot, k8s-ci-robot)."""
+    name = login.lower()
+    return name.endswith("[bot]") or name.endswith("bot") or bool(re.search(r"[-_]bot[-_]", name))
 
 
 class GitHubScanner:
@@ -225,6 +229,7 @@ class GitHubScanner:
         self.notes: List[str] = []
         self.gaps: List[str] = []
         self.team_members: Dict[str, Optional[List[str]]] = {}
+        self._admin_cache: Optional[Set[str]] = None
 
     # Helpers
 
@@ -312,13 +317,89 @@ class GitHubScanner:
         return {a for a in actors if self._keep(a)}, review_required
 
     def _admins(self, why: str) -> Set[str]:
+        if self._admin_cache is not None:
+            return self._admin_cache
         admins = self.client.get(
             f"repos/{self.repo}/collaborators", {"permission": "admin", "per_page": 100}, 500
         )
         if admins is None:
             self.gaps.append(f"Repository admins are not visible ({why}; needs push access).")
-            return set()
-        return {a["login"] for a in admins}
+            self._admin_cache = set()
+        else:
+            self._admin_cache = {a["login"] for a in admins if self._keep(a.get("login"))}
+        return self._admin_cache
+
+    def _releases(self) -> Counter:
+        releases = self.client.get(f"repos/{self.repo}/releases", {"per_page": 30}) or []
+        authors: Counter = Counter()
+        for release in releases:
+            login = (release.get("author") or {}).get("login")
+            if login and not release.get("draft"):
+                authors[login] += 1
+        return authors
+
+    def _functions(
+        self, review_required, bypassers, unreviewed_merges, approvers_seen, owners_seen,
+        releases, admins,
+    ) -> List[Dict[str, Any]]:  # fmt: skip
+        """Merge, release and admin functions for model hrg-3, from what the scan saw."""
+        functions = []
+
+        def add(fid, name, criticality, requires, performers, alone, evidence):
+            functions.append(
+                {
+                    "id": fid,
+                    "name": name,
+                    "criticality": criticality,
+                    "requires": requires,
+                    "performers": sorted(performers),
+                    "alone": sorted(alone),
+                    "source": "github",
+                    "evidence": "; ".join(evidence),
+                    "confirmed": False,
+                }
+            )
+
+        trusted = {p for p in set(approvers_seen) | owners_seen if not p.startswith("@")}
+        solo = set(bypassers) | set(unreviewed_merges)
+        requires = 1 if review_required is False else 2
+        if trusted or solo:
+            evidence = [f"{len(trusted)} people approved merged pull requests or own code"]
+            if requires == 2:
+                evidence.append(
+                    "two trusted persons per change (SLSA Source Level 4)"
+                    + (
+                        "; whether reviews are required is not visible"
+                        if review_required is None
+                        else ""
+                    )
+                )
+            else:
+                evidence.append("the branch does not require reviews")
+            if solo and requires > 1:
+                evidence.append("can merge without a second person: " + ", ".join(sorted(solo)))
+            add("merge", f"Merge to {self.branch}", 0.8, requires, trusted | solo,
+                solo if requires > 1 else set(), evidence)  # fmt: skip
+
+        humans = {login: n for login, n in releases.items() if self._keep(login)}
+        automated = sum(n for login, n in releases.items() if not self._keep(login))
+        total = sum(releases.values())
+        if humans:
+            add("release", "Publish a release", 0.9, 1, humans, set(),
+                [f"published {n} of the last {total} releases: {login}"
+                 for login, n in sorted(humans.items(), key=lambda kv: -kv[1])])  # fmt: skip
+        if automated and not humans:
+            self.gaps.append(
+                f"Releases are published by automation ({automated} of {total}); who can "
+                "trigger it is not visible, so no release function was drafted."
+            )
+        elif not releases:
+            self.notes.append("No GitHub releases found; no release function was drafted.")
+
+        if admins:
+            add("admin", "Change repository settings and branch protection", 0.9, 1, admins,
+                set(), ["repository admins"])  # fmt: skip
+        return functions
 
     def _actor_logins(self, actor: Dict[str, Any]) -> Set[str]:
         kind = actor.get("actor_type")
@@ -445,17 +526,31 @@ class GitHubScanner:
             (self.notes if review_required is False else self.gaps).append(message)
             unreviewed_merges.clear()
 
+        self.progress("Reading releases and admins")
+        releases = self._releases()
+        admins = self._admins("they can change settings and branch protection")
+        functions = self._functions(
+            review_required, bypassers, unreviewed_merges, approvers_seen, owners_seen,
+            releases, admins,
+        )  # fmt: skip
+        roles = {
+            login: f"published {n} releases" for login, n in releases.items() if self._keep(login)
+        }
+        for login in admins:
+            roles[login] = ", ".join(filter(None, [roles.get(login), "repository admin"]))
+
         result = self._build(
             merged, authored, approvals, owner_reviews, unreviewed_merges, bypassers,
-            approvers_seen, owners_seen,
+            approvers_seen, owners_seen, roles,
         )  # fmt: skip
         result.review_required = review_required
         result.gaps = self.gaps
+        result.functions = functions
         return result
 
     def _build(
         self, merged, authored, approvals, owner_reviews, unreviewed_merges, bypassers,
-        approvers_seen, owners_seen,
+        approvers_seen, owners_seen, roles=None,
     ) -> ScanResult:  # fmt: skip
         edges: Dict[Tuple[str, str, str], Edge] = {}
 
@@ -483,7 +578,8 @@ class GitHubScanner:
                 add(actor, approver, "bypass", 1.0, "branch-rules",
                     "can bypass the branch rules that require reviews")  # fmt: skip
 
-        logins = set(authored) | approvers | set(unreviewed_merges) | set(bypassers)
+        roles = roles or {}
+        logins = set(authored) | approvers | set(unreviewed_merges) | set(bypassers) | set(roles)
         total_approvals = sum(approvers_seen.values()) or 1
         people = []
         for login in logins:
@@ -494,6 +590,9 @@ class GitHubScanner:
             if login in bypassers or login in unreviewed_merges:
                 crit += 0.2
                 reasons.append("can bypass review")
+            if login in roles:
+                crit += 0.2
+                reasons.append(roles[login])
             share = approvers_seen[login] / total_approvals
             if share:
                 crit += 0.2 * share
@@ -592,6 +691,19 @@ def merge_with_existing(result: ScanResult, existing: Optional[Dict[str, Any]]) 
         notes.append(f"Kept confirmation of {carried} dependencies found again.")
     if kept:
         notes.append(f"Kept {kept} confirmed or hand-written dependencies the scan did not find.")
+
+    old_functions = {f["id"]: f for f in existing.get("functions") or []}
+    scanned = {f["id"] for f in result.functions}
+    for f in result.functions:
+        old = old_functions.get(f["id"])
+        if old:
+            for attr in ("name", "criticality", "requires", "confirmed"):
+                if attr in old:
+                    f[attr] = old[attr]
+    own = [f for fid, f in old_functions.items() if fid not in scanned]
+    result.functions.extend(own)
+    if own:
+        notes.append(f"Kept {len(own)} functions the scan does not draft.")
     return notes
 
 
@@ -607,19 +719,18 @@ def draft_yaml(result: ScanResult, notes: Iterable[str] = ()) -> str:
         "# set `confirmed: true`. Adjust `criticality` (0-1) to how much the work of each",
         "# person matters. Re-running the scan keeps your confirmations and criticality.",
         "# `coverage.gaps` lists what the token could not see: a missing bypass there is not",
-        "# evidence that none exists.",
+        "# evidence that none exists. `functions` are for model hrg-3 (experimental):",
+        "#   hrg analyze FILE --model hrg-3",
         "#",
         *[f"# Note: {n}" for n in [*result.notes, *notes]],
         "",
     ]
-    body = yaml.safe_dump(
-        {
-            "coverage": result.coverage(),
-            "people": result.people,
-            "dependencies": result.dependencies,
-        },
-        sort_keys=False,
-        allow_unicode=True,
-        width=100,
-    )
+    document = {
+        "coverage": result.coverage(),
+        "people": result.people,
+        "dependencies": result.dependencies,
+    }
+    if result.functions:
+        document["functions"] = result.functions
+    body = yaml.safe_dump(document, sort_keys=False, allow_unicode=True, width=100)
     return "\n".join(header) + body

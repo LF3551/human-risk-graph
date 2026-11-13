@@ -14,7 +14,7 @@ def test_site_builds(tmp_path):
     demos = site.build(out)
 
     index = (out / "index.html").read_text(encoding="utf-8")
-    assert [d["slug"] for d in demos] == ["platform-team", "small-team"]
+    assert [d["slug"] for d in demos] == ["platform-team", "small-team", "critical-functions"]
     for demo in demos:
         report = (out / demo["href"]).read_text(encoding="utf-8")
         assert f'aria-label="Score {demo["score"]} of 100"' in report

@@ -37,6 +37,14 @@ DEMOS = [
         "text": "Five people where one head of platform approves almost everything and a "
         "bypass skips her review.",
     },
+    {
+        "slug": "critical-functions",
+        "file": ROOT / "examples" / "functions.yaml",
+        "title": "Critical functions (model hrg-3)",
+        "text": "Merge, release, database restore and key rotation: who can perform each, "
+        "what stops without one person, and who can complete it alone.",
+        "model": "hrg-3",
+    },
 ]
 
 
@@ -49,7 +57,7 @@ def build_report(demo: dict, out: Path) -> dict:
     report = (out / "demo" / f"{demo['slug']}.html").resolve()
     report.parent.mkdir(parents=True, exist_ok=True)
     source = demo["file"].relative_to(ROOT).as_posix()
-    common = ("--no-visualize", "--quiet")
+    common = ("--no-visualize", "--quiet", "--model", demo.get("model", "hrg-2"))
     _hrg("analyze", source, "--format", "html", "--output", str(report), *common)
     with tempfile.TemporaryDirectory() as tmp:
         data = Path(tmp) / "report.json"

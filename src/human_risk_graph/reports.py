@@ -9,7 +9,8 @@ from datetime import datetime
 from typing import Dict, Any, List, Optional
 
 from .findings import Finding
-from .model_v2 import MODEL_V1, MODEL_V2
+from .model_v2 import MODEL_V1, MODEL_V2, MODEL_V3
+from .model_v3 import describe as describe_v3
 
 CONTROLS_DISCLAIMER = (
     "Related controls are informative pointers for audits, not an assessment of compliance."
@@ -17,6 +18,7 @@ CONTROLS_DISCLAIMER = (
 METRIC_KEYS = ("bus_factor", "decision_concentration", "bypass_risk")
 METRIC_LABELS = {
     MODEL_V2: ("Key-person risk", "Approval concentration", "Override exposure"),
+    MODEL_V3: ("Function loss", "Authority concentration", "Solo control"),
     MODEL_V1: ("Bus factor risk", "Decision concentration", "Bypass risk"),
 }
 RISK_INTERPRETATION = {
@@ -29,6 +31,17 @@ RISK_INTERPRETATION = {
 
 def _metric_labels(results: Dict[str, Any]):
     return METRIC_LABELS.get(results.get("model", MODEL_V2), METRIC_LABELS[MODEL_V2])
+
+
+def unconfirmed_text(metadata: Dict[str, Any]) -> str:
+    """'2 of 9 dependencies and 1 of 3 functions are unconfirmed', or '' if none are."""
+    parts = []
+    deps, functions = (metadata.get(k) or 0 for k in ("unconfirmed_dependencies", "unconfirmed_functions"))
+    if deps:
+        parts.append(f"{deps} of {metadata.get('dependencies_count', '?')} dependencies")
+    if functions:
+        parts.append(f"{functions} of {metadata.get('functions_count', '?')} functions")
+    return " and ".join(parts) + " are unconfirmed" if parts else ""
 
 
 def _weights(results: Dict[str, Any]):
@@ -44,8 +57,10 @@ def _formula(results: Dict[str, Any]) -> str:
             f"Composite risk = {a}·BF + {b}·DC + {c}·BR = {risk:.3f} (model hrg-1); "
             f"score = 100·(1 − risk) = {results['score']}"
         )
+    letters = ("L", "D", "S") if results.get("model") == MODEL_V3 else ("K", "D", "B")
+    x, y, z = letters
     return (
-        f"Composite risk = (1 − (1 − {a}·K)(1 − {b}·D)(1 − {c}·B)) / "
+        f"Composite risk = (1 − (1 − {a}·{x})(1 − {b}·{y})(1 − {c}·{z})) / "
         f"(1 − (1 − {a})(1 − {b})(1 − {c})) = {risk:.3f}; "
         f"score = 100·(1 − risk) = {results['score']}"
     )
@@ -64,6 +79,13 @@ def _explanations(results: Dict[str, Any], metadata: Dict[str, Any]) -> List[str
             f"{labels[0]} {k:.3f}: criticality of single points of failure per person.",
             f"{labels[1]} {d:.3f}: Gini coefficient of approval weight.",
             f"{labels[2]} {b:.3f}: share of critical paths with a bypass shortcut.",
+        ]
+    if results.get("model") == MODEL_V3:
+        return [
+            f"{label} {letter} = {results[key]:.3f}: {headline}; {detail}"
+            for label, letter, key, (headline, detail) in zip(
+                labels, "LDS", METRIC_KEYS, describe_v3(results, name)
+            )
         ]
 
     lines = []
@@ -179,10 +201,10 @@ def generate_markdown_report(
     md.append(f"**Input File:** `{metadata['input_file']}`")
     md.append(f"**Organization Size:** {metadata['organization_size']} people")
     md.append(f"**Dependencies:** {metadata['dependencies_count']}")
-    if metadata.get("unconfirmed_dependencies"):
+    if unconfirmed_text(metadata):
         md.append("")
         md.append(
-            f"> **Note:** {metadata['unconfirmed_dependencies']} dependencies are unconfirmed "
+            f"> **Note:** {unconfirmed_text(metadata)} "
             "(from `hrg scan`). Review them before relying on the score."
             + (
                 f" On confirmed data only: {metadata['confirmed_only']['score']}/100 "
@@ -258,6 +280,25 @@ def generate_markdown_report(
         f"**{critical_node_count}/{org_size}** · Dependencies: {dep_profile}"
     )
     md.append("")
+
+    if results.get("functions"):
+        md.append("## 🔑 Critical Functions")
+        md.append("")
+        md.append("| Function | Criticality | Requires | Performers | Margin | One person alone |")
+        md.append("|---|---:|---:|---|---:|---|")
+        for f in results["functions"]:
+            performers = ", ".join(_format_person_display(p, metadata) for p in f["performers"])
+            alone = ", ".join(_format_person_display(p, metadata) for p in f["alone"]) or "—"
+            md.append(
+                f"| {f['name']} | {f['criticality']:.2f} | {f['requires']} | "
+                f"{performers or '—'} | {f['margin']} | {alone} |"
+            )
+        md.append("")
+        md.append(
+            "Margin: how many performers can be unavailable before the function stops. "
+            "One person alone: who can complete it without a second person."
+        )
+        md.append("")
 
     # Critical People
     if results.get("articulation_points"):

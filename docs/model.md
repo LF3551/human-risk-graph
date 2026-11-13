@@ -34,6 +34,7 @@ Let **V_critical ⊆ V** denote the set of all critical nodes.
 | Model | Default | Use |
 |-------|---------|-----|
 | `hrg-2` | since 0.5.0 | Section 3. Size-independent, explainable metrics and a fix plan. |
+| `hrg-3` | experimental, since 0.12.0 | [model-hrg3.md](model-hrg3.md). Critical functions: who can perform them and whether one person can complete them alone. |
 | `hrg-1` | up to 0.4.x | Section 4. The model of the original paper; `--model hrg-1` reproduces its results. |
 
 Every report records the model it was computed with.

@@ -58,6 +58,37 @@
         }
       }
     },
+    "functions": {
+      "type": "array",
+      "description": "Critical functions for model hrg-3 (experimental): what the organization must be able to do and who can do it.",
+      "items": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1, "description": "Unique function ID." },
+          "name": { "type": "string", "description": "Display name." },
+          "criticality": {
+            "type": "number", "minimum": 0, "maximum": 1, "default": 0.5,
+            "description": "How much the organization depends on the function."
+          },
+          "requires": {
+            "type": "integer", "minimum": 1, "default": 1,
+            "description": "People needed to complete it; 2 for a two-person rule."
+          },
+          "performers": {
+            "type": "array", "items": { "type": "string" },
+            "description": "Person IDs who are trained and authorized to perform it."
+          },
+          "alone": {
+            "type": "array", "items": { "type": "string" },
+            "description": "Person IDs who can complete it without the others, despite requires."
+          },
+          "source": { "type": "string" },
+          "evidence": { "type": "string" },
+          "confirmed": { "type": "boolean" }
+        }
+      }
+    },
     "dependencies": {
       "type": "array",
       "description": "Directed relationships between people.",
