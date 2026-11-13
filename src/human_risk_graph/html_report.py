@@ -443,6 +443,7 @@ def _audit_html(results: Dict[str, Any], metadata: Dict[str, Any]) -> str:
         ("Weights", f"α {w.get('alpha', 0.4)} · β {w.get('beta', 0.3)} · γ {w.get('gamma', 0.3)}"),
         ("Critical threshold", results.get("critical_threshold", 0.7)),
         ("Config", metadata.get("config_file") or "none"),
+        ("Unconfirmed dependencies", metadata.get("unconfirmed_dependencies", 0)),
         ("People / dependencies", f"{metadata.get('organization_size', '')} / {metadata.get('dependencies_count', '')}"),
     ]  # fmt: skip
     rows = "".join(f"<tr><th>{_e(k)}</th><td><code>{_e(v)}</code></td></tr>" for k, v in items)
@@ -494,6 +495,13 @@ def render(
         interpretation=_e(RISK_INTERPRETATION.get(results["risk_level"], "")),
         verdict=_e(_verdict(results, tiles)),
         finding_summary=finding_summary,
+        unconfirmed=(
+            f'<p class="notice">{metadata["unconfirmed_dependencies"]} of '
+            f'{metadata.get("dependencies_count", "")} dependencies are unconfirmed (from '
+            "<code>hrg scan</code>): review them before relying on the score.</p>"
+            if metadata.get("unconfirmed_dependencies")
+            else ""
+        ),
         tiles=_tiles_html(tiles, _weights(results)),
         fixes=_fixes_html(fixes, results["score"]),
         map=_map_html(hrg, rows),
@@ -546,6 +554,8 @@ h2 + .muted { margin: 0 0 18px; }
   display: inline-grid; place-items: center; }
 .grade span { font-size: 22px; font-weight: 650; }
 .verdict { font-size: 17px; margin: 6px 0; }
+.notice { border: 1px solid var(--warn); color: var(--warn); border-radius: 10px;
+  padding: 8px 12px; font-size: 14px; margin: 10px 0 0; }
 .meta { display: flex; gap: 18px; flex-wrap: wrap; color: var(--muted); font-size: 13px; margin-top: 12px; }
 .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .tile { border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: flex;
@@ -785,6 +795,7 @@ TEMPLATE = Template("""<!DOCTYPE html>
       <div class="grade"><b style="background:$grade_color">$grade</b><span>$risk_level risk</span></div>
       <p class="verdict">$verdict</p>
       <p class="muted">$interpretation</p>
+      $unconfirmed
       <div class="meta"><span>$size people</span><span>$deps dependencies</span>
         <span>$finding_summary</span><span>model $model</span><span>$generated</span></div>
     </div>

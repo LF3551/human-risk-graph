@@ -69,7 +69,7 @@ hrg analyze my-org.yaml
 ```
 
 ```
-Human Risk Graph 0.7.0 · organization.yaml · 5 people · 5 dependencies
+Human Risk Graph 0.8.0 · organization.yaml · 5 people · 5 dependencies
 
   Score  25/100  ██░░░░░░░░  F · Critical risk  model hrg-2
 
@@ -90,6 +90,41 @@ Human Risk Graph 0.7.0 · organization.yaml · 5 people · 5 dependencies
    △ HRG003 Bob (bob) can bypass Alice (alice) and override the controls they enforce; one of them is
             critical.
    ...
+```
+
+## Scan a GitHub repository
+
+No YAML to write by hand: draft the organization from who actually reviews and merges code.
+
+```bash
+hrg scan github my-org/payments-api        # uses GITHUB_TOKEN, GH_TOKEN or `gh auth token`
+hrg analyze payments-api-org.yaml
+```
+
+The scan reads the most recent merged pull requests (`--max-prs`, default 100) and turns
+evidence into dependencies:
+
+| Evidence | Dependency |
+|---|---|
+| Approving reviews by someone other than the author | `approval` reviewer → author |
+| CODEOWNERS of the files a pull request changed (teams expanded when visible) | `approval` owner → author |
+| A pull request merged without an approving review | `bypass` merger → approvers |
+| Ruleset bypass actors and branch protection allowances (when the token can see them) | `bypass` actor → approvers |
+
+Permissions and history do not prove real authority, so the draft is for a person to
+review: every dependency carries `source`, `evidence` and `confirmed: false`, and reports
+show how many are still unconfirmed. Set `confirmed: true` as you check them and adjust
+`criticality`; running the scan again keeps your confirmations, criticality and the
+dependencies you added by hand (approvals in Slack, escalations, on-call).
+
+```yaml
+- from: lead
+  to: dev
+  type: bypass
+  weight: 1.0
+  source: merge-history+pr-reviews
+  evidence: merged 3 PR(s) without an approving review (#812, #815, #820); also approved 4 of 9 merged PRs by dev
+  confirmed: false
 ```
 
 ## HTML report

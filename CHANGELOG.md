@@ -5,6 +5,16 @@ All notable changes to Human Risk Graph will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-11-13
+
+### ✨ Added
+
+- `hrg scan github OWNER/REPO`: drafts an organization file from a GitHub repository. Approving reviews and CODEOWNERS of changed files become `approval` dependencies; pull requests merged without an approving review, ruleset bypass actors and branch protection allowances become `bypass` dependencies. Teams are expanded when their members are visible. Bots are skipped unless `--include-bots`. Options: `--output`, `--branch`, `--max-prs`, `--token` (default `GITHUB_TOKEN`, `GH_TOKEN` or `gh auth token`).
+- Every scanned dependency has `source`, `evidence` and `confirmed: false`; re-running the scan on an existing draft keeps confirmations, criticality, names, roles and hand-written dependencies.
+- Reports show how many dependencies are unconfirmed (terminal, HTML, Markdown; `unconfirmed_dependencies` in JSON metadata).
+- The schema documents `source`, `evidence` and `confirmed`.
+- docs/model.md: what the score means and what it does not.
+
 ## [0.7.0] - 2026-11-13
 
 ### ✨ Added

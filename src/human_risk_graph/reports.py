@@ -177,6 +177,12 @@ def generate_markdown_report(
     md.append(f"**Input File:** `{metadata['input_file']}`")
     md.append(f"**Organization Size:** {metadata['organization_size']} people")
     md.append(f"**Dependencies:** {metadata['dependencies_count']}")
+    if metadata.get("unconfirmed_dependencies"):
+        md.append("")
+        md.append(
+            f"> **Note:** {metadata['unconfirmed_dependencies']} dependencies are unconfirmed "
+            "(from `hrg scan`). Review them before relying on the score."
+        )
     md.append("")
 
     # Executive Summary

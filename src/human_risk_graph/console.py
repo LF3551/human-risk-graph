@@ -90,6 +90,7 @@ def render_summary(
         return names.get(person_id, person_id)
 
     people, deps = len(data["people"]), len(data["dependencies"])
+    unconfirmed = sum(1 for d in data["dependencies"] if d.get("confirmed") is False)
     console.print()
     console.print(
         Text.assemble(
@@ -102,6 +103,14 @@ def render_summary(
             (f" · config {config_file}" if config_file else "", "dim"),
         )
     )
+    if unconfirmed:
+        console.print(
+            Text(
+                f"  {unconfirmed} of {deps} dependencies are unconfirmed (from hrg scan): "
+                "review them before relying on the score.",
+                style="yellow",
+            )
+        )
     console.print()
 
     grade_style = GRADE_STYLE.get(results["grade"], "bold")
