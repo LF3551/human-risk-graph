@@ -5,6 +5,13 @@ All notable changes to Human Risk Graph will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.2] - 2026-11-13
+
+### 🗑️ Removed
+
+- `scipy` and `matplotlib` are no longer installed with the package: nothing in it imports scipy, and matplotlib was used only by `visualization.generate_static_visualization`, an unused PNG fallback that is removed too. Installs are smaller and pull in fewer dependencies (matplotlib brought pillow). The paper experiments need `pip install "human-risk-graph[experiments]"`, which now includes matplotlib.
+- Unreferenced legacy files: two old logos, an early diagram and `docs/example.md` (#59).
+
 ## [0.15.1] - 2026-11-13
 
 ### 📝 Documentation
