@@ -70,6 +70,13 @@ def _deps(result):
     return {(d["from"], d["to"]): d for d in result.dependencies}
 
 
+REVIEW_RULE = {
+    "repos/acme/api/rules/branches/main": [
+        {"type": "pull_request", "parameters": {"required_approving_review_count": 1}}
+    ]
+}
+
+
 # CODEOWNERS
 
 
@@ -114,11 +121,12 @@ def test_scan_reviews_unreviewed_merges_and_bots():
 
     assert result.branch == "main"
     assert result.pull_requests == 3  # PR 4 is by a bot, PR 5 was closed without merge
-    # lead merged dev's PR 2 without an approving review: a bypass over dev
-    assert deps[("lead", "dev")]["type"] == "bypass"
-    assert deps[("lead", "dev")]["source"] == "merge-history"
-    assert "#2" in deps[("lead", "dev")]["evidence"]
-    assert "approved 1 of 2 merged PRs by dev" in deps[("lead", "dev")]["evidence"]
+    # No review requirement: merging PR 2 without review bypasses nothing.
+    assert result.review_required is False
+    assert deps[("lead", "dev")]["type"] == "approval"
+    assert deps[("lead", "dev")]["weight"] == 0.5
+    assert any("not counted as bypasses" in n for n in result.notes)
+    assert result.gaps == []
     # dev approved lead's only PR; self-approval on PR 1 is ignored
     assert deps[("dev", "lead")]["type"] == "approval"
     assert deps[("dev", "lead")]["weight"] == 1.0
@@ -129,8 +137,28 @@ def test_scan_reviews_unreviewed_merges_and_bots():
     assert "No CODEOWNERS file found." in result.notes
 
 
+def test_unreviewed_merge_is_bypass_when_reviews_are_required():
+    result = GitHubScanner(FakeClient(_routes(**REVIEW_RULE)), "acme/api").scan()
+    dep = _deps(result)[("lead", "dev")]
+    assert result.review_required is True
+    assert dep["type"] == "bypass"
+    assert dep["source"] == "merge-history"
+    assert "#2" in dep["evidence"]
+    assert "approved 1 of 2 merged PRs by dev" in dep["evidence"]
+
+
+def test_invisible_protection_is_a_gap_not_a_bypass():
+    routes = _routes(**{"repos/acme/api/branches/main": {"protected": True}})
+    result = GitHubScanner(FakeClient(routes), "acme/api").scan()
+    assert result.review_required is None
+    assert _deps(result)[("lead", "dev")]["type"] == "approval"
+    assert any("protection settings are not visible" in g for g in result.gaps)
+    assert any("not counted as bypasses" in g for g in result.gaps)
+    assert result.coverage()["review_required"] == "unknown"
+
+
 def test_unreviewed_merge_becomes_bypass_over_approval():
-    routes = _routes()
+    routes = _routes(**REVIEW_RULE)
     routes["repos/acme/api/pulls/2"] = {"merged_by": {"login": "dev"}}
     routes["repos/acme/api/pulls"] = [_pr(1, "dev"), _pr(2, "dev")]
     routes["repos/acme/api/pulls/1/reviews"] = [_review("lead"), _review("qa")]
@@ -187,7 +215,7 @@ def test_invisible_team_kept_as_handle():
     routes = _routes(**{"repos/acme/api/contents/CODEOWNERS": _codeowners("* @acme/core\n")})
     result = GitHubScanner(FakeClient(routes), "acme/api").scan()
     assert ("@acme/core", "dev") in _deps(result)
-    assert any("@acme/core" in n for n in result.notes)
+    assert any("@acme/core" in n for n in result.gaps)
 
 
 def test_ruleset_admin_bypass():
@@ -214,7 +242,7 @@ def test_ruleset_admin_bypass():
     assert deps[("boss", "lead")]["type"] == "bypass"
     assert deps[("boss", "lead")]["source"] == "branch-rules"
     assert deps[("boss", "dev")]["type"] == "bypass"
-    assert any("requires 1 approving review" in n for n in result.notes)
+    assert "Branch main requires approving reviews." in result.notes
     assert any("Integration" in n for n in result.notes)
 
 
@@ -233,7 +261,7 @@ def test_invisible_ruleset_and_classic_protection():
         }
     )
     result = GitHubScanner(FakeClient(routes), "acme/api").scan()
-    assert any("ruleset 3 are not visible" in n for n in result.notes)
+    assert any("ruleset 3 are not visible" in n for n in result.gaps)
     assert _deps(result)[("ops", "dev")]["type"] == "bypass"
 
 
@@ -294,7 +322,7 @@ def fake_github(monkeypatch):
 
 
 def test_cli_scan_then_analyze(tmp_path, fake_github, monkeypatch):
-    fake_github(_routes())
+    fake_github(_routes(**{"repos/acme/api/branches/main": {"protected": True}}))
     monkeypatch.chdir(tmp_path)
     runner = CliRunner()
     result = runner.invoke(cli, ["scan", "github", "acme/api"])
@@ -302,22 +330,31 @@ def test_cli_scan_then_analyze(tmp_path, fake_github, monkeypatch):
     draft = tmp_path / "api-org.yaml"
     assert draft.exists()
     assert "hrg analyze api-org.yaml" in " ".join(result.output.split())
+    assert "Gap:" in result.output
+    coverage = yaml.safe_load(draft.read_text())["coverage"]
+    assert coverage["review_required"] == "unknown"
+    assert len(coverage["gaps"]) == 2
 
     analyzed = runner.invoke(
         cli, ["analyze", str(draft), "--format", "json", "--output", "out.json", "--no-visualize"]
     )
     assert analyzed.exit_code in (0, 3), analyzed.output
-    assert "unconfirmed" in " ".join(analyzed.output.split())
+    output = " ".join(analyzed.output.split())
+    assert "unconfirmed" in output
+    assert "2 data gaps" in output
 
     report = json.loads((tmp_path / "out.json").read_text())
     total = report["metadata"]["dependencies_count"]
     assert report["metadata"]["unconfirmed_dependencies"] == total > 0
+    assert report["metadata"]["coverage_gaps"] == coverage["gaps"]
 
     for fmt, name in (("html", "out.html"), ("markdown", "out.md")):
         runner.invoke(
             cli, ["analyze", str(draft), "--format", fmt, "--output", name, "--no-visualize"]
         )
-        assert f"{total} dependencies are unconfirmed" in (tmp_path / name).read_text()
+        text = (tmp_path / name).read_text()
+        assert f"{total} dependencies are unconfirmed" in text
+        assert "protection settings are not visible" in text
 
 
 def test_cli_scan_updates_existing_draft(tmp_path, fake_github):

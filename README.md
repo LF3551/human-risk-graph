@@ -69,7 +69,7 @@ hrg analyze my-org.yaml
 ```
 
 ```
-Human Risk Graph 0.8.0 · organization.yaml · 5 people · 5 dependencies
+Human Risk Graph 0.8.1 · organization.yaml · 5 people · 5 dependencies
 
   Score  25/100  ██░░░░░░░░  F · Critical risk  model hrg-2
 
@@ -85,10 +85,8 @@ Human Risk Graph 0.8.0 · organization.yaml · 5 people · 5 dependencies
   Findings  3 errors · 2 warnings
    ▲ HRG001 Alice (alice) is a single point of failure (criticality 0.90): losing them cuts off 2 people
             and 67% of the connections between the others.
-   ▲ HRG002 Approval authority is concentrated (1.5 effective approvers of 2); Alice (alice) holds 77%
-            of the approval weight.
-   △ HRG003 Bob (bob) can bypass Alice (alice) and override the controls they enforce; one of them is
-            critical.
+   ▲ HRG001 Bob (bob) is a single point of failure (criticality 0.70): losing them cuts off 1 person and
+            50% of the connections between the others.
    ...
 ```
 
@@ -108,7 +106,7 @@ evidence into dependencies:
 |---|---|
 | Approving reviews by someone other than the author | `approval` reviewer → author |
 | CODEOWNERS of the files a pull request changed (teams expanded when visible) | `approval` owner → author |
-| A pull request merged without an approving review | `bypass` merger → approvers |
+| A pull request merged without an approving review, on a branch that requires reviews | `bypass` merger → approvers |
 | Ruleset bypass actors and branch protection allowances (when the token can see them) | `bypass` actor → approvers |
 
 Permissions and history do not prove real authority, so the draft is for a person to
@@ -116,6 +114,10 @@ review: every dependency carries `source`, `evidence` and `confirmed: false`, an
 show how many are still unconfirmed. Set `confirmed: true` as you check them and adjust
 `criticality`; running the scan again keeps your confirmations, criticality and the
 dependencies you added by hand (approvals in Slack, escalations, on-call).
+
+What the token cannot see (protection settings and bypass actors need admin access, team
+members need org membership) is listed under `coverage.gaps` and shown in every report: a
+bypass the scan did not find is not proof that none exists.
 
 ```yaml
 - from: lead

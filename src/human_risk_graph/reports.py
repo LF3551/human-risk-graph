@@ -183,6 +183,14 @@ def generate_markdown_report(
             f"> **Note:** {metadata['unconfirmed_dependencies']} dependencies are unconfirmed "
             "(from `hrg scan`). Review them before relying on the score."
         )
+    if metadata.get("coverage_gaps"):
+        md.append("")
+        md.append(
+            f"> **Data gaps ({len(metadata['coverage_gaps'])}):** what the scan could not see "
+            "is not evidence that it does not exist."
+        )
+        for gap in metadata["coverage_gaps"]:
+            md.append(f"> - {gap}")
     md.append("")
 
     # Executive Summary

@@ -6,8 +6,8 @@ Two kinds of remediation are simulated:
 - ``deputy``: add a deputy for a person who shares their approvals (each approval's weight
   is split between the two), has the same escalations, and can be overridden by the same
   bypasses, but does not get the person's own bypass powers.
-- ``control-bypass``: put a second-person check on a bypass, modelled as turning it into
-  a regular escalation.
+- ``control-bypass``: put a second-person check on a bypass, so that it is no longer a
+  single-person override; modelled as removing the bypass.
 
 The plan is greedy: apply the best remediation, re-evaluate, repeat.
 """
@@ -64,12 +64,9 @@ def _with_deputy(people, dependencies, person_id: str):
 
 def _with_controlled_bypass(dependencies, edge: Tuple[str, str]):
     return [
-        (
-            {**dep, "type": "escalation"}
-            if (dep["from"], dep["to"]) == edge and dep.get("type") == "bypass"
-            else dep
-        )
+        dep
         for dep in dependencies
+        if not ((dep["from"], dep["to"]) == edge and dep.get("type") == "bypass")
     ]
 
 

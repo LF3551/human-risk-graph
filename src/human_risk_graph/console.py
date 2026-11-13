@@ -111,6 +111,17 @@ def render_summary(
                 style="yellow",
             )
         )
+    gaps = [g for g in ((data.get("coverage") or {}).get("gaps") or []) if g]
+    if gaps:
+        console.print(
+            Text(
+                f"  {len(gaps)} data {'gap' if len(gaps) == 1 else 'gaps'}: what the scan could "
+                "not see is not evidence that it does not exist.",
+                style="yellow",
+            )
+        )
+        for gap in gaps:
+            console.print(Text(f"    · {gap}", style="dim"))
     console.print()
 
     grade_style = GRADE_STYLE.get(results["grade"], "bold")

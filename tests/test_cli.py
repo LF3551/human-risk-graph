@@ -69,12 +69,12 @@ def test_summary_shows_score_and_fixes(org):
     result = run("analyze", org, "--format", "json", "--no-visualize")
 
     assert result.exit_code == 0, result.output
-    assert "61/100" in result.output
+    assert "52/100" in result.output
     assert "D · Moderate risk" in result.output
     assert "Top fixes" in result.output
-    assert "61 → 70" in result.output
+    assert "52 → 60" in result.output
     report = json.loads((org.parent / "org_report.json").read_text())
-    assert report["results"]["score"] == 61
+    assert report["results"]["score"] == 52
     assert len(report["fix_plan"]) == 3
 
 
@@ -82,9 +82,9 @@ def test_min_score_and_quiet(org):
     result = run("analyze", org, "--format", "json", "--no-visualize", "-q", "--min-score", "70")
 
     assert result.exit_code == 3
-    assert result.output.strip() == "Error: Score 61 is below the minimum 70."
+    assert result.output.strip() == "Error: Score 52 is below the minimum 70."
 
-    result = run("analyze", org, "--format", "json", "--no-visualize", "-q", "--min-score", "60")
+    result = run("analyze", org, "--format", "json", "--no-visualize", "-q", "--min-score", "50")
     assert result.exit_code == 0
     assert result.output == ""
 
@@ -151,15 +151,15 @@ def test_yaml_id_must_be_string(tmp_path):
 
 def test_diff(org, tmp_path):
     data = json.loads(org.read_text())
-    johan = next(p for p in data["people"] if p["id"] == "johan.lindberg")
-    johan["criticality"] = 0.95  # the main single point of failure becomes more critical
+    anna = next(p for p in data["people"] if p["id"] == "anna.mueller")
+    anna["criticality"] = 0.95  # the main single point of failure becomes more critical
     new = tmp_path / "new.json"
     new.write_text(json.dumps(data))
 
     result = run("diff", org, new, "--format", "markdown")
     assert result.exit_code == 0, result.output
-    assert "~ person johan.lindberg: criticality 0.58 => 0.95" in result.output
-    assert "| **Score** | 61 (D) |" in result.output
+    assert "~ person anna.mueller: criticality 0.85 => 0.95" in result.output
+    assert "| **Score** | 52 (D) |" in result.output
 
     result = run("diff", org, new, "--fail-on-increase")
     assert result.exit_code == 3
