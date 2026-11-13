@@ -1,0 +1,37 @@
+# Public repositories with a machine-readable list of the people allowed to approve changes.
+# `hrg scan github` does not read these files, so they serve as independent ground truth.
+#
+# governance: path in the repository, or OWNER/REPO:PATH for a file in another repository
+# format:     handles (GitHub @handles or github.com links in a text file, up to an
+#             emeritus/retired section) or owners (Kubernetes OWNERS YAML; aliases are
+#             resolved through OWNERS_ALIASES next to it)
+# keys:       for owners: which lists grant approval
+
+- repo: prometheus/prometheus
+  governance: MAINTAINERS.md
+  format: handles
+- repo: open-policy-agent/opa
+  governance: MAINTAINERS.md
+  format: handles
+- repo: kyverno/kyverno
+  governance: OWNERS.md
+  format: handles
+- repo: fluxcd/flux2
+  governance: fluxcd/community:CORE-MAINTAINERS
+  format: handles
+- repo: helm/helm
+  governance: OWNERS
+  format: owners
+  keys: [maintainers]
+- repo: etcd-io/etcd
+  governance: OWNERS
+  format: owners
+  keys: [approvers]
+- repo: cert-manager/cert-manager
+  governance: OWNERS
+  format: owners
+  keys: [approvers]
+- repo: kubernetes-sigs/kustomize
+  governance: OWNERS
+  format: owners
+  keys: [approvers]

@@ -183,6 +183,9 @@ class ScanResult:
     api_calls: int
     review_required: Optional[bool] = None
     gaps: List[str] = field(default_factory=list)
+    # Approving reviews given per person, and code owners seen, before dependencies are merged.
+    approvals_given: Dict[str, int] = field(default_factory=dict)
+    code_owners: List[str] = field(default_factory=list)
 
     def coverage(self) -> Dict[str, Any]:
         return {
@@ -538,6 +541,8 @@ class GitHubScanner:
             dependencies=list(best.values()),
             notes=self.notes,
             api_calls=self.client.calls,
+            approvals_given=dict(approvers_seen),
+            code_owners=sorted(owners_seen),
         )
 
 

@@ -1,0 +1,473 @@
+{
+  "date": "2026-11-13",
+  "tool_version": "0.9.0",
+  "max_prs": 100,
+  "api_calls": 1042,
+  "repos": [
+    {
+      "repo": "prometheus/prometheus",
+      "governance": "MAINTAINERS.md",
+      "pull_requests": 100,
+      "review_required": "unknown",
+      "gaps": 3,
+      "approvals_given": {
+        "bboreham": 7,
+        "krajorama": 17,
+        "dgl": 1,
+        "ArthurSens": 3,
+        "aknuds1": 17,
+        "dashpole": 10,
+        "jan--f": 1,
+        "saswatamcode": 10,
+        "rhamitarora": 3,
+        "machine424": 1,
+        "xoveyu01-netizen": 1,
+        "SoloJacobs": 1,
+        "shilohlee98": 1,
+        "TheMeier": 1,
+        "vpranckaitis": 5,
+        "bobbyhohoho1-spec": 1,
+        "ywwg": 2,
+        "bwplotka": 25,
+        "roidelapluie": 7,
+        "kgeckhart": 3,
+        "Nexucis": 2,
+        "SuperQ": 2,
+        "matt-gp": 1,
+        "sysadmind": 2,
+        "fpetkovski": 1,
+        "GiedriusS": 1,
+        "duricanikolic": 1,
+        "zenador": 1,
+        "juliusv": 2,
+        "MichaHoffmann": 1,
+        "apricote": 1,
+        "kakkoyun": 1
+      },
+      "metrics": {
+        "declared": 25,
+        "approvers": 32,
+        "matched": 13,
+        "precision": 0.40625,
+        "recall": 0.52,
+        "approvals_by_declared": 0.6917293233082706,
+        "top_approver_declared": true,
+        "undeclared_approvers": [
+          [
+            "dashpole",
+            10
+          ],
+          [
+            "saswatamcode",
+            10
+          ],
+          [
+            "rhamitarora",
+            3
+          ],
+          [
+            "sysadmind",
+            2
+          ],
+          [
+            "ywwg",
+            2
+          ],
+          [
+            "apricote",
+            1
+          ],
+          [
+            "bobbyhohoho1-spec",
+            1
+          ],
+          [
+            "duricanikolic",
+            1
+          ],
+          [
+            "fpetkovski",
+            1
+          ],
+          [
+            "giedriuss",
+            1
+          ],
+          [
+            "jan--f",
+            1
+          ],
+          [
+            "kakkoyun",
+            1
+          ],
+          [
+            "matt-gp",
+            1
+          ],
+          [
+            "michahoffmann",
+            1
+          ],
+          [
+            "shilohlee98",
+            1
+          ],
+          [
+            "solojacobs",
+            1
+          ],
+          [
+            "themeier",
+            1
+          ],
+          [
+            "xoveyu01-netizen",
+            1
+          ],
+          [
+            "zenador",
+            1
+          ]
+        ],
+        "inactive_declared": [
+          "alexgreenbank",
+          "brancz",
+          "codesome",
+          "cstyan",
+          "jesusvazquez",
+          "jkroepke",
+          "jooola",
+          "metalmatze",
+          "mrvarmazyar",
+          "remyleone",
+          "simonpasquier",
+          "tomwilkie"
+        ]
+      }
+    },
+    {
+      "repo": "open-policy-agent/opa",
+      "governance": "MAINTAINERS.md",
+      "pull_requests": 100,
+      "review_required": "unknown",
+      "gaps": 2,
+      "approvals_given": {
+        "srenatus": 45,
+        "anderseknert": 13,
+        "charlieegan3": 10,
+        "philipaconrad": 2,
+        "sspaink": 25,
+        "johanfylling": 5
+      },
+      "metrics": {
+        "declared": 10,
+        "approvers": 6,
+        "matched": 3,
+        "precision": 0.5,
+        "recall": 0.3,
+        "approvals_by_declared": 0.68,
+        "top_approver_declared": true,
+        "undeclared_approvers": [
+          [
+            "sspaink",
+            25
+          ],
+          [
+            "johanfylling",
+            5
+          ],
+          [
+            "philipaconrad",
+            2
+          ]
+        ],
+        "inactive_declared": [
+          "ashutosh-narkar",
+          "jalseth",
+          "jaydipgabani",
+          "maxsmythe",
+          "sozercan",
+          "timothyhinrichs",
+          "tsandall"
+        ]
+      }
+    },
+    {
+      "repo": "kyverno/kyverno",
+      "governance": "OWNERS.md",
+      "pull_requests": 100,
+      "review_required": "yes",
+      "gaps": 3,
+      "approvals_given": {
+        "liuxu623": 5,
+        "realshuting": 1,
+        "raunak-nirmata": 10,
+        "ammaryasser-soar": 1,
+        "aerosouund": 8,
+        "fjogeleit": 2,
+        "JimBugwadia": 16,
+        "Suhani95": 3,
+        "Rohanraj123": 1,
+        "rx18-eng": 12
+      },
+      "metrics": {
+        "declared": 10,
+        "approvers": 10,
+        "matched": 5,
+        "precision": 0.5,
+        "recall": 0.5,
+        "approvals_by_declared": 0.5423728813559322,
+        "top_approver_declared": true,
+        "undeclared_approvers": [
+          [
+            "rx18-eng",
+            12
+          ],
+          [
+            "raunak-nirmata",
+            10
+          ],
+          [
+            "suhani95",
+            3
+          ],
+          [
+            "ammaryasser-soar",
+            1
+          ],
+          [
+            "rohanraj123",
+            1
+          ]
+        ],
+        "inactive_declared": [
+          "eddycharly",
+          "mariamfahmy98",
+          "vishal-chdhry",
+          "yrsuthari",
+          "ytghost"
+        ]
+      }
+    },
+    {
+      "repo": "fluxcd/flux2",
+      "governance": "fluxcd/community:CORE-MAINTAINERS",
+      "pull_requests": 100,
+      "review_required": "unknown",
+      "gaps": 1,
+      "approvals_given": {
+        "stealthybox": 4,
+        "matheuscscp": 51,
+        "stefanprodan": 51,
+        "Karthik-Chowdary": 1
+      },
+      "metrics": {
+        "declared": 10,
+        "approvers": 4,
+        "matched": 3,
+        "precision": 0.75,
+        "recall": 0.3,
+        "approvals_by_declared": 0.9906542056074766,
+        "top_approver_declared": true,
+        "undeclared_approvers": [
+          [
+            "karthik-chowdary",
+            1
+          ]
+        ],
+        "inactive_declared": [
+          "aryan9600",
+          "fluxcd",
+          "hiddeco",
+          "makkes",
+          "pjbgf",
+          "relu",
+          "souleb"
+        ]
+      }
+    },
+    {
+      "repo": "helm/helm",
+      "governance": "OWNERS",
+      "pull_requests": 42,
+      "review_required": "yes",
+      "gaps": 4,
+      "approvals_given": {
+        "stuartjturner": 2,
+        "TerryHowe": 26,
+        "banjoh": 6,
+        "gjenkins8": 14,
+        "sabre1041": 2,
+        "ChadiDridi": 1,
+        "scottrigby": 9,
+        "robertsirc": 4,
+        "matheuscscp": 1,
+        "benoittgt": 1,
+        "joejulian": 1,
+        "mattfarina": 3
+      },
+      "metrics": {
+        "declared": 10,
+        "approvers": 12,
+        "matched": 8,
+        "precision": 0.6666666666666666,
+        "recall": 0.8,
+        "approvals_by_declared": 0.9285714285714286,
+        "top_approver_declared": true,
+        "undeclared_approvers": [
+          [
+            "stuartjturner",
+            2
+          ],
+          [
+            "benoittgt",
+            1
+          ],
+          [
+            "chadidridi",
+            1
+          ],
+          [
+            "matheuscscp",
+            1
+          ]
+        ],
+        "inactive_declared": [
+          "marckhouzam",
+          "technosophos"
+        ]
+      }
+    },
+    {
+      "repo": "etcd-io/etcd",
+      "governance": "OWNERS",
+      "pull_requests": 83,
+      "review_required": "unknown",
+      "gaps": 1,
+      "approvals_given": {
+        "ahrtr": 54,
+        "ivanvc": 9,
+        "serathius": 22,
+        "fuweid": 27,
+        "siyuanfoundation": 2,
+        "lhmzhou": 1,
+        "jmhbnz": 2,
+        "silentred": 1,
+        "akRoblox": 1
+      },
+      "metrics": {
+        "declared": 7,
+        "approvers": 9,
+        "matched": 5,
+        "precision": 0.5555555555555556,
+        "recall": 0.7142857142857143,
+        "approvals_by_declared": 0.957983193277311,
+        "top_approver_declared": true,
+        "undeclared_approvers": [
+          [
+            "jmhbnz",
+            2
+          ],
+          [
+            "akroblox",
+            1
+          ],
+          [
+            "lhmzhou",
+            1
+          ],
+          [
+            "silentred",
+            1
+          ]
+        ],
+        "inactive_declared": [
+          "jberkus",
+          "spzala"
+        ]
+      }
+    },
+    {
+      "repo": "cert-manager/cert-manager",
+      "governance": "OWNERS",
+      "pull_requests": 57,
+      "review_required": "unknown",
+      "gaps": 1,
+      "approvals_given": {
+        "lunarwhite": 2,
+        "wallrj": 16,
+        "SgtCoDFish": 5,
+        "jakexks": 1
+      },
+      "metrics": {
+        "declared": 10,
+        "approvers": 4,
+        "matched": 3,
+        "precision": 0.75,
+        "recall": 0.3,
+        "approvals_by_declared": 0.9166666666666666,
+        "top_approver_declared": true,
+        "undeclared_approvers": [
+          [
+            "lunarwhite",
+            2
+          ]
+        ],
+        "inactive_declared": [
+          "erikgb",
+          "hjoshi123",
+          "inteon",
+          "joshvanl",
+          "maelvls",
+          "munnerz",
+          "thatsmrtalbot"
+        ]
+      }
+    },
+    {
+      "repo": "kubernetes-sigs/kustomize",
+      "governance": "OWNERS",
+      "pull_requests": 50,
+      "review_required": "unknown",
+      "gaps": 2,
+      "approvals_given": {
+        "varshaprasad96": 10,
+        "chansuke": 1,
+        "koba1t": 2,
+        "seh": 1
+      },
+      "metrics": {
+        "declared": 3,
+        "approvers": 4,
+        "matched": 2,
+        "precision": 0.5,
+        "recall": 0.6666666666666666,
+        "approvals_by_declared": 0.8571428571428571,
+        "top_approver_declared": true,
+        "undeclared_approvers": [
+          [
+            "chansuke",
+            1
+          ],
+          [
+            "seh",
+            1
+          ]
+        ],
+        "inactive_declared": [
+          "knverey"
+        ]
+      }
+    }
+  ],
+  "totals": {
+    "declared": 85,
+    "approvers": 81,
+    "matched": 42,
+    "pull_requests": 632,
+    "precision": 0.5185185185185185,
+    "recall": 0.49411764705882355,
+    "approvals_by_declared": 0.8162939297124601
+  }
+}
