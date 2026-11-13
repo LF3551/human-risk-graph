@@ -25,6 +25,7 @@ from .reports import (
     _formula,
     _metric_labels,
     _weights,
+    privacy_text,
     unconfirmed_text,
 )
 
@@ -804,6 +805,9 @@ def render(
         verdict=_e(_verdict(results, tiles)),
         finding_summary=finding_summary,
         unconfirmed=(
+            f'<p class="notice">{_e(privacy_text(metadata))}</p>' if privacy_text(metadata) else ""
+        )
+        + (
             f'<p class="notice">{_e(unconfirmed_text(metadata))} (from '
             "<code>hrg scan</code>): review them before relying on the score."
             + _confirmed_only_text(metadata.get("confirmed_only"))

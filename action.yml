@@ -7,17 +7,29 @@ branding:
 
 inputs:
   file:
-    description: Organization file (JSON or YAML) to analyze. Set either `file` or `scan`.
+    description: Organization file (JSON or YAML) to analyze. Set exactly one of `file`, `scan` and `scan-org`.
     required: false
     default: ""
   scan:
-    description: Repository (OWNER/REPO) to draft an organization from with `hrg scan github` before the analysis. Set either `file` or `scan`.
+    description: Repository (OWNER/REPO) to draft an organization from with `hrg scan github` before the analysis.
     required: false
     default: ""
-  max-prs:
-    description: With `scan`, the most recent merged pull requests to read.
+  scan-org:
+    description: GitHub organization (or user) whose most recently pushed repositories are scanned and merged into one draft.
     required: false
-    default: "100"
+    default: ""
+  max-repos:
+    description: With `scan-org`, how many repositories to scan.
+    required: false
+    default: "30"
+  max-prs:
+    description: With `scan` or `scan-org`, the most recent merged pull requests to read per repository (default 100, or 30 with `scan-org`).
+    required: false
+    default: ""
+  pseudonymize:
+    description: Replace people by keyed pseudonyms in every report. Set the key with the `HRG_PSEUDONYM_KEY` environment variable from a secret; the draft with real names is then not uploaded.
+    required: false
+    default: "false"
   token:
     description: GitHub token used by `scan`.
     required: false
@@ -118,7 +130,10 @@ runs:
         HRG_PY: ${{ steps.install.outputs.python }}
         HRG_FILE: ${{ inputs.file }}
         HRG_SCAN: ${{ inputs.scan }}
+        HRG_SCAN_ORG: ${{ inputs.scan-org }}
+        HRG_MAX_REPOS: ${{ inputs.max-repos }}
         HRG_MAX_PRS: ${{ inputs.max-prs }}
+        HRG_PSEUDONYMIZE: ${{ inputs.pseudonymize }}
         HRG_GITHUB_TOKEN: ${{ inputs.token }}
         HRG_CONFIG: ${{ inputs.config }}
         HRG_MIN_SCORE: ${{ inputs.min-score }}
@@ -128,20 +143,33 @@ runs:
       run: |
         set -uo pipefail
         hrg() { "$HRG_PY" -m human_risk_graph.cli "$@"; }
-        if { [ -n "$HRG_FILE" ] && [ -n "$HRG_SCAN" ]; } || { [ -z "$HRG_FILE" ] && [ -z "$HRG_SCAN" ]; }; then
-          echo "::error::Set exactly one of the inputs 'file' and 'scan'."
+        sources=0
+        for value in "$HRG_FILE" "$HRG_SCAN" "$HRG_SCAN_ORG"; do
+          if [ -n "$value" ]; then sources=$((sources + 1)); fi
+        done
+        if [ "$sources" -ne 1 ]; then
+          echo "::error::Set exactly one of the inputs 'file', 'scan' and 'scan-org'."
           exit 1
         fi
         mkdir -p "$HRG_OUT"
 
+        # A pseudonymized run keeps the draft, which has real names, out of the artifact.
+        drafts="$HRG_OUT"
+        if [ "$HRG_PSEUDONYMIZE" = "true" ]; then drafts="$RUNNER_TEMP"; fi
         input="$HRG_FILE"
+        scan_args=()
+        if [ -n "$HRG_MAX_PRS" ]; then scan_args+=(--max-prs "$HRG_MAX_PRS"); fi
         if [ -n "$HRG_SCAN" ]; then
-          input="$HRG_OUT/${HRG_SCAN##*/}-org.yaml"
-          hrg scan github "$HRG_SCAN" --output "$input" --max-prs "$HRG_MAX_PRS" || exit 1
+          input="$drafts/${HRG_SCAN##*/}-org.yaml"
+          hrg scan github "$HRG_SCAN" --output "$input" ${scan_args[@]+"${scan_args[@]}"} || exit 1
+        elif [ -n "$HRG_SCAN_ORG" ]; then
+          input="$drafts/${HRG_SCAN_ORG}-org.yaml"
+          hrg scan github --org "$HRG_SCAN_ORG" --max-repos "$HRG_MAX_REPOS" --output "$input" ${scan_args[@]+"${scan_args[@]}"} || exit 1
         fi
         unset HRG_GITHUB_TOKEN
 
         args=(analyze "$input" --format all --format sarif --output "$HRG_OUT/report" --no-visualize)
+        if [ "$HRG_PSEUDONYMIZE" = "true" ]; then args+=(--pseudonymize); fi
         if [ -n "$HRG_CONFIG" ]; then args+=(--config "$HRG_CONFIG"); fi
         if [ -n "$HRG_MIN_SCORE" ]; then args+=(--min-score "$HRG_MIN_SCORE"); fi
         if [ -n "$HRG_FAIL_ABOVE" ]; then args+=(--fail-above "$HRG_FAIL_ABOVE"); fi
@@ -152,9 +180,8 @@ runs:
           exit "$code"
         fi
 
-        stem="$(basename "$input")"
-        stem="${stem%.*}"
-        report="$HRG_OUT/${stem}_report"
+        report_json="$(ls -t "$HRG_OUT"/*_report.json | head -n 1)"
+        report="${report_json%.json}"
         "$HRG_PY" -m human_risk_graph.gha summary "$report.json" >> "$GITHUB_STEP_SUMMARY"
         {
           "$HRG_PY" -m human_risk_graph.gha outputs "$report.json"

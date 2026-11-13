@@ -25,6 +25,11 @@
           "type": "array",
           "items": { "type": "string" },
           "description": "Data the scan could not see; shown in every report."
+        },
+        "repositories": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Repositories an organization scan (hrg scan github --org) covered."
         }
       }
     },

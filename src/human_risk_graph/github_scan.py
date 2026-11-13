@@ -200,9 +200,11 @@ class ScanResult:
     code_owners: List[str] = field(default_factory=list)
     # Critical functions for model hrg-3: merge, release, admin.
     functions: List[Dict[str, Any]] = field(default_factory=list)
+    # Repositories an organization scan covered; empty for a single repository.
+    repositories: List[str] = field(default_factory=list)
 
     def coverage(self) -> Dict[str, Any]:
-        return {
+        coverage = {
             "source": f"github {self.repo}",
             "branch": self.branch,
             "pull_requests": self.pull_requests,
@@ -211,6 +213,9 @@ class ScanResult:
             ),
             "gaps": self.gaps,
         }
+        if self.repositories:
+            coverage["repositories"] = self.repositories
+        return coverage
 
 
 def _is_bot(login: str) -> bool:
@@ -657,6 +662,174 @@ class GitHubScanner:
         )
 
 
+# Organization
+
+TYPE_RANK = {"bypass": 2, "approval": 1}  # one dependency per (from, to): the strongest wins
+EVIDENCE_LIMIT = 5
+
+
+def list_repositories(
+    client: GitHubClient, org: str, include_archived: bool = False, include_forks: bool = False
+) -> Tuple[List[str], Counter]:
+    """Repositories of an organization (or user), most recently pushed first, and skip counts."""
+    repos = client.get(f"orgs/{org}/repos", {"type": "all", "per_page": 100}, 5000)
+    if repos is None:
+        repos = client.get(f"users/{org}/repos", {"type": "owner", "per_page": 100}, 5000)
+    if repos is None:
+        raise GitHubError(f"Organization or user {org} not found or not visible to this token")
+    skipped: Counter = Counter()
+    kept = []
+    for repo in repos:
+        if repo.get("archived") and not include_archived:
+            skipped["archived"] += 1
+        elif repo.get("fork") and not include_forks:
+            skipped["forks"] += 1
+        elif repo.get("disabled"):
+            skipped["disabled"] += 1
+        else:
+            kept.append(repo)
+    kept.sort(key=lambda r: (r.get("pushed_at") or "", r["full_name"]), reverse=True)
+    return [r["full_name"] for r in kept], skipped
+
+
+def _joined(items: List[str]) -> str:
+    shown = "; ".join(items[:EVIDENCE_LIMIT])
+    more = len(items) - EVIDENCE_LIMIT
+    return shown + (f"; and {more} more" if more > 0 else "")
+
+
+def merge_scans(scope: str, results: List[ScanResult]) -> ScanResult:
+    """
+    One organization from the scans of several repositories.
+
+    People appear once, with the highest criticality any repository gave them. Dependencies
+    between the same two people are merged: a bypass anywhere outranks approvals, and the
+    weight is the highest seen. Functions stay per repository (``REPO/merge``), because who
+    can merge or release differs between repositories.
+    """
+    people: Dict[str, Dict[str, Any]] = {}
+    evidence: Dict[str, List[str]] = defaultdict(list)
+    deps: Dict[Tuple[str, str], List[Tuple[str, Dict[str, Any]]]] = defaultdict(list)
+    functions: List[Dict[str, Any]] = []
+    gaps: List[str] = []
+    approvals: Counter = Counter()
+    owners: Set[str] = set()
+    for result in results:
+        short = result.repo.split("/")[-1]
+        for person in result.people:
+            known = people.get(person["id"])
+            if known is None or person["criticality"] > known["criticality"]:
+                people[person["id"]] = dict(person)
+            if person.get("evidence"):
+                evidence[person["id"]].append(f"{short}: {person['evidence']}")
+        for dep in result.dependencies:
+            deps[(dep["from"], dep["to"])].append((short, dep))
+        for f in result.functions:
+            functions.append({**f, "id": f"{short}/{f['id']}", "name": f"{f['name']} ({short})"})
+        gaps += [f"{short}: {gap}" for gap in result.gaps]
+        approvals.update(result.approvals_given)
+        owners.update(result.code_owners)
+
+    for pid, person in people.items():
+        person["evidence"] = _joined(evidence[pid])
+        if len(evidence[pid]) > 1:
+            person["role"] = f"{person['role']} (in {len(evidence[pid])} repositories)"
+
+    dependencies = []
+    for (source, target), found in sorted(deps.items()):
+        kind = max((d["type"] for _, d in found), key=lambda t: TYPE_RANK.get(t, 0))
+        dependencies.append(
+            {
+                "from": source,
+                "to": target,
+                "type": kind,
+                "weight": max(d.get("weight", 0.5) for _, d in found if d["type"] == kind),
+                "source": "+".join(
+                    sorted({s for _, d in found for s in str(d.get("source", "")).split("+") if s})
+                ),
+                "evidence": _joined([f"{short}: {d.get('evidence', '')}" for short, d in found]),
+                "confirmed": False,
+            }
+        )
+
+    required = {r.review_required for r in results}
+    return ScanResult(
+        repo=scope,
+        branch="default branch of each repository",
+        pull_requests=sum(r.pull_requests for r in results),
+        people=sorted(people.values(), key=lambda p: (-p["criticality"], p["id"])),
+        dependencies=dependencies,
+        notes=[],
+        api_calls=max((r.api_calls for r in results), default=0),
+        review_required=required.pop() if len(required) == 1 else None,
+        gaps=gaps,
+        approvals_given=dict(approvals),
+        code_owners=sorted(owners),
+        functions=functions,
+        repositories=[r.repo for r in results],
+    )
+
+
+def scan_organization(
+    client: GitHubClient,
+    org: str,
+    max_repos: int = 30,
+    max_prs: int = 30,
+    include_bots: bool = False,
+    include_archived: bool = False,
+    include_forks: bool = False,
+    progress: Optional[Callable[[str], None]] = None,
+) -> ScanResult:
+    """Scan the most recently pushed repositories of an organization and merge the results."""
+    if not re.fullmatch(r"[\w.-]+", org):
+        raise ValueError(f"expected an organization or user name, got {org!r}")
+    report: Callable[[str], None] = progress or (lambda message: None)
+
+    def prefixed(prefix: str) -> Callable[[str], None]:
+        return lambda message: report(prefix + message)
+
+    report(f"Listing repositories of {org}")
+    names, skipped = list_repositories(client, org, include_archived, include_forks)
+    selected = names[:max_repos]
+    results: List[ScanResult] = []
+    failed: List[str] = []
+    for i, repo in enumerate(selected, 1):
+        scanner = GitHubScanner(
+            client,
+            repo,
+            max_prs=max_prs,
+            include_bots=include_bots,
+            progress=prefixed(f"{i}/{len(selected)} {repo}: "),
+        )
+        try:
+            results.append(scanner.scan())
+        except GitHubError as e:
+            if "rate limit" in str(e):
+                raise
+            failed.append(f"{repo}: {e}")
+    if not results:
+        raise GitHubError(
+            f"No repository of {org} could be scanned"
+            + (f" ({failed[0]})" if failed else " (none found)")
+        )
+
+    merged = merge_scans(org, results)
+    note = (
+        f"Scanned {len(results)} of {len(names)} repositories of {org}, most recently pushed first"
+    )
+    if skipped:
+        note += "; skipped " + ", ".join(f"{n} {kind}" for kind, n in sorted(skipped.items()))
+    merged.notes.append(note + ".")
+    if len(names) > len(selected):
+        merged.notes.append(
+            f"{len(names) - len(selected)} less recently pushed repositories were not scanned "
+            "(raise --max-repos to include them)."
+        )
+    merged.gaps += [f"Could not scan {f}" for f in failed]
+    merged.api_calls = client.calls
+    return merged
+
+
 # Draft file
 
 
@@ -722,9 +895,15 @@ def merge_with_existing(result: ScanResult, existing: Optional[Dict[str, Any]]) 
 def draft_yaml(result: ScanResult, notes: Iterable[str] = ()) -> str:
     import yaml
 
+    command = (
+        f"hrg scan github --org {result.repo}"
+        if result.repositories
+        else f"hrg scan github {result.repo}"
+    )
+    where = f"{len(result.repositories)} repositories" if result.repositories else result.branch
     header = [
-        f"# Draft generated by `hrg scan github {result.repo}` on {date.today().isoformat()}",
-        f"# from {result.pull_requests} merged pull requests into {result.branch}.",
+        f"# Draft generated by `{command}` on {date.today().isoformat()}",
+        f"# from {result.pull_requests} merged pull requests into {where}.",
         "#",
         "# Review before relying on the score: GitHub permissions and history do not prove",
         "# real authority. For every dependency check `evidence`, fix `type` or `weight`, and",
