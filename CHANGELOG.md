@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Default criticality in report metadata is 0.5, as in the model (was 0.0).
 - Reports record the input path as given instead of the absolute path, so shared reports do not reveal local directory names.
 - Example reports in `data/` regenerated with the current version.
+- README rewritten around the product (banner, quick start, why, report screenshot); Python badge shows the supported 3.10-3.14 instead of a stale cached list. PyPI status is Beta.
 
 ## [0.5.0] - 2026-11-13
 
