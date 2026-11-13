@@ -131,3 +131,16 @@ def test_junit_report_passes_without_findings():
     root = ET.fromstring(generate_junit_report([], results, fail_above=0.5))
     assert root.get("failures") == "0"
     assert root.find("testsuite").get("skipped") == "0"
+
+
+def test_compliance_doc_lists_every_rule_and_control():
+    doc = (ROOT / "docs" / "compliance.md").read_text(encoding="utf-8")
+    rules_part, controls_part = doc.split("## Related controls")
+    rows = {line.split("|")[1].strip(" `"): line for line in controls_part.splitlines()
+            if line.startswith("| `HRG")}  # fmt: skip
+    assert set(rows) == set(RULES)
+    for rule in RULES.values():
+        assert f"`{rule.id}` {rule.name}" in rules_part
+        for refs in rule.controls.values():
+            for ref, title in refs:
+                assert f"{ref} {title}" in rows[rule.id], (rule.id, ref)

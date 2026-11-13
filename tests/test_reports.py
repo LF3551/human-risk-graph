@@ -214,6 +214,8 @@ def test_map_layout_spreads_nodes_and_labels():
     pts = list(spread.values())
     closest = min(math.dist(a, b) for i, a in enumerate(pts) for b in pts[i + 1 :])  # noqa: E203
     assert closest > 60
+    same = _spread({"a": (400, 300), "b": (400, 300)})
+    assert same["a"] != same["b"]
 
     names = {n: f"Person number {n}" for n in spread}
     labels = _place_labels(sorted(spread), names, spread, {n: 10 for n in spread}, [])

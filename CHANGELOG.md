@@ -5,6 +5,13 @@ All notable changes to Human Risk Graph will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 📝 Documentation
+
+- [docs/compliance.md](docs/compliance.md) and the README list HRG005 and HRG006 with their ISO/IEC 27001, SOC 2 and DORA controls, and which rules each model raises. A test keeps the document in step with the rules.
+- README workflow examples use `@v0.13.0`.
+
 ## [0.13.0] - 2026-11-13
 
 ### ✨ Added

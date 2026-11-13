@@ -340,9 +340,11 @@ acceptance that no longer matches anything is reported as safe to remove. See
 ### Findings and Compliance Mapping
 
 Every finding has a rule ID (`HRG001` single point of failure, `HRG002` concentrated
-approval authority, `HRG003` bypass involving a critical person, `HRG004` score above
-threshold) and related controls in ISO/IEC 27001:2022, SOC 2 and DORA. The mapping is
-informative, not a compliance assessment. See [docs/compliance.md](docs/compliance.md).
+approval authority, `HRG003` bypass involving a critical person, `HRG004` risk above
+threshold; with `--model hrg-3` also `HRG005` function depends on too few people and
+`HRG006` critical function one person can complete alone) and related controls in
+ISO/IEC 27001:2022, SOC 2 and DORA. The mapping is informative, not a compliance
+assessment. See [docs/compliance.md](docs/compliance.md).
 
 ### CI integration
 
@@ -366,7 +368,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: LF3551/human-risk-graph@v0.11.0
+      - uses: LF3551/human-risk-graph@v0.13.0
         with:
           file: org/organization.yaml
           min-score: 70
@@ -376,7 +378,7 @@ Or draft the organization from the repository itself (approvals, CODEOWNERS, bra
 rules) and report on it, for example on a schedule:
 
 ```yaml
-      - uses: LF3551/human-risk-graph@v0.11.0
+      - uses: LF3551/human-risk-graph@v0.13.0
         with:
           scan: ${{ github.repository }}
 ```
@@ -467,7 +469,7 @@ python experiments/visualize.py
 **Best suited for:** Organizations with 50+ employees, formal security processes, or compliance requirements.
 
 - Security architecture analysis
-- Business continuity planning (SOC2, ISO27001 audits)
+- Business continuity planning (SOC 2, ISO/IEC 27001 audits)
 - Insider threat assessment
 - M&A due diligence (key person risk)
 - Organizational risk modeling
