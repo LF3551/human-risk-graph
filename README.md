@@ -69,7 +69,7 @@ hrg analyze my-org.yaml
 ```
 
 ```
-Human Risk Graph 0.10.0 · organization.yaml · 5 people · 5 dependencies
+Human Risk Graph 0.11.0 · organization.yaml · 5 people · 5 dependencies
 
   Score  25/100  ██░░░░░░░░  F · Critical risk  model hrg-2
 
@@ -307,33 +307,62 @@ informative, not a compliance assessment. See [docs/compliance.md](docs/complian
 
 ### CI integration
 
-GitHub Actions example: findings appear as code scanning alerts on the organization file,
-and the job fails when the score drops below 70.
+#### GitHub Action
+
+Analyze an organization file on every pull request that changes it: findings appear as
+code scanning alerts on the file, the job summary shows the score, metrics, findings and
+top fixes, the HTML report is attached as an artifact, and the job fails below 70.
+Accepted risks in `hrg.toml` are honoured.
 
 ```yaml
 name: Human risk
 on:
   pull_request:
-    paths: [org/organization.yaml]
+    paths: [org/organization.yaml, hrg.toml]
 permissions:
   contents: read
-  security-events: write
+  security-events: write   # for the code scanning upload
 jobs:
   hrg:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: LF3551/human-risk-graph@v0.11.0
         with:
-          python-version: "3.13"
-      - run: pip install human-risk-graph
-      - run: >
-          hrg analyze org/organization.yaml
-          --format sarif --format junit --no-visualize --min-score 70
-      - uses: github/codeql-action/upload-sarif@v4
-        if: always()
+          file: org/organization.yaml
+          min-score: 70
+```
+
+Or draft the organization from the repository itself (approvals, CODEOWNERS, branch
+rules) and report on it, for example on a schedule:
+
+```yaml
+      - uses: LF3551/human-risk-graph@v0.11.0
         with:
-          sarif_file: org/organization_report.sarif
+          scan: ${{ github.repository }}
+```
+
+| Input | Default | Description |
+|---|---|---|
+| `file` | | Organization file to analyze (set `file` or `scan`) |
+| `scan` | | `OWNER/REPO` to draft with `hrg scan github` first |
+| `max-prs` | `100` | With `scan`: merged pull requests to read |
+| `token` | `github.token` | Token for `scan` |
+| `config` | auto | `hrg.toml`, `.hrg.toml` or `[tool.hrg]` in `pyproject.toml` |
+| `min-score` / `fail-above` | | Fail below this score (0-100) / above this risk (0-1) |
+| `upload-sarif` | `true` | Upload findings to code scanning (with `file`) |
+| `upload-artifact` | `true` | Upload the HTML, Markdown, JSON and SARIF reports |
+| `output-dir` | `hrg-report` | Where the reports are written |
+| `python-version` / `version` | `3.12` / this action's | Python and human-risk-graph versions |
+
+Outputs: `score`, `grade`, `risk-level`, `errors`, `warnings`, `report-dir`, `sarif-file`.
+When a threshold is broken, the reports are still published and the last step fails.
+
+#### Other CI systems
+
+```bash
+pip install human-risk-graph
+hrg analyze org/organization.yaml --format sarif --format junit --no-visualize --min-score 70
 ```
 
 The JUnit report (`org/organization_report.junit.xml`) has one test case per rule and
