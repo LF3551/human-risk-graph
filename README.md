@@ -74,7 +74,7 @@ hrg analyze my-org.yaml
 ```
 
 ```
-Human Risk Graph 0.13.0 · organization.yaml · 5 people · 5 dependencies
+Human Risk Graph 0.14.0 · organization.yaml · 5 people · 5 dependencies
 
   Score  25/100  ██░░░░░░░░  F · Critical risk  model hrg-2
 
@@ -189,7 +189,14 @@ functions:
     requires: 2
     performers: [alice, bob, carol]
     alone: [alice]              # can bypass the second person
+  - id: restore-db
+    criticality: 0.9
+    separation: not-required    # one person restoring is the intended policy
+    performers: [bob]
 ```
+
+Not every critical operation needs two people. `separation: not-required` leaves a function
+out of solo control and HRG006; it still counts as a single point of failure.
 
 ```bash
 hrg analyze examples/functions.yaml --model hrg-3
@@ -368,7 +375,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: LF3551/human-risk-graph@v0.13.0
+      - uses: LF3551/human-risk-graph@v0.14.0
         with:
           file: org/organization.yaml
           min-score: 70
@@ -378,7 +385,7 @@ Or draft the organization from the repository itself (approvals, CODEOWNERS, bra
 rules) and report on it, for example on a schedule:
 
 ```yaml
-      - uses: LF3551/human-risk-graph@v0.13.0
+      - uses: LF3551/human-risk-graph@v0.14.0
         with:
           scan: ${{ github.repository }}
 ```

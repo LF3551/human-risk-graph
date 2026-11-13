@@ -20,6 +20,11 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple
 
 from .model_v2 import MODEL_V3, composite_risk, score_and_grade
 
+# Whether one person completing a function alone is a risk (segregation of duties).
+SEPARATION_REQUIRED = "required"
+SEPARATION_NOT_REQUIRED = "not-required"
+SEPARATION_VALUES = (SEPARATION_REQUIRED, SEPARATION_NOT_REQUIRED)
+
 
 def normalize(functions: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Functions with defaults applied; people in ``alone`` are also performers."""
@@ -34,6 +39,7 @@ def normalize(functions: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
                 "requires": int(f.get("requires", 1)),
                 "performers": set(f.get("performers") or []) | alone,
                 "alone": alone,
+                "separation": f.get("separation", SEPARATION_REQUIRED),
             }
         )
     return out
@@ -124,9 +130,11 @@ def calculate_v3(
     shares = function_shares(fns)
     concentration = sum(s * s for s in shares.values())
 
+    # Solo control only counts functions where completing alone is not the intended policy.
     critical = [f for f in fns if f["criticality"] >= critical_threshold]
-    solo = [f for f in critical if solo_people(f)]
-    critical_weight = sum(f["criticality"] for f in critical)
+    separated = [f for f in critical if f["separation"] == SEPARATION_REQUIRED]
+    solo = [f for f in separated if solo_people(f)]
+    critical_weight = sum(f["criticality"] for f in separated)
     solo_control = sum(f["criticality"] for f in solo) / critical_weight if critical_weight else 0.0
 
     weights = (alpha, beta, gamma)
@@ -171,6 +179,7 @@ def calculate_v3(
                     p for p in f["performers"] if margin(f) == 1 and stops_without(f, p)
                 ),
                 "critical": f["criticality"] >= critical_threshold,
+                "separation": f["separation"],
             }
             for f in fns
         ],
@@ -219,13 +228,21 @@ def describe(results: Dict[str, Any], name: Callable[[str], str]) -> List[Tuple[
         concentration = ("No performers", "No function has performers in the data.")
 
     solo = results.get("solo_functions", [])
-    if critical:
+    separated = [f for f in critical if f.get("separation") != SEPARATION_NOT_REQUIRED]
+    by_policy = len(critical) - len(separated)
+    policy_note = f" {by_policy} more can by policy." if by_policy else ""
+    if separated:
         detail = (
             f"can be completed by one person: {', '.join(_fname(functions, f) for f in solo[:3])}."
             if solo
             else "need a second person to complete (two-person rule)."
         )
-        solo_text = (f"{len(solo)} of {len(critical)} critical functions", detail)
+        solo_text = (f"{len(solo)} of {len(separated)} critical functions", detail + policy_note)
+    elif critical:
+        solo_text = (
+            "Solo by policy",
+            f"All {len(critical)} critical functions may be completed by one person by policy.",
+        )
     else:
         solo_text = ("No critical functions", "No function is at or above the critical threshold.")
     return [loss, concentration, solo_text]

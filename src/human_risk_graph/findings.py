@@ -236,7 +236,8 @@ RULES: Dict[str, Rule] = {
             description=(
                 "Model hrg-3: a critical function can be completed by a single person, "
                 "either because it requires one person or because someone can bypass the "
-                "second person. SLSA Source Level 4 asks for two-party review of changes."
+                "second person. Functions with separation: not-required are exempt. "
+                "SLSA Source Level 4 asks for two-party review of changes."
             ),
             remediation=(
                 "Require a second, independent person to complete the function, and remove "

@@ -8,6 +8,7 @@ import pytest
 from human_risk_graph import HumanRiskGraph
 from human_risk_graph.findings import collect_findings
 from human_risk_graph.loader import load_organization
+from human_risk_graph.model_v3 import describe
 
 EXAMPLE = Path(__file__).resolve().parent.parent / "examples" / "functions.yaml"
 
@@ -97,11 +98,59 @@ def test_sub_scores():
     assert r["scores"]["availability"] > r["score"]
 
 
+# Separation policy: routine single-person operations are not solo control
+
+
+def by_policy(f):
+    return {**f, "separation": "not-required"}
+
+
+def test_routine_single_person_operation_is_not_solo_control():
+    restore = by_policy(fn("restore", performers=["a", "b"]))
+    r = calc(people("a", "b"), [restore])
+    assert r["bypass_risk"] == 0 and r["solo_functions"] == []
+    assert r["scores"]["integrity"] == 100
+    assert r["functions"][0]["separation"] == "not-required"
+    assert r["functions"][0]["alone"] == ["a", "b"]  # still reported, just not a risk
+
+
+def test_policy_does_not_hide_availability_risk():
+    hrg = HumanRiskGraph(people("a"), [], [by_policy(fn("restore", performers=["a"]))])
+    r = hrg.calculate(model="hrg-3")
+    assert r["bus_factor"] == 1  # one person can still stop it
+    assert [f.key for f in collect_findings(hrg, r)] == ["HRG005:restore"]
+    assert all(p["action"] == "backup" for p in hrg.fix_plan(model="hrg-3"))
+
+
+def test_policy_functions_neither_dilute_nor_raise_solo_control():
+    merge = fn("merge", 0.8, 2, ["a", "b", "c"], alone=["a"])
+    base = calc(people("a", "b", "c"), [merge])
+    mixed = calc(people("a", "b", "c"), [merge, by_policy(fn("restore", performers=["b"]))])
+    assert base["bypass_risk"] == mixed["bypass_risk"] == 1
+    assert mixed["solo_functions"] == ["merge"]
+
+
+def test_policy_does_not_excuse_a_bypass_of_a_required_two_person_rule():
+    r = calc(people("a", "b"), [fn(requires=2, performers=["a", "b"], alone=["a"])])
+    assert r["bypass_risk"] == 1
+
+
+def test_low_criticality_single_person_operation_is_not_solo_control():
+    r = calc(people("a"), [fn(criticality=0.4, performers=["a"])])
+    assert r["bypass_risk"] == 0
+
+
+def test_all_critical_functions_solo_by_policy():
+    r = calc(people("a"), [by_policy(fn(performers=["a"]))])
+    assert r["bypass_risk"] == 0
+    assert describe(r, str)[2][0] == "Solo by policy"
+
+
 def test_example_file():
     data = load_organization(EXAMPLE)
     hrg = HumanRiskGraph(data["people"], data["dependencies"], data["functions"])
     r = hrg.calculate(model="hrg-3")
-    assert r["solo_functions"] == ["merge", "release", "restore-db"]
+    assert r["solo_functions"] == ["merge", "release"]  # restore-db is solo by policy
     assert r["key_people"][0]["id"] == "bob"
     keys = [f.key for f in collect_findings(hrg, r)]
     assert keys == [
@@ -110,7 +159,6 @@ def test_example_file():
         "HRG002:bob",
         "HRG006:merge",
         "HRG006:release",
-        "HRG006:restore-db",
     ]
     plan = hrg.fix_plan(model="hrg-3")
     assert [p["action"] for p in plan] == ["two-person", "backup", "backup"]
@@ -128,6 +176,7 @@ def test_example_file():
         ([{"id": "f", "requires": 0}], "requires must be a whole number"),
         ([{"id": "f", "requires": True}], "requires must be a whole number"),
         ([{"id": "f", "criticality": 2}], "criticality must be a number between 0 and 1"),
+        ([{"id": "f", "separation": "optional"}], "separation must be one of"),
         ([{"performers": ["a"]}], "non-empty string 'id'"),
         ({"id": "f"}, "'functions' must be a list"),
     ],
@@ -217,4 +266,12 @@ def test_relabelling_people_does_not_change_the_score(ppl, functions):
     assert (
         calc([{"id": rename[p["id"]]} for p in ppl], renamed)["score"]
         == calc(ppl, functions)["score"]
+    )
+
+
+@pytest.mark.parametrize("ppl, functions", CASES[:20])
+def test_adding_a_policy_function_never_changes_solo_control(ppl, functions):
+    extra = by_policy(fn("routine", 0.95, 1, [ppl[0]["id"]]))
+    assert calc(ppl, functions + [extra])["bypass_risk"] == pytest.approx(
+        calc(ppl, functions)["bypass_risk"]
     )

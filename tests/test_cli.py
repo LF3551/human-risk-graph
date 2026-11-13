@@ -92,15 +92,18 @@ def test_model_v3_end_to_end(tmp_path):
     assert result.exit_code == 0, result.output
     output = " ".join(result.output.split())
     assert "model hrg-3" in output
-    assert "Solo control 3 of 4 critical functions" in output
+    assert "Solo control 2 of 3 critical functions" in output
+    assert "1 more can by policy" in output
     assert "integrity" in output
 
     report = json.loads((tmp_path / "functions_report.json").read_text())
     assert report["results"]["model"] == "hrg-3"
     assert {f["rule_id"] for f in report["findings"]} == {"HRG002", "HRG005", "HRG006"}
+    assert "(by policy)" in (tmp_path / "functions_report.md").read_text()
     assert "## 🔑 Critical Functions" in (tmp_path / "functions_report.md").read_text()
     html = (tmp_path / "functions_report.html").read_text()
     assert "Critical functions" in html and "Functions lost" in html
+    assert '<span class="muted">(by policy)</span>' in html
 
     lines = path.read_text().splitlines()
     sarif = json.loads((tmp_path / "functions_report.sarif").read_text())

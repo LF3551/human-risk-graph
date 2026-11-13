@@ -23,7 +23,10 @@ A function f has
 - the number of people it **requires**, $r_f \geq 1$ (default 1; 2 for a two-person rule),
 - its **performers** $P_f$: people trained and authorized to do it,
 - the people who can complete it **alone** $A_f \subseteq P_f$ despite $r_f$, for example an
-  admin who can bypass branch protection.
+  admin who can bypass branch protection,
+- its **separation** policy: `required` (default) when one person completing it alone is a
+  risk, `not-required` when that is the intended way to work, for example a database
+  restore by the on-call engineer.
 
 ```yaml
 functions:
@@ -82,9 +85,16 @@ the shares $s_p = w_p / \sum_q w_q$:
 
 $$D = \sum_p s_p^2, \qquad N_{\text{eff}} = 1/D \text{ effective people}$$
 
-**Solo control S.** The weighted share of critical functions someone can complete alone:
+**Solo control S.** The weighted share of critical functions that require separation and
+someone can complete alone. With $F_s \subseteq F$ the critical functions whose separation
+is `required`:
 
-$$S = \frac{\sum_{f \in F,\ \text{Solo}(f) \neq \emptyset} c_f}{\sum_{f \in F} c_f}, \qquad S = 0 \text{ when } F = \emptyset$$
+$$S = \frac{\sum_{f \in F_s,\ \text{Solo}(f) \neq \emptyset} c_f}{\sum_{f \in F_s} c_f}, \qquad S = 0 \text{ when } F_s = \emptyset$$
+
+Functions with separation `not-required` are left out of S altogether, numerator and
+denominator: a routine single-person operation is not a control failure, and declaring one
+cannot dilute the solo control of the others. They still count for L and D, so a restore
+only one person can do is still a single point of failure.
 
 **Score.** The metrics are combined exactly as in hrg-2, with the same weights
 (`[weights]` key-person → L, concentration → D, override → S):
@@ -100,7 +110,7 @@ ship alone, or the other way round; the sub-scores keep the two apart.
 | Rule | When | Level |
 |---|---|---|
 | HRG005 Function depends on too few people | $m_f \le 1$ | error if f is critical, else warning |
-| HRG006 Critical function one person can complete alone | $f \in F$ and $\text{Solo}(f) \neq \emptyset$ | warning |
+| HRG006 Critical function one person can complete alone | $f \in F_s$ and $\text{Solo}(f) \neq \emptyset$ | warning |
 | HRG002 Concentrated authority | $D \geq 0.25$ (error from 0.5) | |
 | HRG004 Risk above threshold | `--min-score` / `--fail-above` | error |
 
@@ -123,13 +133,15 @@ feasible: a backup only helps if the person has the skills, the access and the t
 - L, D, S, R ∈ [0, 1]; the score is in [0, 100].
 - Adding a performer to every function never increases L.
 - Removing every `alone` entry never increases S.
+- Adding a function with separation `not-required` never changes S.
 - Raising `requires` never decreases L.
 - Fix plan steps only lower R.
 - Relabelling people does not change the score.
 - Reference scenarios: one person doing a function alone (L = D = S = 1, score 0); two
   performers without a two-person rule (L = 0, S = 1); a two-person rule with exactly two
   people (L = 1, S = 0); a two-person rule with a bypass (S = 1); a sole maintainer who
-  can bypass review (margin 1, not impossible).
+  can bypass review (margin 1, not impossible); a routine single-person operation with
+  separation `not-required` (S = 0, still a single point of failure).
 
 ## 7. What it does not do
 

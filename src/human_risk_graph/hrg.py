@@ -28,7 +28,7 @@ from .model_v2 import (
     risk_level_from_score,
     score_and_grade,
 )
-from .model_v3 import calculate_v3, fix_plan_v3
+from .model_v3 import SEPARATION_REQUIRED, SEPARATION_VALUES, calculate_v3, fix_plan_v3
 
 REVIEW_VALUES = ("none", "after")
 
@@ -85,6 +85,8 @@ def _validate_functions(functions, ids) -> None:
         requires = f.get("requires", 1)
         if isinstance(requires, bool) or not isinstance(requires, int) or requires < 1:
             raise ValueError(f"{where}.requires must be a whole number of at least 1")
+        if f.get("separation", SEPARATION_REQUIRED) not in SEPARATION_VALUES:
+            raise ValueError(f"{where}.separation must be one of {', '.join(SEPARATION_VALUES)}")
         for key in ("performers", "alone"):
             members = f.get(key) or []
             if not isinstance(members, list):

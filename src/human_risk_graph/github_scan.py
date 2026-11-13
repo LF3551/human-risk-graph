@@ -697,7 +697,7 @@ def merge_with_existing(result: ScanResult, existing: Optional[Dict[str, Any]]) 
     for f in result.functions:
         old = old_functions.get(f["id"])
         if old:
-            for attr in ("name", "criticality", "requires", "confirmed"):
+            for attr in ("name", "criticality", "requires", "separation", "confirmed"):
                 if attr in old:
                     f[attr] = old[attr]
     own = [f for fid, f in old_functions.items() if fid not in scanned]
