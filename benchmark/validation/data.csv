@@ -1,0 +1,1001 @@
+rank,package,repo,status,releases_in_window,release_margin,releases_by_people,bot_releases,commits_considered,truck_factor,first_release_after_t0,stall,long_gap
+1,boto3,boto/boto3,excluded: fewer than 3 releases in the window,0,0,0,0,500,1,2024-11-01,False,False
+2,urllib3,urllib3/urllib3,excluded: releases mainly published by automation,25,1,1,24,176,2,2024-12-22,False,False
+3,botocore,boto/botocore,excluded: fewer than 3 releases in the window,0,0,0,0,500,1,2024-11-01,False,False
+4,requests,psf/requests,included,8,1,8,0,116,2,2025-06-09,False,True
+5,aiobotocore,aio-libs/aiobotocore,included,30,2,30,0,158,1,2024-12-17,False,False
+6,certifi,certifi/python-certifi,excluded: fewer than 3 releases in the window,0,0,0,0,67,2,2024-12-14,False,False
+7,idna,kjd/idna,included,4,1,2,2,84,1,2025-10-12,False,True
+8,charset-normalizer,jawah/charset_normalizer,included,7,1,7,0,74,1,2024-12-24,False,False
+9,setuptools,pypa/setuptools,excluded: no release by a person,68,0,0,30,500,2,2024-11-11,False,False
+10,typing-extensions,python/typing_extensions,included,17,2,17,0,90,2,2025-03-18,False,False
+11,python-dateutil,dateutil/dateutil,excluded: fewer than 3 releases in the window,2,1,2,0,18,1,,True,True
+12,s3transfer,boto/s3transfer,excluded: fewer than 3 releases in the window,0,0,0,0,65,1,2024-11-20,False,False
+13,packaging,pypa/packaging,included,6,1,6,0,46,3,2024-11-08,False,False
+14,s3fs,fsspec/s3fs,excluded: fewer than 3 releases in the window,0,0,0,0,35,1,2024-12-19,False,False
+15,grpcio-status,,excluded: no GitHub repository,,,,,,,,,
+16,fsspec,fsspec/filesystem_spec,excluded: fewer than 3 releases in the window,0,0,0,0,169,6,2024-12-19,False,False
+17,six,benjaminp/six,excluded: fewer than 3 releases in the window,0,0,0,0,1,1,2024-12-04,False,False
+18,pyyaml,yaml/pyyaml,excluded: fewer than 3 releases in the window,2,1,2,0,5,1,2025-09-25,False,True
+19,numpy,numpy/numpy,included,28,1,28,0,500,4,2024-11-02,False,False
+20,cryptography,pyca/cryptography,excluded: fewer than 3 releases in the window,0,0,0,0,500,1,2024-11-27,False,False
+21,pip,pypa/pip,excluded: fewer than 3 releases in the window,0,0,0,0,500,4,2025-01-26,False,False
+22,importlib-metadata,python/importlib_metadata,excluded: releases mainly published by automation,29,1,1,28,218,1,2025-01-20,False,False
+23,cffi,python-cffi/cffi,included,7,1,7,0,43,2,2025-07-28,False,True
+24,wheel,pypa/wheel,excluded: no release by a person,4,0,0,4,49,1,2024-11-08,False,False
+25,pycparser,eliben/pycparser,excluded: fewer than 3 releases in the window,1,1,1,0,8,1,2025-09-09,False,True
+26,pydantic,pydantic/pydantic,included,61,2,30,0,500,2,2024-11-06,False,False
+27,google-api-core,googleapis/google-cloud-python,excluded: fewer than 3 releases in the window,0,0,0,0,500,5,2024-11-11,False,False
+28,pandas,pandas-dev/pandas,included,19,3,19,0,500,8,2025-06-05,False,True
+29,zipp,jaraco/zipp,excluded: releases mainly published by automation,20,1,1,19,159,1,2024-11-10,False,False
+30,jmespath,jmespath/jmespath.py,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+31,rsa,sybrenstuvel/python-rsa,excluded: fewer than 3 releases in the window,0,0,0,0,4,1,2025-04-16,False,False
+32,attrs,python-attrs/attrs,included,5,1,5,0,217,1,2024-12-16,False,False
+33,pyasn1,pyasn1/pyasn1,included,4,1,4,0,22,2,,True,True
+34,protobuf,,excluded: no GitHub repository,,,,,,,,,
+35,platformdirs,tox-dev/platformdirs,included,36,1,30,0,69,3,2025-03-19,False,False
+36,click,pallets/click,excluded: no release by a person,4,0,0,4,98,1,2024-12-21,False,False
+37,colorama,tartley/colorama,excluded: fewer than 3 releases in the window,0,0,0,0,4,1,,True,True
+38,awscli,aws/aws-cli,excluded: fewer than 3 releases in the window,0,0,0,0,500,1,2024-11-01,False,False
+39,pytz,stub42/pytz,excluded: fewer than 3 releases in the window,2,0,0,2,17,1,2025-01-31,False,False
+40,markupsafe,pallets/markupsafe,excluded: no release by a person,7,0,0,7,134,1,2025-09-27,False,True
+41,jinja2,pallets/jinja,excluded: fewer than 3 releases in the window,2,0,0,2,88,1,2024-12-21,False,False
+42,tomli,hukkin/tomli,excluded: fewer than 3 releases in the window,0,0,0,0,12,1,2024-11-11,False,False
+43,pyjwt,jpadilla/pyjwt,included,3,1,3,0,60,2,2024-11-17,False,False
+44,googleapis-common-protos,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+45,cachetools,tkem/cachetools,excluded: fewer than 3 releases in the window,0,0,0,0,38,1,2025-01-21,False,False
+46,filelock,tox-dev/filelock,included,31,1,30,0,63,4,2025-01-21,False,False
+47,pluggy,pytest-dev/pluggy,excluded: fewer than 3 releases in the window,0,0,0,0,100,2,2025-05-15,False,True
+48,wrapt,GrahamDumpleton/wrapt,excluded: fewer than 3 releases in the window,1,1,1,0,47,1,2024-11-22,False,False
+49,virtualenv,pypa/virtualenv,included,33,1,30,0,100,1,2024-11-26,False,False
+50,google-auth,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+51,pydantic-core,pydantic/pydantic,excluded: duplicate,,,,,,,,,
+52,pytest,pytest-dev/pytest,excluded: releases mainly published by automation,25,2,6,19,500,3,2024-12-01,False,False
+53,pyarrow,apache/arrow,excluded: no release by a person,6,0,0,6,500,6,2024-11-11,False,False
+54,pyasn1-modules,pyasn1/pyasn1-modules,included,3,1,3,0,5,1,2025-03-28,False,False
+55,docutils,,excluded: no GitHub repository,,,,,,,,,
+56,pyparsing,pyparsing/pyparsing,included,13,1,13,0,177,1,2024-12-31,False,False
+57,jsonschema,python-jsonschema/jsonschema,excluded: no release by a person,27,0,0,27,157,1,2025-05-26,False,True
+58,requests-oauthlib,requests/requests-oauthlib,excluded: fewer than 3 releases in the window,1,1,1,0,62,1,,True,True
+59,aiohttp,aio-libs/aiohttp,excluded: no release by a person,30,0,0,30,500,1,2024-11-02,False,False
+60,iniconfig,pytest-dev/iniconfig,excluded: fewer than 3 releases in the window,1,1,1,0,4,2,2025-03-19,False,False
+61,psutil,giampaolo/psutil,excluded: fewer than 3 releases in the window,0,0,0,0,118,1,2024-12-19,False,False
+62,exceptiongroup,agronholm/exceptiongroup,excluded: no release by a person,3,0,0,3,50,1,2025-05-10,False,True
+63,sqlalchemy,sqlalchemy/sqlalchemy,included,54,1,30,0,500,1,2025-01-09,False,False
+64,yarl,aio-libs/yarl,excluded: no release by a person,31,0,0,30,500,1,2024-11-17,False,False
+65,oauthlib,oauthlib/oauthlib,excluded: fewer than 3 releases in the window,1,1,1,0,20,2,2025-06-17,False,True
+66,scipy,scipy/scipy,included,21,1,21,0,500,6,2024-12-13,False,False
+67,soupsieve,facelessuser/soupsieve,included,4,1,4,0,6,1,2025-04-20,False,False
+68,tzdata,python/tzdata,included,7,1,7,0,9,1,2025-01-21,False,False
+69,multidict,aio-libs/multidict,excluded: no release by a person,4,0,0,4,243,1,2025-03-17,False,False
+70,annotated-types,annotated-types/annotated-types,included,3,1,3,0,10,6,,True,True
+71,isodate,gweis/isodate,excluded: fewer than 3 releases in the window,0,0,0,0,7,1,,True,True
+72,pygments,pygments/pygments,included,9,1,9,0,388,4,2025-01-05,False,False
+73,beautifulsoup4,,excluded: no GitHub repository,,,,,,,,,
+74,decorator,,excluded: no GitHub repository,,,,,,,,,
+75,pillow,python-pillow/Pillow,excluded: releases mainly published by automation,9,1,1,8,500,2,2025-01-02,False,False
+76,requests-toolbelt,requests/toolbelt,excluded: fewer than 3 releases in the window,0,0,0,0,15,1,,True,True
+77,greenlet,python-greenlet/greenlet,excluded: fewer than 3 releases in the window,0,0,0,0,98,1,2025-04-15,False,False
+78,frozenlist,aio-libs/frozenlist,excluded: no release by a person,4,0,0,4,141,1,2025-04-17,False,False
+79,pyopenssl,pyca/pyopenssl,excluded: fewer than 3 releases in the window,0,0,0,0,77,1,2024-11-27,False,False
+80,aiosignal,aio-libs/aiosignal,excluded: fewer than 3 releases in the window,1,0,0,1,81,,2024-12-13,False,False
+81,tomlkit,python-poetry/tomlkit,excluded: releases mainly published by automation,11,1,2,9,49,1,2025-06-05,False,True
+82,distlib,pypa/distlib,excluded: fewer than 3 releases in the window,0,0,0,0,27,1,2025-07-17,False,True
+83,openpyxl,,excluded: no GitHub repository,,,,,,,,,
+84,async-timeout,aio-libs-abandoned/async-timeout,excluded: fewer than 3 releases in the window,2,0,0,2,25,1,2024-11-06,False,False
+85,et-xmlfile,,excluded: no GitHub repository,,,,,,,,,
+86,grpcio,grpc/grpc,included,112,7,30,0,500,4,2024-11-16,False,False
+87,tqdm,tqdm/tqdm,excluded: no release by a person,10,0,0,10,49,1,2024-11-06,False,False
+88,more-itertools,more-itertools/more-itertools,included,9,1,9,0,255,1,2025-01-14,False,False
+89,deprecated,laurent-laporte-pro/deprecated,excluded: fewer than 3 releases in the window,1,1,1,0,0,,2024-11-15,False,False
+90,pynacl,pyca/pynacl,excluded: fewer than 3 releases in the window,0,0,0,0,24,4,2025-09-10,False,True
+91,proto-plus,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+92,lxml,lxml/lxml,included,17,1,10,7,364,1,2025-02-09,False,False
+93,azure-core,Azure/azure-sdk-for-python,included,1198,1,30,0,500,7,2024-11-01,False,False
+94,werkzeug,pallets/werkzeug,excluded: no release by a person,18,0,0,18,199,1,2024-11-01,False,False
+95,anyio,agronholm/anyio,excluded: no release by a person,11,0,0,11,145,1,2024-12-05,False,False
+96,google-cloud-storage,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+97,asn1crypto,wbond/asn1crypto,excluded: fewer than 3 releases in the window,0,0,0,0,2,1,,True,True
+98,coverage,coveragepy/coveragepy,included,141,1,30,0,500,1,2024-11-14,False,False
+99,websocket-client,websocket-client/websocket-client,included,12,1,12,0,36,1,2025-10-07,False,True
+100,h11,python-hyper/h11,excluded: fewer than 3 releases in the window,0,0,0,0,14,2,2025-04-24,False,False
+101,pexpect,pexpect/pexpect,excluded: fewer than 3 releases in the window,1,1,1,0,3,1,,True,True
+102,ptyprocess,pexpect/ptyprocess,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+103,msgpack,msgpack/msgpack-python,included,9,1,9,0,27,1,2025-06-06,False,True
+104,sniffio,python-trio/sniffio,excluded: fewer than 3 releases in the window,0,0,0,0,11,1,,True,True
+105,grpcio-tools,grpc/grpc,excluded: duplicate,,,,,,,,,
+106,rich,Textualize/rich,included,26,1,26,0,264,1,2024-11-01,False,False
+107,rpds-py,crate-py/rpds,excluded: no release by a person,52,0,0,30,151,1,2024-11-06,False,False
+108,sortedcontainers,,excluded: no GitHub repository,,,,,,,,,
+109,jsonschema-specifications,python-jsonschema/jsonschema-specifications,excluded: no release by a person,22,0,0,22,103,1,2025-04-23,False,False
+110,dill,uqfoundation/dill,included,3,1,3,0,35,1,2025-04-16,False,False
+111,httpcore,encode/httpcore,included,16,1,16,0,59,3,2024-11-15,False,False
+112,importlib-resources,python/importlib_resources,excluded: no release by a person,24,0,0,24,186,1,2025-01-03,False,False
+113,httpx,encode/httpx,included,12,2,12,0,113,2,2024-11-28,False,False
+114,aiohappyeyeballs,aio-libs/aiohappyeyeballs,excluded: no release by a person,36,0,0,30,126,1,2024-11-30,False,False
+115,referencing,python-jsonschema/referencing,excluded: no release by a person,103,0,0,30,175,1,2025-01-16,False,False
+116,flask,pallets/flask,excluded: no release by a person,11,0,0,11,169,1,2024-11-13,False,False
+117,python-dotenv,theskumar/python-dotenv,included,3,1,3,0,11,2,2025-03-25,False,False
+118,scikit-learn,scikit-learn/scikit-learn,included,13,3,13,0,500,8,2024-11-15,False,False
+119,google-cloud-core,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+120,chardet,chardet/chardet,excluded: fewer than 3 releases in the window,2,1,2,0,3,1,,True,True
+121,bcrypt,pyca/bcrypt,excluded: fewer than 3 releases in the window,0,0,0,0,196,1,2024-11-19,False,False
+122,mypy-extensions,python/mypy_extensions,excluded: fewer than 3 releases in the window,0,0,0,0,1,,2025-04-22,False,False
+123,poetry-core,python-poetry/poetry-core,excluded: releases mainly published by automation,11,1,1,10,122,2,2025-01-04,False,False
+124,msal,AzureAD/microsoft-authentication-library-for-python,included,16,1,16,0,127,1,2024-11-18,False,False
+125,keyring,jaraco/keyring,excluded: releases mainly published by automation,21,1,1,20,208,1,2024-12-25,False,False
+126,google-resumable-media,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+127,paramiko,paramiko/paramiko,excluded: fewer than 3 releases in the window,0,0,0,0,59,1,2025-02-04,False,False
+128,matplotlib,matplotlib/matplotlib,included,19,2,19,0,500,2,2024-11-01,False,False
+129,pkginfo,tseaver/pkginfo,excluded: fewer than 3 releases in the window,0,0,0,0,27,1,2024-12-02,False,False
+130,psycopg2-binary,psycopg/psycopg2,excluded: fewer than 3 releases in the window,0,0,0,0,30,1,2025-01-04,False,False
+131,gitpython,gitpython-developers/GitPython,included,12,1,12,0,500,1,2025-01-02,False,False
+132,markdown-it-py,executablebooks/markdown-it-py,excluded: fewer than 3 releases in the window,2,1,2,0,12,2,2025-08-11,False,True
+133,wcwidth,jquast/wcwidth,included,8,2,8,0,32,1,2025-09-22,False,True
+134,pathspec,cpburnz/python-pathspec,included,7,1,7,0,19,1,,True,True
+135,mdurl,executablebooks/mdurl,excluded: fewer than 3 releases in the window,0,0,0,0,3,1,,True,True
+136,poetry-plugin-export,python-poetry/poetry-plugin-export,excluded: no release by a person,9,0,0,9,35,1,2025-01-12,False,False
+137,snowflake-connector-python,snowflakedb/drivers,excluded: fewer than 3 releases in the window,0,0,0,0,0,,2024-12-04,False,False
+138,networkx,networkx/networkx,included,12,1,12,0,334,4,2025-05-09,False,True
+139,smmap,gitpython-developers/smmap,excluded: fewer than 3 releases in the window,0,0,0,0,6,1,2025-01-02,False,False
+140,gitdb,gitpython-developers/gitdb,excluded: fewer than 3 releases in the window,2,1,2,0,9,2,2025-01-02,False,False
+141,propcache,aio-libs/propcache,excluded: no release by a person,3,0,0,3,63,1,2024-12-01,False,False
+142,jaraco-classes,jaraco/jaraco.classes,excluded: no release by a person,3,0,0,3,100,1,,True,True
+143,threadpoolctl,joblib/threadpoolctl,included,3,1,3,0,19,1,2025-03-13,False,False
+144,jeepney,,excluded: no GitHub repository,,,,,,,,,
+145,secretstorage,mitya57/secretstorage,excluded: fewer than 3 releases in the window,0,0,0,0,2,1,2025-09-09,False,True
+146,xmltodict,martinblech/xmltodict,excluded: fewer than 3 releases in the window,0,0,0,0,34,1,2025-09-05,False,True
+147,typedload,,excluded: no GitHub repository,,,,,,,,,
+148,cloudpickle,cloudpipe/cloudpickle,excluded: fewer than 3 releases in the window,2,1,2,0,8,2,2025-01-14,False,False
+149,tenacity,jd/tenacity,included,6,1,6,0,33,2,2025-04-02,False,False
+150,kiwisolver,nucleic/kiwi,excluded: fewer than 3 releases in the window,2,0,0,2,21,1,2024-12-24,False,False
+151,tabulate,astanin/python-tabulate,excluded: fewer than 3 releases in the window,0,0,0,0,102,1,,True,True
+152,ruamel-yaml,,excluded: no GitHub repository,,,,,,,,,
+153,backoff,litl/backoff,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+154,itsdangerous,pallets/itsdangerous,excluded: fewer than 3 releases in the window,1,0,0,1,65,1,,True,True
+155,shellingham,sarugaku/shellingham,excluded: fewer than 3 releases in the window,2,2,2,0,5,1,,True,True
+156,google-crc32c,googleapis/python-crc32c,excluded: fewer than 3 releases in the window,2,1,1,1,29,1,2025-03-17,False,False
+157,fastjsonschema,horejsek/python-fastjsonschema,excluded: fewer than 3 releases in the window,0,0,0,0,21,1,2024-11-27,False,False
+158,build,pypa/build,included,8,2,8,0,126,1,2025-08-01,False,True
+159,regex,mrabarnett/mrab-regex,excluded: fewer than 3 releases in the window,0,0,0,0,16,,2024-11-06,False,False
+160,py4j,,excluded: no GitHub repository,,,,,,,,,
+161,portalocker,wolph/portalocker,included,6,1,6,0,42,1,2024-11-18,False,False
+162,cycler,matplotlib/cycler,included,3,1,3,0,4,1,,True,True
+163,google-cloud-bigquery,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+164,pyproject-hooks,pypa/pyproject-hooks,excluded: fewer than 3 releases in the window,0,0,0,0,39,1,,True,True
+165,rapidfuzz,rapidfuzz/RapidFuzz,included,38,1,30,0,146,1,2024-12-17,False,False
+166,py,,excluded: no GitHub repository,,,,,,,,,
+167,trove-classifiers,pypa/trove-classifiers,excluded: releases mainly published by automation,43,1,3,27,24,9,2025-01-06,False,False
+168,pytest-cov,pytest-dev/pytest-cov,excluded: fewer than 3 releases in the window,0,0,0,0,45,1,2025-04-01,False,False
+169,azure-storage-blob,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+170,pyzmq,zeromq/pyzmq,excluded: releases mainly published by automation,13,1,1,12,251,1,2025-01-30,False,False
+171,msal-extensions,AzureAD/microsoft-authentication-extensions-for-python,included,3,1,3,0,16,1,2025-03-13,False,False
+172,mccabe,PyCQA/mccabe,excluded: fewer than 3 releases in the window,0,0,0,0,1,1,,True,True
+173,sqlparse,andialbrecht/sqlparse,excluded: fewer than 3 releases in the window,0,0,0,0,52,1,2024-11-14,False,False
+174,google-api-python-client,googleapis/google-api-python-client,excluded: no release by a person,86,0,0,30,137,2,2024-11-07,False,False
+175,awswrangler,aws/aws-sdk-pandas,included,27,3,27,0,285,2,2024-12-04,False,False
+176,joblib,joblib/joblib,included,5,1,5,0,31,2,2025-05-03,False,True
+177,google-auth-oauthlib,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+178,prompt-toolkit,prompt-toolkit/python-prompt-toolkit,included,6,1,6,0,61,1,2025-01-20,False,False
+179,alembic,sqlalchemy/alembic,included,20,1,20,0,76,1,2024-11-04,False,False
+180,defusedxml,tiran/defusedxml,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+181,azure-identity,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+182,pyrsistent,tobgu/pyrsistent,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+183,pycodestyle,,excluded: no GitHub repository,,,,,,,,,
+184,ruamel-yaml-clib,,excluded: no GitHub repository,,,,,,,,,
+185,fonttools,fonttools/fonttools,included,36,4,30,0,500,1,2024-11-14,False,False
+186,cachecontrol,psf/cachecontrol,included,6,2,6,0,9,1,2024-11-04,False,False
+187,nest-asyncio,erdewit/nest_asyncio,excluded: fewer than 3 releases in the window,2,1,2,0,6,1,,True,True
+188,marshmallow,marshmallow-code/marshmallow,excluded: fewer than 3 releases in the window,0,0,0,0,132,1,2024-11-01,False,False
+189,pymysql,PyMySQL/PyMySQL,included,7,1,7,0,31,1,2025-08-24,False,True
+190,blinker,pallets-eco/blinker,excluded: releases mainly published by automation,8,1,3,5,74,1,2024-11-08,False,False
+191,ipython,ipython/ipython,excluded: fewer than 3 releases in the window,0,0,0,0,442,1,2024-11-29,False,False
+192,uritemplate,python-hyper/uritemplate,excluded: fewer than 3 releases in the window,0,0,0,0,8,1,2025-06-02,False,True
+193,docker,docker/docker-py,excluded: releases mainly published by automation,10,1,1,9,64,3,,True,True
+194,tzlocal,regebro/tzlocal,excluded: fewer than 3 releases in the window,0,0,0,0,1,1,2025-02-13,False,False
+195,sentry-sdk,getsentry/sentry-python,excluded: no release by a person,91,0,0,30,500,2,2024-11-04,False,False
+196,babel,python-babel/babel,included,7,1,7,0,50,1,2025-02-01,False,False
+197,isort,PyCQA/isort,excluded: releases mainly published by automation,11,1,2,9,60,2,2025-01-27,False,False
+198,httplib2,httplib2/httplib2,excluded: fewer than 3 releases in the window,0,0,0,0,1,1,2025-08-29,False,True
+199,google-auth-httplib2,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+200,poetry,python-poetry/poetry,excluded: releases mainly published by automation,17,1,1,16,375,3,2024-12-06,False,False
+201,redis,redis/redis-py,included,43,4,16,14,136,5,2024-12-06,False,False
+202,huggingface-hub,huggingface/huggingface_hub,included,55,2,30,0,451,1,2024-11-28,False,False
+203,cython,cython/cython,included,23,1,22,1,500,2,2024-11-08,False,False
+204,opentelemetry-api,open-telemetry/opentelemetry-python,excluded: no release by a person,14,0,0,14,286,4,2024-11-05,False,False
+205,multiprocess,uqfoundation/multiprocess,included,3,1,3,0,30,1,2025-04-17,False,False
+206,transformers,huggingface/transformers,included,64,3,30,0,500,15,2024-11-05,False,False
+207,dnspython,rthalley/dnspython,included,5,1,5,0,179,1,2025-09-01,False,True
+208,distro,python-distro/distro,excluded: fewer than 3 releases in the window,1,1,1,0,5,3,,True,True
+209,ply,,excluded: no GitHub repository,,,,,,,,,
+210,prometheus-client,prometheus/client_python,included,7,1,7,0,25,4,2024-12-03,False,False
+211,traitlets,ipython/traitlets,excluded: no release by a person,17,0,0,2,17,2,,True,True
+212,grpc-google-iam-v1,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+213,toml,uiri/toml,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+214,pendulum,python-pendulum/pendulum,excluded: no release by a person,3,0,0,3,11,1,2025-04-19,False,False
+215,gunicorn,benoitc/gunicorn,included,5,1,5,0,118,2,,True,True
+216,scramp,,excluded: no GitHub repository,,,,,,,,,
+217,dulwich,jelmer/dulwich,included,11,1,11,0,309,1,2024-11-01,False,False
+218,crashtest,python-poetry/crashtest,excluded: fewer than 3 releases in the window,1,1,1,0,0,,,True,True
+219,tornado,tornadoweb/tornado,excluded: fewer than 3 releases in the window,0,0,0,0,120,1,2024-11-22,False,False
+220,requests-aws4auth,tedder/requests-aws4auth,included,6,1,6,0,7,1,,True,True
+221,markdown,Python-Markdown/markdown,included,4,1,2,2,37,1,2025-04-11,False,False
+222,cleo,python-poetry/cleo,included,4,2,4,0,30,1,2024-11-18,False,False
+223,installer,pypa/installer,excluded: fewer than 3 releases in the window,0,0,0,0,34,3,,True,True
+224,pycryptodomex,Legrandin/pycryptodome,included,14,1,14,0,113,1,2025-03-15,False,False
+225,fastapi,fastapi/fastapi,included,61,1,30,0,500,1,2024-11-12,False,False
+226,jedi,davidhalter/jedi,excluded: fewer than 3 releases in the window,0,0,0,0,44,2,2024-11-11,False,False
+227,setuptools-scm,pypa/setuptools-scm,included,7,2,7,0,129,1,2025-02-21,False,False
+228,parso,davidhalter/parso,excluded: fewer than 3 releases in the window,0,0,0,0,5,1,2025-08-23,False,True
+229,termcolor,termcolor/termcolor,excluded: no release by a person,5,0,0,5,24,1,2025-03-31,False,False
+230,webencodings,CourtBouillon/webencodings,excluded: fewer than 3 releases in the window,0,0,0,0,8,1,,True,True
+231,black,psf/black,included,22,3,22,0,208,3,2025-01-29,False,False
+232,msrest,Azure/msrest-for-python,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+233,matplotlib-inline,ipython/matplotlib-inline,excluded: fewer than 3 releases in the window,0,0,0,0,14,1,2025-10-23,False,True
+234,contourpy,contourpy/contourpy,included,7,1,7,0,114,1,2024-11-12,False,False
+235,types-requests,python/typeshed,excluded: fewer than 3 releases in the window,0,0,0,0,500,4,2025-03-01,False,False
+236,jsonpointer,stefankoegl/python-json-pointer,excluded: fewer than 3 releases in the window,0,0,0,0,9,1,,True,True
+237,debugpy,microsoft/debugpy,included,12,3,12,0,78,1,2024-11-08,False,False
+238,azure-common,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+239,future,PythonCharmers/python-future,excluded: fewer than 3 releases in the window,2,2,2,0,50,1,,True,True
+240,pycryptodome,Legrandin/pycryptodome,excluded: duplicate,,,,,,,,,
+241,opentelemetry-sdk,open-telemetry/opentelemetry-python,excluded: duplicate,,,,,,,,,
+242,starlette,Kludex/starlette,included,41,1,30,0,172,2,2024-11-18,False,False
+243,mako,sqlalchemy/mako,included,8,1,8,0,28,1,2024-12-03,False,False
+244,opentelemetry-semantic-conventions,open-telemetry/opentelemetry-python,excluded: duplicate,,,,,,,,,
+245,openai,openai/openai-python,excluded: no release by a person,162,0,0,30,494,1,2024-11-04,False,False
+246,pyflakes,PyCQA/pyflakes,excluded: fewer than 3 releases in the window,0,0,0,0,7,1,2025-03-29,False,False
+247,loguru,Delgan/loguru,included,3,1,3,0,70,1,2024-12-06,False,False
+248,kubernetes,kubernetes-client/python,included,18,1,18,0,107,1,2025-01-14,False,False
+249,asgiref,django/asgiref,excluded: fewer than 3 releases in the window,0,0,0,0,29,4,2025-07-03,False,True
+250,python-json-logger,nhairs/python-json-logger,included,6,1,6,0,27,1,2024-12-11,False,False
+251,executing,alexmojaki/executing,excluded: fewer than 3 releases in the window,1,1,1,0,30,1,2025-01-22,False,False
+252,asttokens,gristlabs/asttokens,excluded: fewer than 3 releases in the window,0,0,0,0,13,2,2024-11-30,False,False
+253,arrow,arrow-py/arrow,excluded: fewer than 3 releases in the window,2,1,2,0,19,7,2025-10-18,False,True
+254,pkgutil-resolve-name,graingert/pkgutil-resolve-name,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+255,flake8,PyCQA/flake8,excluded: fewer than 3 releases in the window,0,0,0,0,33,2,2025-02-16,False,False
+256,pygithub,PyGithub/PyGithub,included,14,2,9,5,83,10,2024-11-06,False,False
+257,elasticsearch,elastic/elasticsearch-py,included,27,5,27,0,124,1,2024-11-13,False,False
+258,redshift-connector,aws/amazon-redshift-python-driver,included,13,1,13,0,31,1,2024-11-21,False,False
+259,stack-data,alexmojaki/stack_data,excluded: fewer than 3 releases in the window,0,0,0,0,2,1,,True,True
+260,pytzdata,sdispater/pytzdata,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+261,pure-eval,alexmojaki/pure_eval,excluded: fewer than 3 releases in the window,0,0,0,0,17,1,,True,True
+262,pytest-runner,pytest-dev/pytest-runner,excluded: fewer than 3 releases in the window,0,0,0,0,1,1,,True,True
+263,bs4,,excluded: no GitHub repository,,,,,,,,,
+264,pg8000,,excluded: no GitHub repository,,,,,,,,,
+265,retry,invl/retry,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+266,typing-inspect,ilevkivskyi/typing_inspect,excluded: fewer than 3 releases in the window,0,0,0,0,2,2,,True,True
+267,smart-open,piskvorky/smart_open,included,8,1,8,0,68,1,2024-12-17,False,False
+268,argcomplete,kislyuk/argcomplete,included,29,1,29,0,49,1,2024-12-06,False,False
+269,pymongo,mongodb/mongo-python-driver,included,18,4,13,5,499,2,2025-01-28,False,False
+270,jupyter-core,jupyter/jupyter_core,excluded: no release by a person,19,0,0,1,23,1,2025-05-26,False,True
+271,google-pasta,google/pasta,excluded: fewer than 3 releases in the window,0,0,0,0,3,1,,True,True
+272,jupyter-client,jupyter/jupyter_client,included,27,2,12,3,29,3,,True,True
+273,google-cloud-secret-manager,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+274,datadog,DataDog/datadogpy,included,8,4,8,0,32,2,2024-11-21,False,False
+275,uvicorn,Kludex/uvicorn,included,27,1,27,0,99,1,2024-11-20,False,False
+276,mock,testing-cabal/mock,excluded: fewer than 3 releases in the window,0,0,0,0,3,1,2025-03-03,False,False
+277,ipykernel,ipython/ipykernel,excluded: no release by a person,37,0,0,3,45,3,2025-03-07,False,False
+278,typer,fastapi/typer,included,16,1,16,0,315,1,2024-11-07,False,False
+279,types-python-dateutil,python/typeshed,excluded: duplicate,,,,,,,,,
+280,torch,pytorch/pytorch,included,15,8,15,0,500,20,2025-01-29,False,False
+281,imageio,imageio/imageio,excluded: no release by a person,28,0,0,28,34,2,2024-11-28,False,False
+282,aioitertools,omnilib/aioitertools,excluded: fewer than 3 releases in the window,0,0,0,0,29,1,,True,True
+283,pyspark,apache/spark,excluded: fewer than 3 releases in the window,0,0,0,0,500,6,2024-12-20,False,False
+284,nbconvert,,excluded: no GitHub repository,,,,,,,,,
+285,shapely,shapely/shapely,excluded: no release by a person,10,0,0,10,94,2,2025-01-31,False,False
+286,apache-airflow,apache/airflow,included,34,5,30,0,500,8,2024-11-01,False,False
+287,oscrypto,wbond/oscrypto,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+288,websockets,python-websockets/websockets,included,41,1,28,2,192,1,2024-11-09,False,False
+289,tokenizers,huggingface/tokenizers,included,25,2,23,2,89,2,2024-11-04,False,False
+290,mysql-connector-python,mysql/mysql-connector-python,excluded: fewer than 3 releases in the window,0,0,0,0,77,2,2025-01-21,False,False
+291,jsonpath-ng,jsonpath-ng/jsonpath-ng,included,3,1,3,0,24,2,2024-11-20,False,False
+292,nodeenv,ekalinin/nodeenv,included,3,1,3,0,20,1,,True,True
+293,google-cloud-pubsub,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+294,requests-file,,excluded: no GitHub repository,,,,,,,,,
+295,aiofiles,Tinche/aiofiles,included,3,1,3,0,7,2,2025-10-09,False,True
+296,snowflake-sqlalchemy,snowflakedb/snowflake-sqlalchemy,included,9,3,6,3,27,1,2024-11-21,False,False
+297,nbformat,jupyter/nbformat,excluded: no release by a person,10,0,0,3,18,1,,True,True
+298,setproctitle,dvarrazzo/py-setproctitle,excluded: fewer than 3 releases in the window,0,0,0,0,1,1,2024-11-17,False,False
+299,jupyter-server,jupyter-server/jupyter_server,excluded: releases mainly published by automation,50,1,1,4,92,3,2024-12-20,False,False
+300,comm,ipython/comm,included,5,1,1,1,13,1,2025-07-25,False,True
+301,humanfriendly,,excluded: no GitHub repository,,,,,,,,,
+302,astroid,pylint-dev/astroid,included,46,3,30,0,264,1,2024-12-08,False,False
+303,pylint,pylint-dev/pylint,included,40,3,30,0,415,2,2024-12-01,False,False
+304,bleach,mozilla/bleach,excluded: fewer than 3 releases in the window,0,0,0,0,11,1,2025-10-27,False,True
+305,xgboost,dmlc/xgboost,included,15,2,15,0,500,1,2024-11-26,False,False
+306,orjson,ijl/orjson,included,40,1,30,0,68,1,2024-11-01,False,False
+307,rfc3339-validator,naimetti/rfc3339-validator,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+308,toolz,pytoolz/toolz,included,3,2,3,0,13,2,2025-10-17,False,True
+309,jsonpatch,stefankoegl/python-json-patch,excluded: fewer than 3 releases in the window,0,0,0,0,4,2,,True,True
+310,zope-interface,zopefoundation/zope.interface,excluded: fewer than 3 releases in the window,0,0,0,0,91,2,2024-11-28,False,False
+311,typeguard,agronholm/typeguard,excluded: no release by a person,6,0,0,6,54,1,2024-11-03,False,False
+312,schema,keleshev/schema,excluded: fewer than 3 releases in the window,1,1,1,0,45,2,2025-10-11,False,True
+313,mistune,lepture/mistune,excluded: releases mainly published by automation,5,1,1,4,17,1,2024-12-30,False,False
+314,pysocks,Anorov/PySocks,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+315,tinycss2,Kozea/tinycss2,excluded: fewer than 3 releases in the window,2,2,2,0,46,1,,True,True
+316,sympy,sympy/sympy,excluded: releases mainly published by automation,12,1,2,10,500,5,2025-04-14,False,False
+317,tb-nightly,tensorflow/tensorboard,included,19,6,19,0,159,3,2024-11-01,False,False
+318,notebook,jupyter/notebook,excluded: releases mainly published by automation,56,1,2,15,105,1,2024-11-06,False,False
+319,jupyterlab-server,jupyterlab/jupyterlab_server,excluded: releases mainly published by automation,23,1,2,6,38,2,2025-10-22,False,True
+320,sagemaker,aws/sagemaker-python-sdk,excluded: releases mainly published by automation,149,1,1,29,500,13,2024-11-04,False,False
+321,nbclient,jupyter/nbclient,included,8,2,5,2,14,1,2024-11-29,False,False
+322,jupyterlab,jupyterlab/jupyterlab,excluded: no release by a person,87,0,0,28,500,3,2024-11-15,False,False
+323,opensearch-py,opensearch-project/opensearch-py,excluded: no release by a person,14,0,0,14,127,2,2024-11-29,False,False
+324,sphinx,sphinx-doc/sphinx,excluded: no release by a person,45,0,0,30,500,1,2025-02-16,False,False
+325,adal,AzureAD/azure-activedirectory-library-for-python,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+326,jaraco-functools,jaraco/jaraco.functools,excluded: releases mainly published by automation,9,1,1,8,96,1,2025-06-21,False,True
+327,google-cloud-aiplatform,googleapis/python-aiplatform,excluded: no release by a person,71,0,0,30,500,4,2024-11-12,False,False
+328,xlrd,,excluded: no GitHub repository,,,,,,,,,
+329,ipywidgets,,excluded: no GitHub repository,,,,,,,,,
+330,google-cloud-appengine-logging,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+331,widgetsnbextension,,excluded: no GitHub repository,,,,,,,,,
+332,aenum,ethanfurman/aenum,excluded: fewer than 3 releases in the window,0,0,0,0,0,,2025-04-25,False,False
+333,aws-requests-auth,DavidMuller/aws-requests-auth,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+334,pathos,uqfoundation/pathos,included,3,1,3,0,23,1,2025-04-17,False,False
+335,jupyterlab-widgets,jupyter-widgets/ipywidgets,included,17,2,17,0,41,2,2025-04-10,False,False
+336,sentencepiece,google/sentencepiece,included,3,1,3,0,102,1,2025-08-12,False,True
+337,progressbar2,wolph/python-progressbar,included,7,1,7,0,82,1,,True,True
+338,xlsxwriter,jmcnamara/XlsxWriter,excluded: fewer than 3 releases in the window,0,0,0,0,28,1,2025-01-22,False,False
+339,db-dtypes,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+340,pre-commit,pre-commit/pre-commit,included,25,1,25,0,103,1,2025-01-20,False,False
+341,pox,uqfoundation/pox,included,3,1,3,0,23,1,2025-04-16,False,False
+342,apache-airflow-providers-common-sql,apache/airflow,excluded: duplicate,,,,,,,,,
+343,ppft,uqfoundation/ppft,included,3,1,3,0,22,1,2025-04-16,False,False
+344,pytest-mock,pytest-dev/pytest-mock,excluded: no release by a person,4,0,0,4,81,1,2025-05-26,False,True
+345,slack-sdk,slackapi/python-slack-sdk,included,30,2,30,0,105,1,2024-11-19,False,False
+346,send2trash,arsenetar/send2trash,excluded: fewer than 3 releases in the window,2,1,2,0,7,1,,True,True
+347,json5,dpranke/pyjson5,excluded: fewer than 3 releases in the window,0,0,0,0,32,1,2024-11-11,False,False
+348,semver,python-semver/python-semver,included,5,1,5,0,12,1,2025-01-18,False,False
+349,pyodbc,mkleehammer/pyodbc,included,10,1,10,0,25,1,2025-10-17,False,True
+350,argon2-cffi,hynek/argon2-cffi,excluded: fewer than 3 releases in the window,1,1,1,0,54,1,2025-06-03,False,True
+351,mpmath,mpmath/mpmath,excluded: fewer than 3 releases in the window,1,1,1,0,265,1,2025-01-22,False,False
+352,appdirs,ActiveState/appdirs,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+353,lz4,python-lz4/python-lz4,included,6,1,6,0,11,2,2024-11-14,False,False
+354,cattrs,python-attrs/cattrs,included,7,1,7,0,116,1,2025-03-25,False,False
+355,pandocfilters,jgm/pandocfilters,excluded: fewer than 3 releases in the window,1,1,1,0,10,2,,True,True
+356,jupyterlab-pygments,jupyterlab/jupyterlab_pygments,excluded: fewer than 3 releases in the window,0,0,0,0,19,1,,True,True
+357,overrides,mkorpela/overrides,included,4,1,4,0,15,1,,True,True
+358,pandas-gbq,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+359,django,django/django,excluded: fewer than 3 releases in the window,0,0,0,0,500,9,2024-11-05,False,False
+360,argon2-cffi-bindings,hynek/argon2-cffi-bindings,excluded: fewer than 3 releases in the window,0,0,0,0,45,1,2025-07-30,False,True
+361,identify,pre-commit/identify,excluded: fewer than 3 releases in the window,0,0,0,0,76,1,2024-11-09,False,False
+362,jaraco-context,jaraco/jaraco.context,excluded: no release by a person,8,0,0,8,123,1,,True,True
+363,sshtunnel,pahaz/sshtunnel,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+364,smdebug-rulesconfig,awslabs/sagemaker-debugger-rulesconfig,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+365,python-utils,wolph/python-utils,included,10,1,10,0,26,1,2024-11-26,False,False
+366,mypy,python/mypy,excluded: fewer than 3 releases in the window,0,0,0,0,500,4,2024-12-20,False,False
+367,absl-py,abseil/abseil-py,included,3,1,3,0,31,2,2025-03-20,False,False
+368,click-man,click-contrib/click-man,excluded: fewer than 3 releases in the window,0,0,0,0,2,2,2024-12-11,False,False
+369,scikit-image,scikit-image/scikit-image,excluded: releases mainly published by automation,22,1,5,17,394,2,2024-12-10,False,False
+370,terminado,jupyter/terminado,excluded: no release by a person,3,0,0,1,9,1,,True,True
+371,tensorboard,tensorflow/tensorboard,excluded: duplicate,,,,,,,,,
+372,cfgv,asottile/cfgv,excluded: fewer than 3 releases in the window,0,0,0,0,32,1,,True,True
+373,docker-pycreds,shin-/dockerpy-creds,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+374,google-cloud-logging,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+375,webcolors,ubernostrum/webcolors,excluded: fewer than 3 releases in the window,0,0,0,0,37,1,2024-11-11,False,False
+376,google-cloud-resource-manager,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+377,pydeequ,awslabs/python-deequ,included,6,2,6,0,16,1,2025-04-01,False,False
+378,pbr,,excluded: no GitHub repository,,,,,,,,,
+379,notebook-shim,,excluded: no GitHub repository,,,,,,,,,
+380,altair,vega/altair,included,21,3,21,0,218,2,2024-11-23,False,False
+381,azure-storage-file-datalake,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+382,croniter,pallets-eco/croniter,excluded: fewer than 3 releases in the window,0,0,0,0,141,1,2024-12-17,False,False
+383,tox,tox-dev/tox,included,97,1,30,0,146,2,2025-01-21,False,False
+384,asynctest,Martiusweb/asynctest,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+385,fqdn,ypcrts/fqdn,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+386,text-unidecode,kmike/text-unidecode,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+387,isoduration,bolsote/isoduration,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+388,uri-template,,excluded: no GitHub repository,,,,,,,,,
+389,ordered-set,rspeer/ordered-set,excluded: fewer than 3 releases in the window,0,0,0,0,2,,,True,True
+390,watchdog,gorakhargosh/watchdog,included,12,1,12,0,66,1,2024-11-01,False,False
+391,nltk,nltk/nltk,excluded: fewer than 3 releases in the window,0,0,0,0,217,2,2025-10-01,False,True
+392,rfc3986-validator,naimetti/rfc3986-validator,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+393,wandb,wandb/wandb,included,46,5,16,14,500,2,2024-11-06,False,False
+394,jupyter-events,jupyter/jupyter_events,excluded: no release by a person,9,0,0,2,13,2,2024-12-17,False,False
+395,databricks-sql-connector,databricks/databricks-sql-python,included,34,5,30,0,64,3,2024-11-05,False,False
+396,simplejson,simplejson/simplejson,included,9,1,9,0,6,2,2025-02-15,False,False
+397,python-slugify,un33k/python-slugify,excluded: fewer than 3 releases in the window,0,0,0,0,5,1,,True,True
+398,pytest-xdist,pytest-dev/pytest-xdist,excluded: no release by a person,3,0,0,3,133,1,2025-05-26,False,True
+399,imbalanced-learn,scikit-learn-contrib/imbalanced-learn,included,8,1,8,0,21,1,2024-12-20,False,False
+400,execnet,,excluded: no GitHub repository,,,,,,,,,
+401,opentelemetry-proto,open-telemetry/opentelemetry-python,excluded: duplicate,,,,,,,,,
+402,rfc3986,,excluded: no GitHub repository,,,,,,,,,
+403,h5py,h5py/h5py,included,6,1,4,2,289,2,2025-02-18,False,False
+404,graphql-core,graphql-python/graphql-core,included,7,1,7,0,91,1,2025-01-26,False,False
+405,google-cloud-bigquery-storage,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+406,selenium,,excluded: no GitHub repository,,,,,,,,,
+407,azure-mgmt-core,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+408,async-lru,aio-libs/async-lru,excluded: fewer than 3 releases in the window,2,0,0,2,77,1,2025-03-16,False,False
+409,tiktoken,openai/tiktoken,included,10,1,10,0,21,1,2025-02-14,False,False
+410,jupyter-server-terminals,jupyter-server/jupyter_server_terminals,included,9,1,1,1,18,1,,True,True
+411,langchain-core,langchain-ai/langchain,excluded: no release by a person,666,0,0,30,500,8,2024-11-01,False,False
+412,pywavelets,PyWavelets/pywt,excluded: no release by a person,4,0,0,4,124,2,2024-12-04,False,False
+413,responses,getsentry/responses,excluded: releases mainly published by automation,10,1,1,9,35,2,2025-01-10,False,False
+414,gym-notices,Farama-Foundation/gym-notices,excluded: fewer than 3 releases in the window,0,0,0,0,0,,2025-07-01,False,True
+415,lazy-object-proxy,ionelmc/python-lazy-object-proxy,excluded: fewer than 3 releases in the window,0,0,0,0,12,1,2025-04-16,False,False
+416,antlr4-python3-runtime,,excluded: no GitHub repository,,,,,,,,,
+417,dataclasses-json,lidatong/dataclasses-json,excluded: releases mainly published by automation,16,1,3,13,8,2,,True,True
+418,oauth2client,googleapis/oauth2client,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+419,structlog,hynek/structlog,included,9,1,9,0,177,1,2025-01-16,False,False
+420,dataclasses,ericvsmith/dataclasses,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+421,hvac,hvac/hvac,excluded: releases mainly published by automation,8,1,1,7,40,2,2025-10-30,False,True
+422,colorlog,borntyping/python-colorlog,excluded: fewer than 3 releases in the window,2,1,2,0,16,1,2025-03-05,False,False
+423,safetensors,safetensors/safetensors,included,27,1,27,0,47,1,2024-11-07,False,False
+424,jupyter-lsp,jupyter-lsp/jupyterlab-lsp,included,17,1,17,0,93,1,2025-05-29,False,True
+425,hypothesis,HypothesisWorks/hypothesis,included,40,1,30,0,500,2,2024-11-01,False,False
+426,prettytable,prettytable/prettytable,excluded: no release by a person,9,0,0,9,136,1,2025-01-24,False,False
+427,pydata-google-auth,pydata/pydata-google-auth,included,4,2,4,0,1,1,2024-11-21,False,False
+428,gremlinpython,,excluded: no GitHub repository,,,,,,,,,
+429,tensorflow,tensorflow/tensorflow,included,34,2,30,0,500,3,2025-02-21,False,False
+430,semantic-version,rbarrois/python-semanticversion,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+431,faker,joke2k/faker,excluded: no release by a person,154,0,0,30,363,1,2024-11-12,False,False
+432,snowballstemmer,snowballstem/snowball,excluded: fewer than 3 releases in the window,0,0,0,0,46,1,2025-05-08,False,True
+433,seaborn,mwaskom/seaborn,included,5,1,5,0,43,1,,True,True
+434,opentelemetry-exporter-otlp-proto-common,open-telemetry/opentelemetry-python,excluded: duplicate,,,,,,,,,
+435,flatbuffers,google/flatbuffers,included,14,1,8,6,101,4,2024-12-23,False,False
+436,pydantic-settings,pydantic/pydantic-settings,included,21,2,21,0,98,2,2024-11-01,False,False
+437,msrestazure,Azure/msrestazure-for-python,excluded: fewer than 3 releases in the window,0,0,0,0,2,1,,True,True
+438,thrift,,excluded: no GitHub repository,,,,,,,,,
+439,xxhash,ifduyue/python-xxhash,included,4,1,4,0,30,1,2025-10-02,False,True
+440,gast,serge-sans-paille/gast,excluded: fewer than 3 releases in the window,0,0,0,0,14,1,,True,True
+441,great-expectations,fivetran/great_expectations,included,101,10,30,0,500,4,2024-11-01,False,False
+442,databricks-sdk,,excluded: no GitHub repository,,,,,,,,,
+443,monotonic,atdt/monotonic,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+444,entrypoints,takluyver/entrypoints,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+445,numba,,excluded: no GitHub repository,,,,,,,,,
+446,pyroaring,Ezibenroc/PyRoaringBitMap,included,12,1,12,0,21,1,2025-05-08,False,True
+447,durationpy,icholy/durationpy,excluded: fewer than 3 releases in the window,0,0,0,0,14,1,2025-05-17,False,True
+448,wsproto,python-hyper/wsproto,excluded: fewer than 3 releases in the window,0,0,0,0,8,1,,True,True
+449,datasets,huggingface/datasets,included,35,2,30,0,355,2,2024-12-10,False,False
+450,google-cloud-audit-log,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+451,trio,python-trio/trio,included,11,1,11,0,475,2,2024-12-25,False,False
+452,opentelemetry-exporter-otlp-proto-http,open-telemetry/opentelemetry-python,excluded: duplicate,,,,,,,,,
+453,llvmlite,numba/llvmlite,excluded: no release by a person,4,0,0,4,206,3,2025-01-20,False,False
+454,gcsfs,fsspec/gcsfs,excluded: fewer than 3 releases in the window,0,0,0,0,26,2,2024-12-19,False,False
+455,time-machine,adamchainz/time-machine,excluded: fewer than 3 releases in the window,0,0,0,0,88,1,2025-08-05,False,True
+456,inflection,jpvanhal/inflection,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+457,plotly,plotly/plotly.py,included,17,4,17,0,500,2,2024-11-27,False,False
+458,dbt-core,dbt-labs/dbt,excluded: no release by a person,124,0,0,30,461,4,2024-11-06,False,False
+459,html5lib,html5lib/html5lib-python,excluded: fewer than 3 releases in the window,0,0,0,0,3,2,,True,True
+460,docstring-parser,rr-/docstring_parser,excluded: fewer than 3 releases in the window,0,0,0,0,2,2,2025-07-11,False,True
+461,coloredlogs,,excluded: no GitHub repository,,,,,,,,,
+462,azure-keyvault-secrets,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+463,langchain,langchain-ai/langchain,excluded: duplicate,,,,,,,,,
+464,email-validator,JoshData/python-email-validator,included,6,1,6,0,52,1,2025-08-26,False,True
+465,azure-datalake-store,Azure/azure-data-lake-store-python,excluded: fewer than 3 releases in the window,2,1,2,0,3,1,2025-06-03,False,True
+466,statsmodels,statsmodels/statsmodels,included,7,1,7,0,443,2,2025-07-07,False,True
+467,zeep,mvantellingen/python-zeep,included,4,1,4,0,27,1,2025-09-15,False,True
+468,mlflow,mlflow/mlflow,included,47,6,30,0,500,3,2024-11-12,False,False
+469,retrying,groodt/retrying,excluded: fewer than 3 releases in the window,0,0,0,0,0,,2025-06-22,False,True
+470,delta-spark,delta-io/delta,included,10,3,10,0,500,11,2025-01-04,False,False
+471,pymssql,pymssql/pymssql,excluded: fewer than 3 releases in the window,0,0,0,0,72,1,2024-11-21,False,False
+472,google-cloud-dataproc,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+473,outcome,python-trio/outcome,excluded: fewer than 3 releases in the window,0,0,0,0,3,2,,True,True
+474,backports-tarfile,jaraco/backports.tarfile,excluded: no release by a person,4,0,0,4,117,1,,True,True
+475,lockfile,,excluded: no GitHub repository,,,,,,,,,
+476,apache-airflow-providers-ssh,apache/airflow,excluded: duplicate,,,,,,,,,
+477,cached-property,pydanny/cached-property,excluded: fewer than 3 releases in the window,2,1,2,0,8,1,,True,True
+478,ruff,astral-sh/ruff,excluded: no release by a person,254,0,0,30,500,4,2024-11-01,False,False
+479,azure-mgmt-resource,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+480,pickleshare,ipython/pickleshare,excluded: fewer than 3 releases in the window,0,0,0,0,3,1,,True,True
+481,tblib,ionelmc/python-tblib,excluded: fewer than 3 releases in the window,0,0,0,0,3,1,2025-03-31,False,False
+482,kafka-python,dpkp/kafka-python,excluded: fewer than 3 releases in the window,0,0,0,0,13,1,2025-02-12,False,False
+483,click-plugins,click-contrib/click-plugins,excluded: fewer than 3 releases in the window,0,0,0,0,0,,2025-06-25,False,True
+484,alabaster,sphinx-doc/alabaster,excluded: no release by a person,4,0,0,4,50,1,,True,True
+485,confluent-kafka,confluentinc/confluent-kafka-python,included,9,1,9,0,36,1,2024-11-18,False,False
+486,deprecation,briancurtin/deprecation,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+487,imagesize,shibukawa/imagesize_py,excluded: fewer than 3 releases in the window,0,0,0,0,2,2,,True,True
+488,apache-airflow-providers-snowflake,apache/airflow,excluded: duplicate,,,,,,,,,
+489,google-cloud-kms,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+490,backcall,takluyver/backcall,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+491,opentelemetry-exporter-otlp-proto-grpc,open-telemetry/opentelemetry-python,excluded: duplicate,,,,,,,,,
+492,readme-renderer,pypa/readme_renderer,included,5,1,5,0,11,1,,True,True
+493,deepdiff,qlustered/deepdiff,included,9,1,9,0,112,1,2024-12-16,False,False
+494,libcst,Instagram/LibCST,included,11,1,11,0,93,1,2024-11-18,False,False
+495,apache-airflow-providers-google,apache/airflow,excluded: duplicate,,,,,,,,,
+496,pybind11,pybind/pybind11,included,15,2,15,0,145,2,2025-05-21,False,True
+497,python-multipart,Kludex/python-multipart,included,10,1,10,0,76,1,2024-11-28,False,False
+498,argparse,ThomasWaldmann/argparse,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+499,looker-sdk,,excluded: no GitHub repository,,,,,,,,,
+500,sphinxcontrib-serializinghtml,sphinx-doc/sphinxcontrib-serializinghtml,excluded: no release by a person,6,0,0,6,12,1,,True,True
+501,mlflow-skinny,mlflow/mlflow,excluded: duplicate,,,,,,,,,
+502,uvloop,MagicStack/uvloop,excluded: no release by a person,5,0,0,5,14,4,2025-10-16,False,True
+503,jiter,pydantic/jiter,included,19,3,19,0,107,1,2024-11-12,False,False
+504,opencv-python,opencv/opencv-python,included,8,1,8,0,34,1,2025-01-16,False,False
+505,patsy,pydata/patsy,included,3,1,3,0,14,1,2024-11-12,False,False
+506,google-cloud-monitoring,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+507,sphinxcontrib-htmlhelp,sphinx-doc/sphinxcontrib-htmlhelp,excluded: no release by a person,6,0,0,6,16,1,,True,True
+508,google-cloud-container,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+509,psycopg2,psycopg/psycopg2,excluded: duplicate,,,,,,,,,
+510,httptools,MagicStack/httptools,excluded: no release by a person,5,0,0,5,8,2,2025-10-10,False,True
+511,sphinxcontrib-qthelp,sphinx-doc/sphinxcontrib-qthelp,excluded: no release by a person,6,0,0,6,14,1,,True,True
+512,sphinxcontrib-devhelp,sphinx-doc/sphinxcontrib-devhelp,excluded: no release by a person,5,0,0,5,15,1,,True,True
+513,sphinxcontrib-applehelp,sphinx-doc/sphinxcontrib-applehelp,excluded: no release by a person,5,0,0,5,13,1,,True,True
+514,google-cloud-vision,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+515,spacy,explosion/spaCy,included,24,3,21,3,147,2,2024-12-11,False,False
+516,databricks-cli,databricks/databricks-cli,included,6,1,6,0,0,,,True,True
+517,ujson,ultrajson/ultrajson,excluded: no release by a person,5,0,0,5,43,1,2025-08-20,False,True
+518,aniso8601,,excluded: no GitHub repository,,,,,,,,,
+519,azure-cli,Azure/azure-cli,excluded: releases mainly published by automation,28,1,2,26,500,13,2024-11-11,False,False
+520,google-cloud-spanner,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+521,frozendict,Marco-Sulla/python-frozendict,included,13,1,13,0,125,2,,True,True
+522,nh3,messense/nh3,included,3,1,3,0,24,1,2024-11-29,False,False
+523,google-cloud-dlp,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+524,azure-storage-common,Azure/azure-storage-python,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+525,sphinxcontrib-jsmath,sphinx-doc/sphinxcontrib-jsmath,excluded: fewer than 3 releases in the window,0,0,0,0,11,1,,True,True
+526,google-cloud-bigquery-datatransfer,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+527,azure-nspkg,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+528,google-cloud-tasks,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+529,triton,triton-lang/triton,excluded: fewer than 3 releases in the window,0,0,0,0,500,11,2025-01-22,False,False
+530,apache-airflow-providers-cncf-kubernetes,apache/airflow,excluded: duplicate,,,,,,,,,
+531,apache-airflow-providers-databricks,apache/airflow,excluded: duplicate,,,,,,,,,
+532,torchvision,pytorch/vision,included,14,3,14,0,224,2,2025-01-29,False,False
+533,opentelemetry-instrumentation,open-telemetry/opentelemetry-python-contrib,excluded: releases mainly published by automation,14,2,2,12,388,3,2024-11-05,False,False
+534,tensorboard-data-server,tensorflow/tensorboard,excluded: duplicate,,,,,,,,,
+535,pytest-metadata,pytest-dev/pytest-metadata,excluded: fewer than 3 releases in the window,0,0,0,0,6,1,,True,True
+536,trio-websocket,python-trio/trio-websocket,excluded: fewer than 3 releases in the window,0,0,0,0,3,1,2025-02-17,False,False
+537,keras,keras-team/keras,included,28,2,28,0,500,2,2024-11-26,False,False
+538,google-ads,googleads/google-ads-python,included,14,2,14,0,29,2,2025-02-27,False,False
+539,pipenv,pypa/pipenv,excluded: no release by a person,55,0,0,30,336,1,2024-11-05,False,False
+540,hatchling,pypa/hatch,included,42,1,30,0,303,1,2024-11-10,False,False
+541,tensorflow-estimator,tensorflow/estimator,included,9,4,9,0,4,3,,True,True
+542,twine,pypa/twine,included,4,2,2,2,174,1,2024-11-30,False,False
+543,google-cloud-datacatalog,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+544,nvidia-nccl-cu12,,excluded: no GitHub repository,,,,,,,,,
+545,azure-mgmt-storage,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+546,unidecode,,excluded: no GitHub repository,,,,,,,,,
+547,docopt,,excluded: no GitHub repository,,,,,,,,,
+548,apache-airflow-providers-mysql,apache/airflow,excluded: duplicate,,,,,,,,,
+549,invoke,pyinvoke/invoke,excluded: fewer than 3 releases in the window,0,0,0,0,3,1,2025-10-11,False,True
+550,applicationinsights,microsoft/ApplicationInsights-Python,included,7,1,7,0,3,1,,True,True
+551,azure-keyvault-keys,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+552,pytest-asyncio,pytest-dev/pytest-asyncio,excluded: no release by a person,27,0,0,27,299,1,2024-12-13,False,False
+553,google-cloud-bigtable,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+554,pyproject-api,tox-dev/pyproject-api,included,15,1,15,0,50,1,2025-01-21,False,False
+555,azure-cosmos,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+556,uv,astral-sh/uv,excluded: no release by a person,121,0,0,30,500,2,2024-11-05,False,False
+557,opt-einsum,,excluded: no GitHub repository,,,,,,,,,
+558,google-cloud-build,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+559,backports-zoneinfo,pganssle/zoneinfo,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+560,simple-salesforce,simple-salesforce/simple-salesforce,included,4,1,4,0,16,1,2025-08-16,False,True
+561,tldextract,john-kurkowski/tldextract,included,7,1,7,0,28,1,2024-11-05,False,False
+562,thinc,explosion/thinc,included,19,4,14,5,35,1,2024-12-16,False,False
+563,azure-graphrbac,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+564,azure-keyvault,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+565,google-cloud-workflows,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+566,makefun,smarie/python-makefun,excluded: no release by a person,5,0,0,5,45,1,2025-05-09,False,True
+567,google-cloud-redis,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+568,google-cloud-dataplex,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+569,fastavro,fastavro/fastavro,excluded: no release by a person,17,0,0,17,49,1,2024-12-20,False,False
+570,graphviz,xflr6/graphviz,excluded: fewer than 3 releases in the window,0,0,0,0,31,1,2025-06-15,False,True
+571,google-cloud-automl,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+572,google-cloud-language,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+573,watchtower,kislyuk/watchtower,included,5,1,5,0,16,1,2025-02-25,False,False
+574,google-cloud-os-login,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+575,google-cloud-firestore,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+576,google-cloud-videointelligence,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+577,freezegun,spulec/freezegun,excluded: no release by a person,5,0,0,5,56,1,2025-05-24,False,True
+578,gsutil,,excluded: no GitHub repository,,,,,,,,,
+579,google-cloud-memcache,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+580,pycrypto,,excluded: no GitHub repository,,,,,,,,,
+581,jupyter,,excluded: no GitHub repository,,,,,,,,,
+582,graphene,graphql-python/graphene,included,6,1,6,0,28,1,2024-11-09,False,False
+583,azure-mgmt-containerregistry,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+584,blis,explosion/cython-blis,excluded: releases mainly published by automation,5,1,2,3,1,1,2024-12-10,False,False
+585,astunparse,simonpercivall/astunparse,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+586,datetime,zopefoundation/DateTime,excluded: fewer than 3 releases in the window,0,0,0,0,19,2,,True,True
+587,funcsigs,,excluded: no GitHub repository,,,,,,,,,
+588,gevent,gevent/gevent,excluded: fewer than 3 releases in the window,0,0,0,0,89,1,2024-11-11,False,False
+589,jupyter-console,,excluded: no GitHub repository,,,,,,,,,
+590,gspread,burnash/gspread,included,24,1,24,0,318,2,2025-02-27,False,False
+591,graphql-relay,graphql-python/graphql-relay-py,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+592,authlib,authlib/authlib,included,6,1,6,0,75,1,2024-12-20,False,False
+593,murmurhash,explosion/murmurhash,excluded: fewer than 3 releases in the window,2,1,2,0,1,1,2024-11-22,False,False
+594,watchfiles,samuelcolvin/watchfiles,included,7,1,7,0,25,1,2024-11-25,False,False
+595,nose,,excluded: no GitHub repository,,,,,,,,,
+596,pytimeparse,wroberts/pytimeparse,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+597,zope-event,zopefoundation/zope.event,excluded: fewer than 3 releases in the window,0,0,0,0,3,1,2025-06-26,False,True
+598,google-cloud-orchestration-airflow,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+599,opentelemetry-exporter-otlp,open-telemetry/opentelemetry-python,excluded: duplicate,,,,,,,,,
+600,parameterized,wolever/parameterized,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+601,preshed,explosion/preshed,excluded: fewer than 3 releases in the window,2,1,2,0,1,1,2025-05-26,False,True
+602,google-cloud-dataproc-metastore,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+603,nvidia-cudnn-cu12,,excluded: no GitHub repository,,,,,,,,,
+604,google-cloud-translate,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+605,cymem,explosion/cymem,excluded: fewer than 3 releases in the window,2,1,1,1,34,1,2024-11-22,False,False
+606,azure-mgmt-keyvault,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+607,sqlalchemy-bigquery,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+608,pywin32,mhammond/pywin32,included,4,1,4,0,140,1,2025-03-09,False,False
+609,omegaconf,hydra-ecosystem/omegaconf,excluded: fewer than 3 releases in the window,1,1,1,0,14,1,2025-10-30,False,True
+610,catalogue,explosion/catalogue,excluded: fewer than 3 releases in the window,2,1,2,0,3,1,,True,True
+611,azure-mgmt-compute,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+612,analytics-python,segmentio/analytics-python,excluded: fewer than 3 releases in the window,0,0,0,0,19,1,,True,True
+613,google-cloud-dataform,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+614,srsly,explosion/srsly,included,4,1,4,0,2,2,2024-12-10,False,False
+615,azure-mgmt-cosmosdb,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+616,sh,amoffat/sh,included,9,1,8,1,32,1,2025-01-09,False,False
+617,wasabi,explosion/wasabi,included,4,2,4,0,5,1,,True,True
+618,azure-mgmt-authorization,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+619,pkce,RomeoDespres/pkce,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+620,azure-mgmt-network,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+621,grpcio-gcp,,excluded: no GitHub repository,,,,,,,,,
+622,tensorflow-serving-api,,excluded: no GitHub repository,,,,,,,,,
+623,nvidia-cublas-cu12,,excluded: no GitHub repository,,,,,,,,,
+624,brotli,google/brotli,excluded: fewer than 3 releases in the window,2,1,2,0,62,2,2025-10-06,False,True
+625,ecdsa,tlsfuzzer/python-ecdsa,excluded: fewer than 3 releases in the window,1,1,1,0,72,1,2025-03-13,False,False
+626,google-cloud-speech,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+627,ratelimit,tomasbasham/ratelimit,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+628,evergreen-py,evergreen-ci/evergreen.py,excluded: fewer than 3 releases in the window,0,0,0,0,22,5,2024-11-04,False,False
+629,langsmith,langchain-ai/langsmith-python,excluded: fewer than 3 releases in the window,0,0,0,0,0,,2024-11-01,False,False
+630,agate,wireservice/agate,excluded: fewer than 3 releases in the window,0,0,0,0,34,1,2025-01-29,False,False
+631,configparser,jaraco/configparser,excluded: no release by a person,5,0,0,5,114,1,2025-03-08,False,False
+632,jsondiff,xlwings/jsondiff,included,5,1,5,0,13,1,,True,True
+633,azure-mgmt-msi,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+634,google-cloud-texttospeech,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+635,langcodes,georgkrause/langcodes,included,4,1,4,0,21,1,2024-11-19,False,False
+636,nvidia-cuda-runtime-cu12,,excluded: no GitHub repository,,,,,,,,,
+637,nvidia-cuda-cupti-cu12,,excluded: no GitHub repository,,,,,,,,,
+638,nvidia-cuda-nvrtc-cu12,,excluded: no GitHub repository,,,,,,,,,
+639,nvidia-cusparse-cu12,,excluded: no GitHub repository,,,,,,,,,
+640,nvidia-cufft-cu12,,excluded: no GitHub repository,,,,,,,,,
+641,flask-appbuilder,dpgaspar/Flask-AppBuilder,included,21,1,21,0,42,1,2025-01-21,False,False
+642,dask,dask/dask,excluded: no release by a person,15,0,0,15,500,2,2024-11-08,False,False
+643,nvidia-cusolver-cu12,,excluded: no GitHub repository,,,,,,,,,
+644,nvidia-nvjitlink-cu12,,excluded: no GitHub repository,,,,,,,,,
+645,ijson,ICRAR/ijson,excluded: fewer than 3 releases in the window,0,0,0,0,106,1,2025-05-08,False,True
+646,nvidia-curand-cu12,,excluded: no GitHub repository,,,,,,,,,
+647,langchain-community,langchain-ai/langchain-community,excluded: fewer than 3 releases in the window,0,0,0,0,0,,2024-11-01,False,False
+648,pysftp,,excluded: no GitHub repository,,,,,,,,,
+649,gcloud-aio-storage,talkiq/gcloud-aio,included,55,1,30,0,147,1,2024-12-17,False,False
+650,pypdf2,py-pdf/pypdf,excluded: releases mainly published by automation,54,3,4,26,296,3,2025-01-26,False,False
+651,nvidia-nvtx-cu12,,excluded: no GitHub repository,,,,,,,,,
+652,jira,pycontribs/jira,excluded: releases mainly published by automation,8,1,2,6,53,2,2024-11-22,False,False
+653,db-contrib-tool,,excluded: repository not reachable,,,,,,,2025-02-10,False,False
+654,gcloud-aio-auth,talkiq/gcloud-aio,excluded: duplicate,,,,,,,,,
+655,pathlib2,jazzband/pathlib2,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+656,flask-cors,corydolphin/flask-cors,included,5,1,5,0,10,2,2025-02-24,False,False
+657,bitarray,ilanschnell/bitarray,excluded: fewer than 3 releases in the window,0,0,0,0,295,1,2025-02-19,False,False
+658,fabric,fabric/fabric,excluded: fewer than 3 releases in the window,0,0,0,0,1,1,,True,True
+659,opentelemetry-util-http,open-telemetry/opentelemetry-python-contrib,excluded: duplicate,,,,,,,,,
+660,scp,jbardin/scp.py,excluded: fewer than 3 releases in the window,0,0,0,0,10,1,,True,True
+661,azure-mgmt-recoveryservices,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+662,ninja,scikit-build/ninja-python-distributions,excluded: fewer than 3 releases in the window,2,2,2,0,33,1,2024-11-23,False,False
+663,python-gnupg,vsajip/python-gnupg,included,3,1,3,0,17,1,2025-01-07,False,False
+664,azure-mgmt-containerinstance,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+665,spacy-loggers,explosion/spacy-loggers,excluded: fewer than 3 releases in the window,2,2,2,0,1,1,,True,True
+666,azure-mgmt-monitor,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+667,spacy-legacy,,excluded: no GitHub repository,,,,,,,,,
+668,gcloud-aio-bigquery,talkiq/gcloud-aio,excluded: duplicate,,,,,,,,,
+669,azure-data-tables,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+670,kombu,celery/kombu,included,19,2,19,0,180,2,2025-02-19,False,False
+671,types-pyyaml,python/typeshed,excluded: duplicate,,,,,,,,,
+672,azure-mgmt-signalr,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+673,azure-batch,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+674,azure-mgmt-sql,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+675,djangorestframework,encode/django-rest-framework,included,4,2,4,0,103,8,2024-12-28,False,False
+676,azure-mgmt-web,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+677,azure-mgmt-servicebus,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+678,azure-mgmt-redis,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+679,google-cloud-compute,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+680,avro-python3,,excluded: no GitHub repository,,,,,,,,,
+681,awscrt,awslabs/aws-crt-python,included,78,8,30,0,69,3,2024-11-19,False,False
+682,parsedatetime,bear/parsedatetime,excluded: fewer than 3 releases in the window,0,0,0,0,5,1,,True,True
+683,confection,explosion/confection,included,7,3,7,0,8,2,2025-04-10,False,False
+684,azure-mgmt-containerservice,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+685,azure-mgmt-dns,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+686,mdit-py-plugins,executablebooks/mdit-py-plugins,included,7,1,7,0,13,1,2025-08-11,False,True
+687,celery,celery/celery,included,16,2,13,3,364,1,2024-11-18,False,False
+688,azure-mgmt-advisor,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+689,gym,,excluded: no GitHub repository,,,,,,,,,
+690,azure-mgmt-rdbms,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+691,azure-mgmt-eventhub,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+692,hpack,python-hyper/hpack,excluded: fewer than 3 releases in the window,0,0,0,0,0,,2025-01-22,False,False
+693,texttable,foutaise/texttable,included,4,1,4,0,0,,,True,True
+694,protobuf3-to-dict,kaporzhu/protobuf-to-dict,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+695,azure-mgmt-loganalytics,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+696,azure-mgmt-batch,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+697,azure-mgmt-cdn,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+698,pytest-html,pytest-dev/pytest-html,excluded: no release by a person,6,0,0,6,15,1,,True,True
+699,mashumaro,Fatal1ty/mashumaro,included,18,1,18,0,197,1,2024-11-23,False,False
+700,libclang,sighingnow/libclang,included,5,1,5,0,4,1,,True,True
+701,narwhals,narwhals-dev/narwhals,excluded: no release by a person,113,0,0,30,500,2,2024-11-03,False,False
+702,opencensus-context,census-instrumentation/opencensus-python,included,5,1,5,0,6,1,2025-01-06,False,False
+703,amqp,celery/py-amqp,excluded: fewer than 3 releases in the window,1,1,1,0,9,1,2024-11-12,False,False
+704,azure-mgmt-trafficmanager,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+705,azure-mgmt-iothub,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+706,azure-mgmt-search,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+707,azure-mgmt-marketplaceordering,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+708,opencensus,census-instrumentation/opencensus-python,excluded: duplicate,,,,,,,,,
+709,azure-mgmt-managementgroups,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+710,zstandard,indygreg/python-zstandard,included,3,1,3,0,45,1,2025-08-17,False,True
+711,azure-mgmt-recoveryservicesbackup,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+712,jsonpickle,jsonpickle/jsonpickle,excluded: fewer than 3 releases in the window,0,0,0,0,213,1,2024-11-05,False,False
+713,azure-mgmt-devtestlabs,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+714,humanize,python-humanize/humanize,excluded: no release by a person,7,0,0,7,106,1,2025-02-14,False,False
+715,yapf,google/yapf,excluded: fewer than 3 releases in the window,0,0,0,0,21,4,2024-11-14,False,False
+716,azure-mgmt-eventgrid,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+717,billiard,celery/billiard,included,3,2,3,0,15,1,2025-09-20,False,True
+718,azure-mgmt-cognitiveservices,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+719,azure-mgmt-applicationinsights,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+720,levenshtein,rapidfuzz/Levenshtein,included,10,1,10,0,22,1,2025-01-14,False,False
+721,mysqlclient,PyMySQL/mysqlclient,included,7,1,7,0,29,1,2024-11-13,False,False
+722,h2,python-hyper/h2,excluded: fewer than 3 releases in the window,0,0,0,0,10,1,2025-02-01,False,False
+723,hyperframe,python-hyper/hyperframe,excluded: fewer than 3 releases in the window,0,0,0,0,0,,2025-01-22,False,False
+724,azure-mgmt-servicefabric,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+725,apispec,marshmallow-code/apispec,excluded: fewer than 3 releases in the window,0,0,0,0,91,1,2024-11-04,False,False
+726,vine,celery/vine,excluded: fewer than 3 releases in the window,1,1,1,0,24,1,,True,True
+727,azure-mgmt-billing,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+728,azure-mgmt-media,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+729,azure-mgmt-policyinsights,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+730,azure-mgmt-iothubprovisioningservices,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+731,azure-appconfiguration,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+732,azure-mgmt-batchai,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+733,azure-mgmt-datamigration,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+734,azure-mgmt-nspkg,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+735,azure-mgmt-iotcentral,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+736,azure-mgmt-maps,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+737,azure-storage-queue,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+738,tensorflow-io-gcs-filesystem,tensorflow/io,excluded: no release by a person,11,0,0,11,43,1,,True,True
+739,astor,berkerpeksag/astor,excluded: fewer than 3 releases in the window,0,0,0,0,2,2,,True,True
+740,azure-cli-core,Azure/azure-cli,excluded: duplicate,,,,,,,,,
+741,pycountry,pycountry/pycountry,excluded: fewer than 3 releases in the window,0,0,0,0,82,1,,True,True
+742,lark,lark-parser/lark,included,8,1,8,0,69,1,2025-09-22,False,True
+743,mypy-boto3-s3,youtype/mypy_boto3_builder,included,55,1,30,0,356,1,2024-11-02,False,False
+744,pyproj,pyproj4/pyproj,included,10,1,10,0,65,1,2025-02-15,False,False
+745,pyathena,pyathena-dev/PyAthena,excluded: releases mainly published by automation,63,1,1,29,126,1,2024-12-04,False,False
+746,apache-airflow-providers-http,apache/airflow,excluded: duplicate,,,,,,,,,
+747,boto3-stubs,youtype/mypy_boto3_builder,excluded: duplicate,,,,,,,,,
+748,parsimonious,erikrose/parsimonious,excluded: fewer than 3 releases in the window,0,0,0,0,1,1,,True,True
+749,ml-dtypes,jax-ml/ml_dtypes,included,15,2,15,0,122,2,2025-01-06,False,False
+750,azure-mgmt-datalake-nspkg,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+751,knack,microsoft/knack,included,3,1,3,0,5,1,2025-10-23,False,True
+752,pyserial,pyserial/pyserial,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+753,azure-mgmt-datalake-store,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+754,office365-rest-python-client,vgrem/office365-rest-python-client,included,20,1,20,0,154,1,2024-12-08,False,False
+755,flask-sqlalchemy,pallets-eco/flask-sqlalchemy,excluded: no release by a person,5,0,0,5,61,1,,True,True
+756,python-magic,ahupp/python-magic,excluded: fewer than 3 releases in the window,0,0,0,0,14,2,,True,True
+757,contextlib2,,excluded: no GitHub repository,,,,,,,,,
+758,python-daemon,,excluded: no GitHub repository,,,,,,,,,
+759,moto,getmoto/moto,excluded: no release by a person,35,0,0,30,500,2,2024-11-03,False,False
+760,cfn-lint,aws-cloudformation/cfn-lint,included,172,1,30,0,484,1,2024-11-04,False,False
+761,requests-mock,jamielennox/requests-mock,included,3,1,3,0,19,2,,True,True
+762,mypy-boto3-rds,youtype/mypy_boto3_builder,excluded: duplicate,,,,,,,,,
+763,cytoolz,pytoolz/cytoolz,included,7,2,7,0,14,1,2024-12-13,False,False
+764,python-gitlab,python-gitlab/python-gitlab,included,23,1,23,0,235,2,2024-11-28,False,False
+765,pip-tools,pypa/pip-tools,excluded: no release by a person,14,0,0,14,117,3,2025-07-30,False,True
+766,typing,python/typing,excluded: fewer than 3 releases in the window,0,0,0,0,195,2,,True,True
+767,opencensus-ext-azure,census-instrumentation/opencensus-python,excluded: duplicate,,,,,,,,,
+768,grpcio-health-checking,,excluded: no GitHub repository,,,,,,,,,
+769,lightgbm,lightgbm-org/LightGBM,included,8,1,7,1,230,1,2025-02-15,False,False
+770,cramjam,milesgranger/cramjam,included,20,1,20,0,52,1,2024-12-12,False,False
+771,boto,boto/boto,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+772,psycopg,psycopg/psycopg,excluded: fewer than 3 releases in the window,0,0,0,0,362,1,2025-01-15,False,False
+773,eth-utils,ethereum/eth-utils,excluded: fewer than 3 releases in the window,0,0,0,0,92,1,2025-01-21,False,False
+774,parse,r1chardj0n3s/parse,included,4,1,4,0,37,1,,True,True
+775,jpype1,jpype-project/jpype,excluded: fewer than 3 releases in the window,1,1,1,0,197,2,2024-11-18,False,False
+776,leather,,excluded: no GitHub repository,,,,,,,,,
+777,eth-hash,ethereum/eth-hash,excluded: fewer than 3 releases in the window,0,0,0,0,54,1,2025-01-13,False,False
+778,click-didyoumean,click-contrib/click-didyoumean,excluded: fewer than 3 releases in the window,1,1,1,0,17,1,,True,True
+779,azure-multiapi-storage,Azure/azure-multiapi-storage-python,included,4,2,4,0,5,1,2025-03-17,False,False
+780,tensorflow-text,tensorflow/text,included,16,2,16,0,26,3,2024-12-16,False,False
+781,python-jose,mpdavis/python-jose,excluded: fewer than 3 releases in the window,0,0,0,0,4,1,2025-02-14,False,False
+782,dbt-extractor,dbt-labs/dbt-extractor,excluded: fewer than 3 releases in the window,0,0,0,0,7,2,2025-04-07,False,False
+783,avro,apache/avro,included,3,2,3,0,500,3,2025-10-15,False,True
+784,botocore-stubs,youtype/botocore-stubs,excluded: fewer than 3 releases in the window,2,1,2,0,257,1,2024-11-01,False,False
+785,click-repl,click-contrib/click-repl,excluded: fewer than 3 releases in the window,1,1,1,0,4,2,,True,True
+786,javaproperties,jwodder/javaproperties,excluded: fewer than 3 releases in the window,0,0,0,0,11,1,2024-12-01,False,False
+787,azure-mgmt-datalake-analytics,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+788,stevedore,,excluded: no GitHub repository,,,,,,,,,
+789,azure-mgmt-reservations,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+790,pyspnego,jborean93/pyspnego,included,11,1,11,0,13,1,2024-11-11,False,False
+791,holidays,vacanza/holidays,included,47,2,30,0,500,2,2024-11-04,False,False
+792,azure-synapse-artifacts,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+793,flask-wtf,pallets-eco/flask-wtf,included,6,1,5,1,35,1,,True,True
+794,eth-typing,ethereum/eth-typing,excluded: fewer than 3 releases in the window,0,0,0,0,105,1,2025-01-08,False,False
+795,azure-loganalytics,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+796,onnxruntime,microsoft/onnxruntime,included,15,8,15,0,500,13,2024-11-01,False,False
+797,azure-mgmt-consumption,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+798,cmake,scikit-build/cmake-python-distributions,included,31,3,30,0,105,2,2024-11-10,False,False
+799,azure-mgmt-relay,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+800,python-http-client,sendgrid/python-http-client,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+801,azure-cli-telemetry,Azure/azure-cli,excluded: duplicate,,,,,,,,,
+802,azure-synapse-spark,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+803,dateparser,scrapinghub/dateparser,included,7,2,7,0,22,4,2025-02-05,False,False
+804,azure-mgmt-apimanagement,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+805,resolvelib,sarugaku/resolvelib,excluded: fewer than 3 releases in the window,0,0,0,0,65,1,2025-06-26,False,True
+806,opentelemetry-instrumentation-requests,open-telemetry/opentelemetry-python-contrib,excluded: duplicate,,,,,,,,,
+807,marisa-trie,pytries/marisa-trie,included,6,1,6,0,14,1,2025-08-16,False,True
+808,elastic-transport,elastic/elastic-transport-python,included,8,3,8,0,43,1,2025-01-07,False,False
+809,azure-mgmt-privatedns,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+810,azure-mgmt-hdinsight,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+811,langchain-text-splitters,langchain-ai/langchain,excluded: duplicate,,,,,,,,,
+812,google-cloud-dataflow-client,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+813,azure-mgmt-security,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+814,azure-mgmt-kusto,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+815,azure-mgmt-synapse,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+816,language-data,georgkrause/language_data,included,4,1,4,0,18,1,2024-11-19,False,False
+817,apscheduler,agronholm/apscheduler,excluded: no release by a person,3,0,0,3,186,1,2024-11-24,False,False
+818,azure-synapse-accesscontrol,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+819,azure-mgmt-redhatopenshift,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+820,dbt-semantic-interfaces,,excluded: no GitHub repository,,,,,,,,,
+821,azure-keyvault-administration,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+822,azure-mgmt-sqlvirtualmachine,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+823,magicattr,frmdstryr/magicattr,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+824,azure-mgmt-appconfiguration,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+825,azure-mgmt-netapp,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+826,azure-mgmt-imagebuilder,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+827,azure-mgmt-botservice,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+828,azure-mgmt-servicelinker,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+829,apache-airflow-providers-fab,apache/airflow,excluded: duplicate,,,,,,,,,
+830,azure-mgmt-servicefabricmanagedclusters,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+831,azure-mgmt-databoxedge,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+832,azure-synapse-managedprivateendpoints,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+833,azure-mgmt-extendedlocation,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+834,setuptools-rust,PyO3/setuptools-rust,included,8,1,8,0,155,1,2025-03-14,False,False
+835,fasteners,harlowja/fasteners,excluded: fewer than 3 releases in the window,1,1,1,0,0,,2025-08-11,False,True
+836,partd,dask/partd,excluded: fewer than 3 releases in the window,0,0,0,0,5,2,,True,True
+837,types-awscrt,youtype/types-awscrt,excluded: fewer than 3 releases in the window,0,0,0,0,48,1,2024-11-26,False,False
+838,enum34,,excluded: no GitHub repository,,,,,,,,,
+839,locket,mwilliamson/locket.py,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+840,accelerate,huggingface/accelerate,included,34,2,30,0,469,4,2024-11-01,False,False
+841,tifffile,cgohlke/tifffile,included,31,1,30,0,93,1,2024-12-13,False,False
+842,inflect,jaraco/inflect,excluded: no release by a person,12,0,0,12,138,1,2024-12-28,False,False
+843,geopandas,geopandas/geopandas,excluded: no release by a person,13,0,0,13,213,2,2025-06-01,False,True
+844,py-cpuinfo,workhorsy/py-cpuinfo,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+845,sendgrid,sendgrid/sendgrid-python,excluded: no release by a person,4,0,0,4,7,1,2025-05-05,False,True
+846,flask-login,maxcountryman/flask-login,excluded: fewer than 3 releases in the window,1,1,1,0,28,1,,True,True
+847,pytest-timeout,pytest-dev/pytest-timeout,excluded: fewer than 3 releases in the window,0,0,0,0,24,1,2025-05-05,False,True
+848,eth-abi,ApeWorX/eth-abi,excluded: fewer than 3 releases in the window,0,0,0,0,64,1,2025-01-14,False,False
+849,cligj,mapbox/cligj,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+850,mergedeep,clarketm/mergedeep,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+851,python-levenshtein,rapidfuzz/python-Levenshtein,included,10,1,10,0,7,1,2025-03-02,False,False
+852,urllib3-secure-extra,urllib3/urllib3-secure-extra,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+853,wtforms,pallets-eco/wtforms,included,5,1,3,2,64,1,,True,True
+854,yamllint,adrienverge/yamllint,excluded: fewer than 3 releases in the window,0,0,0,0,49,2,2025-03-11,False,False
+855,fuzzywuzzy,seatgeek/fuzzywuzzy,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+856,apache-airflow-providers-ftp,apache/airflow,excluded: duplicate,,,,,,,,,
+857,azure-storage-file-share,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+858,dacite,konradhalas/dacite,included,3,1,3,0,9,1,2025-01-29,False,False
+859,iso8601,micktwomey/pyiso8601,excluded: fewer than 3 releases in the window,2,1,2,0,2,1,,True,True
+860,jaydebeapi,baztian/jaydebeapi,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+861,fastparquet,dask/fastparquet,excluded: fewer than 3 releases in the window,0,0,0,0,20,1,2024-11-12,False,False
+862,validators,python-validators/validators,included,21,1,21,0,114,1,2025-05-01,False,True
+863,types-s3transfer,youtype/types-s3transfer,excluded: fewer than 3 releases in the window,0,0,0,0,20,1,2024-11-21,False,False
+864,blessed,jquast/blessed,excluded: fewer than 3 releases in the window,1,1,1,0,9,1,2025-04-26,False,False
+865,types-pytz,python/typeshed,excluded: duplicate,,,,,,,,,
+866,ipython-genutils,,excluded: no GitHub repository,,,,,,,,,
+867,bracex,facelessuser/bracex,included,3,1,3,0,7,1,2025-06-22,False,True
+868,pathy,justindujardin/pathy,excluded: no release by a person,10,0,0,10,6,1,,True,True
+869,apache-beam,,excluded: no GitHub repository,,,,,,,,,
+870,lazy-loader,scientific-python/lazy-loader,included,5,1,5,0,38,1,,True,True
+871,pydash,dgilland/pydash,excluded: fewer than 3 releases in the window,0,0,0,0,31,1,2024-11-04,False,False
+872,sqlalchemy-utils,kvesteri/sqlalchemy-utils,included,5,3,5,0,32,1,2025-08-30,False,True
+873,universal-pathlib,fsspec/universal_pathlib,included,14,2,14,0,58,1,2024-12-13,False,False
+874,hyperlink,python-hyper/hyperlink,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+875,azure-mgmt-managedservices,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+876,kfp,kubeflow/pipelines,included,49,3,30,0,500,5,2024-11-08,False,False
+877,netaddr,netaddr/netaddr,included,7,1,7,0,179,1,,True,True
+878,python-docx,python-openxml/python-docx,excluded: fewer than 3 releases in the window,0,0,0,0,37,1,2025-06-16,False,True
+879,querystring-parser,bernii/querystring-parser,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+880,bytecode,MatthieuDartiailh/bytecode,excluded: no release by a person,6,0,0,6,83,1,2025-01-21,False,False
+881,phonenumbers,daviddrysdale/python-phonenumbers,excluded: fewer than 3 releases in the window,0,0,0,0,82,1,2024-11-04,False,False
+882,unicodecsv,jdunck/python-unicodecsv,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+883,polars,pola-rs/polars,excluded: no release by a person,176,0,0,30,500,3,2024-11-01,False,False
+884,apache-airflow-providers-sqlite,apache/airflow,excluded: duplicate,,,,,,,,,
+885,types-protobuf,python/typeshed,excluded: duplicate,,,,,,,,,
+886,iso3166,,excluded: no GitHub repository,,,,,,,,,
+887,nvidia-cublas-cu11,,excluded: no GitHub repository,,,,,,,,,
+888,pytest-rerunfailures,pytest-dev/pytest-rerunfailures,excluded: fewer than 3 releases in the window,0,0,0,0,60,1,2024-11-20,False,False
+889,nvidia-cudnn-cu11,,excluded: no GitHub repository,,,,,,,,,
+890,sqlalchemy-spanner,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+891,types-setuptools,python/typeshed,excluded: duplicate,,,,,,,,,
+892,azure-servicebus,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+893,google-cloud-run,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+894,yappi,sumerc/yappi,included,5,1,5,0,53,2,2024-11-01,False,False
+895,types-urllib3,python/typeshed,excluded: duplicate,,,,,,,,,
+896,prefect,PrefectHQ/prefect,excluded: releases mainly published by automation,180,2,10,20,500,2,2024-11-01,False,False
+897,google-cloud-storage-transfer,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+898,cloudpathlib,drivendataorg/cloudpathlib,included,13,2,13,0,34,1,2025-03-04,False,False
+899,cssselect,scrapy/cssselect,excluded: fewer than 3 releases in the window,0,0,0,0,7,2,2025-03-10,False,False
+900,opencv-python-headless,opencv/opencv-python,excluded: duplicate,,,,,,,,,
+901,connexion,spec-first/connexion,included,17,2,17,0,44,2,2025-01-08,False,False
+902,ddtrace,DataDog/dd-trace-py,included,296,5,30,0,500,7,2024-11-01,False,False
+903,ndg-httpsclient,cedadev/ndg_httpsclient,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+904,envier,DataDog/envier,included,5,1,5,0,10,1,,True,True
+905,mmh3,hajimes/mmh3,included,15,1,15,0,105,1,2025-01-07,False,False
+906,torchaudio,pytorch/audio,included,14,6,14,0,34,4,2025-01-29,False,False
+907,pyright,RobertCraigie/pyright-python,excluded: no release by a person,112,0,0,30,74,1,2024-11-06,False,False
+908,azure-mgmt-datafactory,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+909,nvidia-cuda-runtime-cu11,,excluded: no GitHub repository,,,,,,,,,
+910,nvidia-cuda-nvrtc-cu11,,excluded: no GitHub repository,,,,,,,,,
+911,slicer,interpretml/slicer,excluded: fewer than 3 releases in the window,1,1,1,0,5,1,,True,True
+912,google-cloud-batch,googleapis/google-cloud-python,excluded: duplicate,,,,,,,,,
+913,azure-kusto-data,Azure/azure-kusto-python,included,16,1,8,8,51,1,2025-01-07,False,False
+914,sphinx-rtd-theme,readthedocs/sphinx_rtd_theme,excluded: fewer than 3 releases in the window,0,0,0,0,26,1,2024-11-13,False,False
+915,azure-mgmt-deploymentmanager,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+916,shap,shap/shap,included,8,1,8,0,212,2,2025-03-05,False,False
+917,pydot,pydot/pydot,excluded: fewer than 3 releases in the window,0,0,0,0,112,1,2024-11-30,False,False
+918,django-allauth,,excluded: no GitHub repository,,,,,,,,,
+919,torchmetrics,Lightning-AI/torchmetrics,included,26,1,26,0,433,2,2024-11-08,False,False
+920,cron-descriptor,Salamek/cron-descriptor,included,5,1,5,0,23,1,2025-08-25,False,True
+921,gql,graphql-python/gql,included,16,1,16,0,36,1,2025-01-20,False,False
+922,linkify-it-py,tsutsu3/linkify-it-py,included,3,1,3,0,10,1,,True,True
+923,pytorch-lightning,Lightning-AI/pytorch-lightning,included,50,2,30,0,500,2,2024-12-12,False,False
+924,fire,google/python-fire,included,3,1,3,0,42,1,2025-08-16,False,True
+925,apache-airflow-providers-slack,apache/airflow,excluded: duplicate,,,,,,,,,
+926,cachelib,pallets-eco/cachelib,included,6,1,6,0,44,1,,True,True
+927,keras-applications,keras-team/keras-applications,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+928,pypdf,py-pdf/pypdf,excluded: duplicate,,,,,,,,,
+929,gradio,gradio-app/gradio,excluded: no release by a person,28,0,0,28,500,3,2024-11-04,False,False
+930,logbook,getlogbook/logbook,included,4,1,4,0,47,1,2024-11-14,False,False
+931,starkbank-ecdsa,starkbank/ecdsa-python,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+932,incremental,twisted/incremental,excluded: fewer than 3 releases in the window,0,0,0,0,125,1,,True,True
+933,pathlib,,excluded: no GitHub repository,,,,,,,,,
+934,cfn-flip,awslabs/aws-cfn-template-flip,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+935,uc-micro-py,tsutsu3/uc.micro-py,excluded: fewer than 3 releases in the window,2,1,2,0,4,1,,True,True
+936,aws-sam-translator,aws/serverless-application-model,excluded: releases mainly published by automation,40,1,1,29,184,3,2024-11-09,False,False
+937,pyee,jfhbrook/pyee,excluded: no release by a person,3,0,0,3,28,1,2024-11-16,False,False
+938,slackclient,slackapi/python-slack-sdk,excluded: duplicate,,,,,,,,,
+939,diskcache,grantjenks/python-diskcache,excluded: fewer than 3 releases in the window,0,0,0,0,2,1,,True,True
+940,configargparse,bw2/ConfigArgParse,included,3,1,3,0,1,1,2025-05-23,False,True
+941,datadog-api-client,DataDog/datadog-api-client-python,excluded: no release by a person,27,0,0,27,384,3,2024-11-07,False,False
+942,twisted,twisted/twisted,included,11,2,11,0,500,3,2024-11-22,False,False
+943,jellyfish,,excluded: no GitHub repository,,,,,,,,,
+944,pydub,,excluded: no GitHub repository,,,,,,,,,
+945,junit-xml,kyrus/python-junit-xml,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+946,flask-caching,pallets-eco/flask-caching,included,4,1,4,0,14,2,2025-02-23,False,False
+947,sentence-transformers,huggingface/sentence-transformers,included,14,1,14,0,359,1,2024-11-11,False,False
+948,dbt-common,dbt-labs/dbt-common,excluded: fewer than 3 releases in the window,0,0,0,0,135,2,2024-11-05,False,False
+949,typed-ast,python/typed_ast,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+950,apache-airflow-providers-amazon,apache/airflow,excluded: duplicate,,,,,,,,,
+951,pydantic-extra-types,pydantic/pydantic-extra-types,included,14,4,14,0,69,2,2024-11-04,False,False
+952,ansible,ansible-community/ansible-build-data,excluded: fewer than 3 releases in the window,0,0,0,0,162,2,2024-11-05,False,False
+953,inject,ivankorobkov/python-inject,excluded: fewer than 3 releases in the window,0,0,0,0,13,2,2025-06-20,False,True
+954,django-cors-headers,adamchainz/django-cors-headers,excluded: fewer than 3 releases in the window,0,0,0,0,81,1,2025-02-06,False,False
+955,oracledb,oracle/python-oracledb,included,19,1,19,0,306,1,2024-11-05,False,False
+956,keyrings-google-artifactregistry-auth,GoogleCloudPlatform/artifact-registry-python-tools,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+957,timm,huggingface/pytorch-image-models,included,25,1,25,0,457,1,2024-12-03,False,False
+958,json-merge-patch,OpenDataServices/json-merge-patch,excluded: fewer than 3 releases in the window,0,0,0,0,0,,2025-03-25,False,False
+959,xarray,pydata/xarray,included,26,6,26,0,500,5,2024-11-22,False,False
+960,requests-ntlm,requests/requests-ntlm,excluded: fewer than 3 releases in the window,2,1,2,0,4,1,,True,True
+961,geoip2,maxmind/GeoIP2-python,excluded: fewer than 3 releases in the window,2,1,2,0,59,1,2024-11-18,False,False
+962,events,pyeve/events,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+963,psycopg-binary,psycopg/psycopg,excluded: duplicate,,,,,,,,,
+964,natsort,SethMMorton/natsort,excluded: fewer than 3 releases in the window,0,0,0,0,44,1,,True,True
+965,ansible-core,ansible/ansible,included,114,3,30,0,500,4,2024-11-04,False,False
+966,automat,glyph/automat,excluded: fewer than 3 releases in the window,0,0,0,0,186,1,2025-04-16,False,False
+967,onnx,onnx/onnx,included,9,6,9,0,300,5,2025-05-12,False,True
+968,astronomer-cosmos,astronomer/astronomer-cosmos,included,101,2,30,0,301,3,2024-11-28,False,False
+969,apache-airflow-providers-imap,apache/airflow,excluded: duplicate,,,,,,,,,
+970,constantly,twisted/constantly,excluded: fewer than 3 releases in the window,0,0,0,0,5,1,,True,True
+971,futures,agronholm/pythonfutures,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+972,pyhcl,virtuald/pyhcl,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+973,limits,alisaifee/limits,excluded: releases mainly published by automation,21,1,1,20,87,1,2024-11-30,False,False
+974,boltons,mahmoud/boltons,included,3,1,3,0,44,1,2024-11-02,False,False
+975,azure-keyvault-certificates,Azure/azure-sdk-for-python,excluded: duplicate,,,,,,,,,
+976,autopep8,hhatto/autopep8,included,10,1,10,0,97,1,2025-01-14,False,False
+977,wcmatch,facelessuser/wcmatch,included,5,1,5,0,15,1,2025-06-22,False,True
+978,apache-airflow-providers-smtp,apache/airflow,excluded: duplicate,,,,,,,,,
+979,h3,uber/h3-py,included,14,1,14,0,38,1,2025-01-27,False,False
+980,geographiclib,geographiclib/geographiclib-python,excluded: fewer than 3 releases in the window,0,0,0,0,3,1,2025-08-21,False,True
+981,statsd,jsocol/pystatsd,excluded: fewer than 3 releases in the window,2,1,2,0,0,,,True,True
+982,dbt-adapters,dbt-labs/dbt-adapters,excluded: no release by a person,19,0,0,19,500,3,2024-11-11,False,False
+983,pymdown-extensions,facelessuser/pymdown-extensions,included,36,1,30,0,68,1,2024-12-23,False,False
+984,nvidia-ml-py,,excluded: no GitHub repository,,,,,,,,,
+985,langchain-google-vertexai,langchain-ai/langchain-google,excluded: no release by a person,57,0,0,30,496,3,2024-11-19,False,False
+986,geopy,geopy/geopy,included,3,1,3,0,6,1,,True,True
+987,tableauserverclient,tableau/server-client-python,included,12,3,12,0,280,1,2025-01-06,False,False
+988,strictyaml,crdoconnor/strictyaml,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+989,oldest-supported-numpy,scipy/oldest-supported-numpy,excluded: fewer than 3 releases in the window,0,0,0,0,6,2,,True,True
+990,lightning-utilities,Lightning-AI/utilities,included,19,3,19,0,141,1,2024-11-19,False,False
+991,mypy-boto3-appflow,youtype/mypy_boto3_builder,excluded: duplicate,,,,,,,,,
+992,apache-airflow-providers-common-io,apache/airflow,excluded: duplicate,,,,,,,,,
+993,pytz-deprecation-shim,pganssle/pytz-deprecation-shim,excluded: fewer than 3 releases in the window,0,0,0,0,0,,,True,True
+994,ftfy,rspeer/python-ftfy,included,3,1,2,1,65,1,,True,True
+995,flask-jwt-extended,vimalloc/flask-jwt-extended,included,5,1,5,0,7,1,2024-11-18,False,False
+996,langchain-openai,langchain-ai/langchain,excluded: duplicate,,,,,,,,,
+997,methodtools,youknowone/methodtools,excluded: fewer than 3 releases in the window,0,0,0,0,5,1,,True,True
+998,strenum,irgeek/StrEnum,included,3,1,3,0,0,,,True,True
+999,types-redis,python/typeshed,excluded: duplicate,,,,,,,,,
+1000,marshmallow-sqlalchemy,marshmallow-code/marshmallow-sqlalchemy,excluded: fewer than 3 releases in the window,0,0,0,0,74,1,2025-01-07,False,False

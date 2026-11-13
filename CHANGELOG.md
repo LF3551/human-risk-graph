@@ -5,6 +5,16 @@ All notable changes to Human Risk Graph will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 🔬 Validation
+
+- [Pre-registered predictive study](docs/validation-hrg3.md) of the hrg-3 release function on 284 popular PyPI projects: a single releaser before 2024-11-01 went with a 4.8 times higher rate of no release in the following year (95% CI 1.5–15.3; commit truck factor: 1.9, 0.9–4.3). Adjusted for release activity: 2.7 (0.8–9.2). Protocol committed before data collection; data and code in `benchmark/validation/` and `benchmark/validate.py`.
+
+### 🔒 Security
+
+- Dev lock `requirements.txt` compiled with Python 3.11 so pillow is at 13.0.0; releases attach the build provenance attestation (`human-risk-graph.intoto.jsonl`). Code of conduct, issue forms and a PR template.
+
 ## [0.14.0] - 2026-11-13
 
 ### ✨ Added

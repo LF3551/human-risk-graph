@@ -1,0 +1,156 @@
+{
+  "protocol": "docs/validation-hrg3.md",
+  "hrg_version": "0.14.0",
+  "t0": "2024-11-01",
+  "frame": "https://raw.githubusercontent.com/hugovk/top-pypi-packages/9a7168eafc044ad06176f08dfb91405ca6f155b8/top-pypi-packages-30-days.min.json",
+  "packages": 1000,
+  "exclusions": {
+    "excluded: fewer than 3 releases in the window": 303,
+    "excluded: releases mainly published by automation": 34,
+    "excluded: no release by a person": 90,
+    "excluded: no GitHub repository": 86,
+    "excluded: duplicate": 202,
+    "excluded: repository not reachable": 1
+  },
+  "analyses": {
+    "n": 284,
+    "stall": {
+      "h1_single_releaser": {
+        "exposed": {
+          "n": 192,
+          "events": 30
+        },
+        "unexposed": {
+          "n": 92,
+          "events": 3
+        },
+        "rr": 4.791666666666667,
+        "low": 1.5013305895168376,
+        "high": 15.29314702888557,
+        "p": 0.001445960455689286
+      },
+      "h2_stratified_by_release_count": {
+        "rr": 2.6553707500778456,
+        "low": 0.7682223512482069,
+        "high": 9.178324229843785,
+        "strata": [
+          {
+            "a": 20,
+            "n1": 69,
+            "c": 1,
+            "n0": 10
+          },
+          {
+            "a": 10,
+            "n1": 77,
+            "c": 1,
+            "n0": 32
+          },
+          {
+            "a": 0,
+            "n1": 46,
+            "c": 1,
+            "n0": 50
+          }
+        ]
+      },
+      "baseline_truck_factor_1": {
+        "exposed": {
+          "n": 178,
+          "events": 23
+        },
+        "unexposed": {
+          "n": 103,
+          "events": 7
+        },
+        "rr": 1.9012841091492778,
+        "low": 0.8453596237389689,
+        "high": 4.276146106570817,
+        "p": 0.15938989753107816
+      },
+      "single_releaser_when_truck_factor_2_plus": {
+        "exposed": {
+          "n": 42,
+          "events": 5
+        },
+        "unexposed": {
+          "n": 61,
+          "events": 2
+        },
+        "rr": 3.6309523809523805,
+        "low": 0.738915511291308,
+        "high": 17.84211454663348,
+        "p": 0.11809949192179105
+      }
+    },
+    "long_gap": {
+      "h1_single_releaser": {
+        "exposed": {
+          "n": 192,
+          "events": 61
+        },
+        "unexposed": {
+          "n": 92,
+          "events": 12
+        },
+        "rr": 2.435763888888889,
+        "low": 1.3817999384601922,
+        "high": 4.293635827648463,
+        "p": 0.0007608945987980008
+      },
+      "h2_stratified_by_release_count": {
+        "rr": 1.394397697282704,
+        "low": 0.821740265802637,
+        "high": 2.3661307825632263,
+        "strata": [
+          {
+            "a": 36,
+            "n1": 69,
+            "c": 5,
+            "n0": 10
+          },
+          {
+            "a": 23,
+            "n1": 77,
+            "c": 5,
+            "n0": 32
+          },
+          {
+            "a": 2,
+            "n1": 46,
+            "c": 2,
+            "n0": 50
+          }
+        ]
+      },
+      "baseline_truck_factor_1": {
+        "exposed": {
+          "n": 178,
+          "events": 52
+        },
+        "unexposed": {
+          "n": 103,
+          "events": 18
+        },
+        "rr": 1.671660424469413,
+        "low": 1.0365359246129697,
+        "high": 2.69594956468168,
+        "p": 0.03193729606323
+      },
+      "single_releaser_when_truck_factor_2_plus": {
+        "exposed": {
+          "n": 42,
+          "events": 11
+        },
+        "unexposed": {
+          "n": 61,
+          "events": 7
+        },
+        "rr": 2.2823129251700682,
+        "low": 0.9635520095029836,
+        "high": 5.405989751487539,
+        "p": 0.06689694871892372
+      }
+    }
+  }
+}
