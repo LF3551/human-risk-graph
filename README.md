@@ -1,64 +1,110 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/LF3551/human-risk-graph/main/logo.png" alt="Human Risk Graph" width="600">
+  <img src="https://raw.githubusercontent.com/LF3551/human-risk-graph/main/docs/figures/banner.jpg" alt="Human Risk Graph: find the people your security depends on" width="880">
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/human-risk-graph/">
-    <img src="https://img.shields.io/pypi/v/human-risk-graph" alt="PyPI">
-  </a>
-  <a href="https://pypi.org/project/human-risk-graph/">
-    <img src="https://img.shields.io/pypi/dm/human-risk-graph" alt="PyPI Downloads">
-  </a>
-  <a href="https://doi.org/10.5281/zenodo.18288055">
-    <img src="https://img.shields.io/badge/DOI-10.5281%2Fzenodo.18288055-blue" alt="DOI">
-  </a>
-  <a href="https://github.com/LF3551/human-risk-graph/actions/workflows/ci.yml">
-    <img src="https://github.com/LF3551/human-risk-graph/actions/workflows/ci.yml/badge.svg" alt="CI/CD Pipeline">
-  </a>
-  <a href="https://codecov.io/gh/LF3551/human-risk-graph">
-    <img src="https://codecov.io/gh/LF3551/human-risk-graph/branch/main/graph/badge.svg" alt="Coverage">
-  </a>
-  <a href="https://github.com/LF3551/human-risk-graph/blob/main/LICENSE">
-    <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License">
-  </a>
-  <a href="https://www.python.org/downloads/">
-    <img src="https://img.shields.io/pypi/pyversions/human-risk-graph" alt="Python Versions">
-  </a>
-  <a href="https://github.com/psf/black">
-    <img src="https://img.shields.io/badge/code%20style-black-000000.svg" alt="Code style: black">
-  </a>
-  <a href="https://scorecard.dev/viewer/?uri=github.com/LF3551/human-risk-graph">
-    <img src="https://api.scorecard.dev/projects/github.com/LF3551/human-risk-graph/badge" alt="OpenSSF Scorecard">
-  </a>
-  <a href="https://bestpractices.coreinfrastructure.org/projects/12048">
-    <img src="https://bestpractices.coreinfrastructure.org/projects/12048/badge" alt="CII Best Practices">
-  </a>
+  <a href="https://pypi.org/project/human-risk-graph/"><img src="https://img.shields.io/pypi/v/human-risk-graph?cacheSeconds=3600" alt="PyPI"></a>
+  <a href="https://pypi.org/project/human-risk-graph/"><img src="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue" alt="Python 3.10-3.14"></a>
+  <a href="https://pypistats.org/packages/human-risk-graph"><img src="https://img.shields.io/pypi/dm/human-risk-graph?cacheSeconds=3600" alt="Downloads"></a>
+  <a href="https://github.com/LF3551/human-risk-graph/actions/workflows/ci.yml"><img src="https://github.com/LF3551/human-risk-graph/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://codecov.io/gh/LF3551/human-risk-graph"><img src="https://codecov.io/gh/LF3551/human-risk-graph/branch/main/graph/badge.svg" alt="Coverage"></a>
+  <br>
+  <a href="https://scorecard.dev/viewer/?uri=github.com/LF3551/human-risk-graph"><img src="https://api.scorecard.dev/projects/github.com/LF3551/human-risk-graph/badge" alt="OpenSSF Scorecard"></a>
+  <a href="https://www.bestpractices.dev/projects/12048"><img src="https://www.bestpractices.dev/projects/12048/badge" alt="OpenSSF Best Practices"></a>
+  <a href="https://doi.org/10.5281/zenodo.18288055"><img src="https://img.shields.io/badge/DOI-10.5281%2Fzenodo.18288055-blue" alt="DOI"></a>
+  <a href="https://github.com/LF3551/human-risk-graph/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" alt="License"></a>
 </p>
 
-# Human Risk Graph (HRG)
+<p align="center">
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#html-report">HTML report</a> ·
+  <a href="#ci-integration">CI integration</a> ·
+  <a href="docs/compliance.md">ISO 27001 · SOC 2 · DORA</a> ·
+  <a href="docs/model.md">Model</a> ·
+  <a href="https://doi.org/10.5281/zenodo.20260930">Paper</a>
+</p>
 
-Human Risk Graph (HRG) is a quantitative model for measuring organizational
-security risk caused by human dependencies, decision concentration,
-and bus-factor effects.
+# Human Risk Graph
 
-Unlike traditional security models that focus only on technical assets,
-HRG treats people as part of the attack surface and models how organizational
-decisions and emergency processes introduce systemic risk.
+**Your controls are only as strong as the people behind them.** Human Risk Graph maps who
+approves, escalates to and can bypass whom, finds the people your organization cannot
+afford to lose, and tells you **which three changes raise your score the most**.
 
-## Core Idea
+- **One score, 0-100 and A-F**, from three metrics you can explain to a board: bus factor,
+  effective number of approvers, and how many critical approvals can be bypassed.
+- **A fix plan, not just a diagnosis**: deputies and second-person checks simulated on your
+  data and ranked by score gain.
+- **Built for pipelines and audits**: SARIF for GitHub code scanning, JUnit, a `--min-score`
+  gate, `hrg diff` between snapshots, findings mapped to ISO/IEC 27001, SOC 2 and DORA.
+- **A report you can hand over**: one offline HTML file with an interactive dependency map,
+  readable on a phone and printable as PDF.
 
-Organizations often depend on a small number of individuals for:
-- critical decisions,
-- emergency bypasses,
-- access approvals.
+## Why
 
-HRG represents these dependencies as a directed graph and computes
-risk metrics that highlight human single points of failure.
+Simple ratios hide the worst cases. HRG is designed so that they cannot:
 
-## What HRG Measures
+| Situation | Naive metric | Human Risk Graph |
+|---|---|---|
+| One person approves everything | "inequality 0" (nothing to compare) | 1.0 effective approvers, grade F |
+| 99 people depend on one critical lead | 0.009 (diluted by headcount) | bus factor 1, same risk at any size |
+| A critical approver can be bypassed | averaged away by good metrics | counted as an independent way to fail |
 
-The result is a **score from 0 to 100 with a grade from A to F**, built from three metrics
-(model `hrg-2`, see [docs/model.md](docs/model.md)):
+The model, its properties and its tests are in [docs/model.md](docs/model.md).
+
+## Quick start
+
+Try it on the example organization, nothing to set up (needs [uv](https://docs.astral.sh/uv/)):
+
+```bash
+curl -sO https://raw.githubusercontent.com/LF3551/human-risk-graph/main/examples/organization.yaml
+uvx --from human-risk-graph hrg analyze organization.yaml
+open organization_report.html   # xdg-open on Linux
+```
+
+Or install it:
+
+```bash
+pip install human-risk-graph
+hrg analyze my-org.yaml
+```
+
+```
+Human Risk Graph 0.6.0 · organization.yaml · 5 people · 5 dependencies
+
+  Score  25/100  ██░░░░░░░░  F · Critical risk  model hrg-2
+
+  Key people  bus factor 1 · losing Alice cuts off 2 people (67% of connections)
+  Approvals   1.5 effective approvers of 2 · Alice holds 77%
+  Overrides   2 of 3 critical approvals can be overridden
+
+  Top fixes
+  1  Require a second person for Bob's bypass of Alice  25 → 45  +20
+  2  Add a deputy for Alice                             45 → 71  +26
+  3  Add a deputy for Bob                               71 → 76   +5
+
+  Findings  3 errors · 2 warnings
+   ▲ HRG001 Alice (alice) is a single point of failure (criticality 0.90): losing them cuts off 2 people
+            and 67% of the connections between the others.
+   ▲ HRG002 Approval authority is concentrated (1.5 effective approvers of 2); Alice (alice) holds 77%
+            of the approval weight.
+   △ HRG003 Bob (bob) can bypass Alice (alice) and override the controls they enforce; one of them is
+            critical.
+   ...
+```
+
+## HTML report
+
+One self-contained file that works offline, in light and dark mode, on a phone and as a PDF:
+score and verdict, fix plan, interactive dependency map, people, findings with related
+controls, the exact formula, and an audit trail with the input file's SHA-256.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/LF3551/human-risk-graph/main/docs/figures/html-report.png" alt="Human Risk Graph HTML report" width="800">
+</p>
+
+## What HRG measures
+
+The score is built from three metrics (model `hrg-2`, see [docs/model.md](docs/model.md)):
 
 - **Key-person risk** — how much of the organization depends on one person: losing them
   cuts off N people and X% of the connections between the others. Also reported as the
@@ -69,21 +115,11 @@ The result is a **score from 0 to 100 with a grade from A to F**, built from thr
   bypass.
 
 On top of the score, HRG simulates remediations (a deputy for a key person, a second-person
-check on a bypass) and tells you **which three fixes raise the score most**.
+check on a bypass) and lists the three that raise the score most.
 
 The original model from the paper is still available as `--model hrg-1`.
 
-## Repository Structure
-
-- `src/human_risk_graph/` — core implementation (HRG class, metrics, graph algorithms)
-- `tests/` — comprehensive unit tests
-- `experiments/` — synthetic data generation and benchmarking
-- `examples/` — usage demonstrations
-- `paper/` — LaTeX source of the [paper](https://doi.org/10.5281/zenodo.20260930)
-- `docs/` — formal model with mathematical definitions
-- `data/` — example organization datasets
-
-## Quick Start
+## Usage
 
 ### Installation
 
@@ -169,44 +205,9 @@ Exit codes: `0` success, `1` invalid input or error, `2` usage error,
 `3` score below `--min-score`, composite risk above `--fail-above`, or risk increased with
 `hrg diff --fail-on-increase`.
 
-### Example Output
-
-```
-Human Risk Graph 0.5.0 · example_organization.json · 10 people · 14 dependencies
-
-  Score  61/100  ██████░░░░  D · Moderate risk  model hrg-2
-
-  Key people  bus factor 1 · losing Johan Lindberg cuts off 2 people (39% of connections)
-  Approvals   3.5 effective approvers of 5 · Luca Rossi holds 44%
-  Overrides   4 of 7 critical approvals can be overridden
-
-  Top fixes
-  1  Require a second person for Elena Popescu's bypass of Anna Mueller  61 → 70  +9
-  2  Add a deputy for Johan Lindberg                                     70 → 76  +6
-  3  Add a deputy for Ines Silva                                         76 → 81  +5
-
-  Findings  0 errors · 6 warnings
-   △ HRG001 Ines Silva (ines.silva) is a single point of failure (criticality 0.55): losing them cuts
-            off 1 person and 22% of the connections between the others.
-   △ HRG001 Johan Lindberg (johan.lindberg) is a single point of failure (criticality 0.58): losing them
-            cuts off 2 people and 39% of the connections between the others.
-   △ HRG002 Approval authority is concentrated (3.5 effective approvers of 5); Luca Rossi (luca.rossi)
-            holds 44% of the approval weight.
-   △ HRG003 Elena Popescu (elena.popescu) can bypass Anna Mueller (anna.mueller) and override the
-            controls they enforce; one of them is critical.
-   ...
-
-  Reports
-   data/example_organization_report.json
-   data/example_organization_report.md
-   data/example_organization_report.html
-   data/example_organization_graph.html
-```
-
-**Generated files:**
-- JSON report with detailed metrics
-- Interactive HTML graph visualization
-- Optional Markdown and HTML reports
+Each run writes the reports next to the input file: JSON (all results, findings and the fix
+plan), Markdown, the HTML report, and with `--visualize` (default) a standalone interactive
+graph.
 
 ### Findings and Compliance Mapping
 
@@ -215,7 +216,7 @@ approval authority, `HRG003` bypass involving a critical person, `HRG004` score 
 threshold) and related controls in ISO/IEC 27001:2022, SOC 2 and DORA. The mapping is
 informative, not a compliance assessment. See [docs/compliance.md](docs/compliance.md).
 
-### CI Integration
+### CI integration
 
 GitHub Actions example: findings appear as code scanning alerts on the organization file,
 and the job fails when the score drops below 70.
@@ -233,7 +234,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
       - run: pip install human-risk-graph
@@ -278,6 +279,13 @@ for fix in hrg.fix_plan():
 
 ## Development
 
+- `src/human_risk_graph/` — the package (model, CLI, reports)
+- `tests/` — unit, property and CLI tests
+- `docs/` — formal model, compliance mapping, figures
+- `examples/`, `data/` — example organizations and generated reports
+- `experiments/` — synthetic data and benchmarks from the paper
+- `paper/` — LaTeX source of the [paper](https://doi.org/10.5281/zenodo.20260930)
+
 ```bash
 # Run tests
 pytest tests/ -v
@@ -296,18 +304,6 @@ python experiments/generate_data.py
 python experiments/run_experiments.py
 python experiments/visualize.py
 ```
-
-## Key Features
-
-- **Graph-based analysis** using NetworkX
-- **Score 0-100 and grade A-F** from three explainable metrics: key-person risk, approval concentration, override exposure
-- **Fix plan**: simulated remediations ranked by how much they raise the score
-- **CI-ready**: SARIF for code scanning, JUnit XML, `--min-score` gate, `hrg diff` between snapshots
-- **Audit-friendly**: findings mapped to ISO/IEC 27001:2022, SOC 2 and DORA controls
-- **JSON or YAML input** with a published JSON Schema for editor completion
-- **Polynomial-time algorithms** with proven complexity bounds
-- **Comprehensive test coverage**
-- **Research paper** published on Zenodo ([10.5281/zenodo.20260930](https://doi.org/10.5281/zenodo.20260930))
 
 ## Use Cases
 

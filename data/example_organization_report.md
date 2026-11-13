@@ -1,49 +1,41 @@
 # Human Risk Graph Analysis Report
 
-**Generated:** 2026-02-25 23:41:07
-**Input File:** `/Users/alekseialeinikov/Documents/SCRIPTS/human-risk-graph/data/example_organization.json`
+**Generated:** 2026-11-13 07:02:20
+**Input File:** `data/example_organization.json`
 **Organization Size:** 10 people
 **Dependencies:** 14
 
 ## 📊 Executive Summary
 
-The organization's **Composite HRG Score** is **0.269**.
+**Score: 61/100 · grade D · Moderate risk** (composite risk 0.386, model `hrg-2`)
 
-**Risk Level:** ✅ **LOW**
-
-The organization has low human dependency risks.
-
-## 🔎 Key Findings
-
-- **Primary Risk Driver:** Bypass Risk
-- **Critical People Identified:** 2
-- **Dependency Profile:** approval: 8, bypass: 3, escalation: 3
+Human dependency risks are manageable; the top fixes below are worth doing.
 
 ## 🧠 Why This Score
 
-- Composite score is a weighted sum: **0.4×Bus + 0.3×Decision + 0.3×Bypass = 0.269**
-- Bus contribution: **0.045**, Decision contribution: **0.105**, Bypass contribution: **0.118**
-- Critical nodes above threshold: **4/10 (40%)**
+- Key-person risk K = 0.226: losing Johan Lindberg cuts off 2 people and 39% of the connections between the others (bus factor 1).
+- Approval concentration D = 0.287: 3.5 effective approvers of 5; Luca Rossi holds 44% of the approval weight.
+- Override exposure B = 0.416: 4 of 7 critical approvals can be overridden through a bypass.
+- Composite risk = (1 − (1 − 0.4·K)(1 − 0.3·D)(1 − 0.3·B)) / (1 − (1 − 0.4)(1 − 0.3)(1 − 0.3)) = 0.386; score = 100·(1 − risk) = 61
 
-## 📘 How To Read Metrics
+## 🛠️ Top Fixes
 
-- **Bus Factor Risk:** higher means stronger dependency on a few people.
-- **Decision Concentration:** higher means approval power is concentrated.
-- **Bypass Risk:** higher means controls are easier to bypass on critical paths.
+| # | Fix | Why | Score |
+|---|-----|-----|-------|
+| 1 | Require a second person for Elena Popescu's bypass of Anna Mueller | bypass involving a critical person | 61 → 70 (+9) |
+| 2 | Add a deputy for Johan Lindberg | single point of failure, cuts off 2 people | 70 → 76 (+6) |
+| 3 | Add a deputy for Ines Silva | single point of failure, cuts off 1 person | 76 → 81 (+5) |
 
 ## 📈 Risk Metrics
 
-| Metric | Score | Weight | Description |
-|--------|-------|--------|-------------|
-| **Bus Factor Risk** | 0.113 | 40% | Risk from key person dependencies |
-| **Decision Concentration** | 0.351 | 30% | Authority centralization risk |
-| **Bypass Risk** | 0.394 | 30% | Control override risk |
-| **Composite Score** | 0.269 | 100% | Overall organizational risk |
+| Metric | Value | Weight | Level |
+|--------|-------|--------|-------|
+| **Key-person risk** | 0.226 | 40% | Low |
+| **Approval concentration** | 0.287 | 30% | Low |
+| **Override exposure** | 0.416 | 30% | Moderate |
+| **Composite risk** | 0.386 | | Moderate |
 
-**Metric interpretation:**
-- Bus Factor Risk: **Low**
-- Decision Concentration: **Moderate**
-- Bypass Risk: **Moderate**
+Critical people (criticality ≥ 0.7): **4/10** · Dependencies: approval: 8, bypass: 3, escalation: 3
 
 ## ⚠️ Critical People (Articulation Points)
 
@@ -54,6 +46,19 @@ These individuals are **single points of failure**. Their removal would disconne
 
 **Total Critical People:** 2
 
+## 🧾 Findings and Related Controls
+
+_Related controls are informative pointers for audits, not an assessment of compliance._
+
+| Rule | Level | Finding | ISO/IEC 27001:2022 | SOC 2 | DORA |
+|------|-------|---------|--------------------|-------|------|
+| HRG001 | warning | Ines Silva (ines.silva) is a single point of failure (criticality 0.55): losing them cuts off 1 person and 22% of the connections between the others. | A.5.29; A.5.30 | CC1.4; CC9.1 | Art. 10(1); Art. 11(2)(a) |
+| HRG001 | warning | Johan Lindberg (johan.lindberg) is a single point of failure (criticality 0.58): losing them cuts off 2 people and 39% of the connections between the others. | A.5.29; A.5.30 | CC1.4; CC9.1 | Art. 10(1); Art. 11(2)(a) |
+| HRG002 | warning | Approval authority is concentrated (3.5 effective approvers of 5); Luca Rossi (luca.rossi) holds 44% of the approval weight. | A.5.2; A.5.3 | CC1.3; CC5.1 | Art. 5(2)(c); Art. 6(4) |
+| HRG003 | warning | Elena Popescu (elena.popescu) can bypass Anna Mueller (anna.mueller) and override the controls they enforce; one of them is critical. | A.5.3; A.8.2; A.8.32 | CC5.1; CC6.3; CC8.1 | Art. 9(4)(c); Art. 9(4)(e) |
+| HRG003 | warning | Luca Rossi (luca.rossi) can bypass Carlos Garcia (carlos.garcia) and override the controls they enforce; one of them is critical. | A.5.3; A.8.2; A.8.32 | CC5.1; CC6.3; CC8.1 | Art. 9(4)(c); Art. 9(4)(e) |
+| HRG003 | warning | Marie Dubois (marie.dubois) can bypass Carlos Garcia (carlos.garcia) and override the controls they enforce; one of them is critical. | A.5.3; A.8.2; A.8.32 | CC5.1; CC6.3; CC8.1 | Art. 9(4)(c); Art. 9(4)(e) |
+
 ## 💡 Recommendations
 
 ### Priority Actions
@@ -62,10 +67,6 @@ These individuals are **single points of failure**. Their removal would disconne
    - Cross-train backup owners for critical responsibilities
    - Document approval and emergency procedures
    - Define succession coverage for critical roles
-
-2. **Distribute decision authority:**
-   - Introduce secondary approvers for sensitive workflows
-   - Rotate ownership of high-impact decisions
 
 3. **Tighten bypass governance:**
    - Add compensating controls for emergency bypasses

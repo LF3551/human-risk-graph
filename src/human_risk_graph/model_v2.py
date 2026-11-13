@@ -126,12 +126,16 @@ def composite_risk(metrics: Tuple[float, float, float], weights: Tuple[float, fl
     return (1.0 - prod(1.0 - w * m for m, w in zip(metrics, weights))) / worst
 
 
-def score_and_grade(risk: float) -> Tuple[int, str]:
-    score = round(100 * (1 - risk))
+def grade_for_score(score: int) -> str:
     for grade, floor in (("A", 90), ("B", 80), ("C", 70), ("D", 50)):
         if score >= floor:
-            return score, grade
-    return score, "F"
+            return grade
+    return "F"
+
+
+def score_and_grade(risk: float) -> Tuple[int, str]:
+    score = round(100 * (1 - risk))
+    return score, grade_for_score(score)
 
 
 def risk_level_from_score(score: int) -> str:

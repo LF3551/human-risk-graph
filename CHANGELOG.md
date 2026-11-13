@@ -5,6 +5,27 @@ All notable changes to Human Risk Graph will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-11-13
+
+### ✨ Added
+
+- Redesigned HTML report: a single self-contained file (no external resources, works offline, light and dark mode, "Save as PDF").
+  - Score ring, grade and a one-line verdict naming the main risk driver.
+  - Metric cards in plain language: bus factor, effective approvers, overridable approvals.
+  - Fix plan with the projected score after each step.
+  - Interactive dependency map: single points of failure, critical people and bypasses at a glance; select a person to see what depends on them.
+  - Sortable people table with criticality, impact, people cut off and approval share.
+  - Findings grouped by rule with remediation and ISO/IEC 27001, SOC 2 and DORA controls.
+  - Methodology with the exact formula and values, and an audit trail (input SHA-256, tool and model version, weights, threshold).
+- Report metadata includes `input_name`, `input_sha256` and `tool_version`.
+
+### 🔧 Changed
+
+- Default criticality in report metadata is 0.5, as in the model (was 0.0).
+- Reports record the input path as given instead of the absolute path, so shared reports do not reveal local directory names.
+- Example reports in `data/` regenerated with the current version.
+- README rewritten around the product (banner, quick start, why, report screenshot); Python badge shows the supported 3.10-3.14 instead of a stale cached list. PyPI status is Beta.
+
 ## [0.5.0] - 2026-11-13
 
 ### ⚠️ Breaking
