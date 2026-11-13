@@ -72,3 +72,6 @@ paper/*.fls
 Thumbs.db
 # GitHub Pages build
 _site/
+
+# Validation study API cache
+benchmark/.cache/
