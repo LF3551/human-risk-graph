@@ -69,7 +69,7 @@ hrg analyze my-org.yaml
 ```
 
 ```
-Human Risk Graph 0.9.0 · organization.yaml · 5 people · 5 dependencies
+Human Risk Graph 0.10.0 · organization.yaml · 5 people · 5 dependencies
 
   Score  25/100  ██░░░░░░░░  F · Critical risk  model hrg-2
 
@@ -118,6 +118,11 @@ dependencies you added by hand (approvals in Slack, escalations, on-call).
 What the token cannot see (protection settings and bypass actors need admin access, team
 members need org membership) is listed under `coverage.gaps` and shown in every report: a
 bypass the scan did not find is not proof that none exists.
+
+How well does this work? On 8 public CNCF repositories, 82% of approving reviews the scan
+finds come from the approvers the projects declare in MAINTAINERS or OWNERS, and the most
+active approver is a declared one in every repository; see the reproducible
+[benchmark](docs/benchmark.md) and its limits.
 
 ```yaml
 - from: lead

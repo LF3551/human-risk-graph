@@ -5,6 +5,16 @@ All notable changes to Human Risk Graph will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-11-13
+
+### ✨ Added
+
+- Benchmark of `hrg scan github` against the approvers 8 public CNCF projects declare in MAINTAINERS or OWNERS (files the scanner does not read): [docs/benchmark.md](docs/benchmark.md), reproducible with `python benchmark/run.py`.
+  - 82% of approving reviews come from declared approvers, and the most active approver is declared in every repository.
+  - Person-level precision is 52% and recall 49%: anyone can approve on GitHub, and declared lists include inactive people.
+  - Limitations: Prow `/approve` comments are not counted, and bypass discovery is not measured.
+- `ScanResult.approvals_given` and `ScanResult.code_owners`: per-person approving reviews and the code owners seen, before dependencies are merged.
+
 ## [0.9.0] - 2026-11-13
 
 ### ✨ Added
