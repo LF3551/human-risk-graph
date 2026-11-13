@@ -5,6 +5,12 @@ All notable changes to Human Risk Graph will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.2] - 2026-11-13
+
+### 🐛 Fixed
+
+- `hrg scan github` (and the action's `scan` input) retries GitHub server errors (500, 502, 503, 504) and network failures up to three times, after 1, 2 and 4 seconds, instead of failing the whole scan on one transient error.
+
 ## [0.14.1] - 2026-11-13
 
 ### 🔬 Validation

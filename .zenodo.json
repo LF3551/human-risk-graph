@@ -1,6 +1,6 @@
 {
   "title": "Human Risk Graph: A Quantitative Model for Organizational Security Risk",
-  "description": "Human Risk Graph (HRG) is a quantitative model for measuring organizational security risk caused by human dependencies, decision concentration, and bus-factor effects. Unlike traditional security models that focus only on technical assets, HRG treats people as part of the attack surface and models how organizational decisions and emergency processes introduce systemic risk. Version 0.14.1 includes a pre-registered predictive check of the hrg-3 model on 284 popular PyPI projects (docs/validation-hrg3.md, data in benchmark/validation/): a single release author before 2024-11-01 went with a 4.8 times higher rate of no release in the following year (95% CI 1.5-15.3), against 1.9 (0.9-4.3) for a commit-based truck factor.",
+  "description": "Human Risk Graph (HRG) is a quantitative model for measuring organizational security risk caused by human dependencies, decision concentration, and bus-factor effects. Unlike traditional security models that focus only on technical assets, HRG treats people as part of the attack surface and models how organizational decisions and emergency processes introduce systemic risk. Since version 0.14.1 the repository includes a pre-registered predictive check of the hrg-3 model on 284 popular PyPI projects (docs/validation-hrg3.md, data in benchmark/validation/): a single release author before 2024-11-01 went with a 4.8 times higher rate of no release in the following year (95% CI 1.5-15.3), against 1.9 (0.9-4.3) for a commit-based truck factor.",
   "creators": [
     {
       "name": "Aleinikov, Aleksei",
@@ -42,7 +42,7 @@
   ],
   "contributors": [],
   "references": [],
-  "version": "0.14.1",
+  "version": "0.14.2",
   "language": "eng",
   "upload_type": "software"
 }

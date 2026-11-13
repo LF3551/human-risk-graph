@@ -11,6 +11,7 @@ from human_risk_graph import HumanRiskGraph
 from human_risk_graph import cli as cli_module
 from human_risk_graph.cli import cli
 from human_risk_graph.github_scan import (
+    GitHubClient,
     GitHubError,
     GitHubScanner,
     draft_yaml,
@@ -459,3 +460,74 @@ def test_cli_scan_errors(tmp_path, fake_github):
     assert "not found" in result.output
     result = CliRunner().invoke(cli, ["scan", "github", "nope", "-o", str(tmp_path / "x")])
     assert result.exit_code == 1
+
+
+# Retries of transient GitHub errors
+
+
+class _Response:
+    def __init__(self, body):
+        self.body, self.headers = body, {}
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def read(self):
+        return json.dumps(self.body).encode()
+
+
+def _flaky(monkeypatch, outcomes):
+    """urlopen that raises or returns the given outcomes in order; no real sleeping."""
+    import urllib.error
+
+    from human_risk_graph import github_scan
+
+    calls = []
+
+    def urlopen(request, timeout):
+        calls.append(request.full_url)
+        outcome = outcomes[min(len(calls), len(outcomes)) - 1]
+        if isinstance(outcome, int):
+            raise urllib.error.HTTPError(request.full_url, outcome, "error", {}, None)
+        if isinstance(outcome, Exception):
+            raise outcome
+        return _Response(outcome)
+
+    monkeypatch.setattr(github_scan.urllib.request, "urlopen", urlopen)
+    monkeypatch.setattr(github_scan.time, "sleep", lambda s: None)
+    return calls
+
+
+def test_client_retries_server_errors(monkeypatch):
+    calls = _flaky(monkeypatch, [503, 502, {"ok": True}])
+    assert GitHubClient("t").get("repos/acme/api") == {"ok": True}
+    assert len(calls) == 3
+
+
+def test_client_retries_network_errors(monkeypatch):
+    import urllib.error
+
+    calls = _flaky(monkeypatch, [urllib.error.URLError("reset"), TimeoutError(), {"ok": 1}])
+    assert GitHubClient("t").get("repos/acme/api") == {"ok": 1}
+    assert len(calls) == 3
+
+
+def test_client_gives_up_after_retries(monkeypatch):
+    calls = _flaky(monkeypatch, [503])
+    with pytest.raises(GitHubError, match="GitHub API error 503"):
+        GitHubClient("t").get("repos/acme/api")
+    assert len(calls) == 4  # first try and three retries
+
+
+@pytest.mark.parametrize("code, calls_expected", [(404, 1), (400, 1)])
+def test_client_does_not_retry_client_errors(monkeypatch, code, calls_expected):
+    calls = _flaky(monkeypatch, [code])
+    if code == 404:
+        assert GitHubClient("t").get("repos/acme/api") is None
+    else:
+        with pytest.raises(GitHubError, match="400"):
+            GitHubClient("t").get("repos/acme/api")
+    assert len(calls) == calls_expected

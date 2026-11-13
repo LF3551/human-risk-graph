@@ -21,6 +21,7 @@ import re
 import shutil
 import subprocess
 import threading
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -33,6 +34,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple
 API = "https://api.github.com"
 CODEOWNERS_PATHS = (".github/CODEOWNERS", "CODEOWNERS", "docs/CODEOWNERS")
 ADMIN_ROLE_ID = 5  # built-in "admin" repository role in ruleset bypass actors
+TRANSIENT = (500, 502, 503, 504)  # GitHub server errors worth retrying
 
 
 class GitHubError(RuntimeError):
@@ -40,12 +42,16 @@ class GitHubError(RuntimeError):
 
 
 class GitHubClient:
-    """Minimal REST client: GET with pagination; returns None for 403/404 on optional data."""
+    """Minimal REST client: GET with pagination; returns None for 403/404 on optional data.
+
+    Server errors (5xx) and network failures are retried with exponential backoff.
+    """
 
     def __init__(self, token: Optional[str] = None, api: str = API):
         self.token = token
         self.api = api.rstrip("/")
         self.calls = 0
+        self.retry_delays: Tuple[float, ...] = (1, 2, 4)  # seconds before each retry
         self._lock = threading.Lock()
 
     def _request(self, url: str):
@@ -56,25 +62,31 @@ class GitHubClient:
         }
         if self.token:
             headers["Authorization"] = f"Bearer {self.token}"
-        with self._lock:
-            self.calls += 1
         request = urllib.request.Request(url, headers=headers)
-        try:
-            with urllib.request.urlopen(request, timeout=30) as response:
-                return json.loads(response.read().decode("utf-8")), response.headers.get("Link")
-        except urllib.error.HTTPError as e:
-            if e.code in (403, 404, 409, 422):
-                if e.code == 403 and e.headers.get("X-RateLimit-Remaining") == "0":
-                    raise GitHubError(
-                        "GitHub API rate limit reached; use a token (--token, GITHUB_TOKEN "
-                        "or `gh auth login`)"
-                    ) from e
-                return None, None
-            if e.code == 401:
-                raise GitHubError("GitHub rejected the token (401)") from e
-            raise GitHubError(f"GitHub API error {e.code} for {url}") from e
-        except urllib.error.URLError as e:
-            raise GitHubError(f"Cannot reach GitHub: {e.reason}") from e
+        for delay in (*self.retry_delays, None):
+            with self._lock:
+                self.calls += 1
+            try:
+                with urllib.request.urlopen(request, timeout=30) as response:
+                    return json.loads(response.read().decode("utf-8")), response.headers.get("Link")
+            except urllib.error.HTTPError as e:
+                if e.code in (403, 404, 409, 422):
+                    if e.code == 403 and e.headers.get("X-RateLimit-Remaining") == "0":
+                        raise GitHubError(
+                            "GitHub API rate limit reached; use a token (--token, GITHUB_TOKEN "
+                            "or `gh auth login`)"
+                        ) from e
+                    return None, None
+                if e.code == 401:
+                    raise GitHubError("GitHub rejected the token (401)") from e
+                if e.code not in TRANSIENT or delay is None:
+                    raise GitHubError(f"GitHub API error {e.code} for {url}") from e
+            except (urllib.error.URLError, TimeoutError) as e:
+                if delay is None:
+                    reason = getattr(e, "reason", e)
+                    raise GitHubError(f"Cannot reach GitHub: {reason}") from e
+            time.sleep(delay)
+        raise AssertionError("unreachable")  # pragma: no cover
 
     def get(self, path: str, params: Optional[Dict[str, Any]] = None, limit: int = 0):
         """GET a path. Lists are followed across pages up to ``limit`` items (0: one page)."""
