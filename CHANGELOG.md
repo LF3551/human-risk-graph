@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - runs in its own virtual environment, with inputs passed through environment variables, and is tested on Linux, macOS and Windows in this repository.
 - `python -m human_risk_graph.gha summary|outputs REPORT.json`: the job summary and step outputs used by the action.
 
+### 🐛 Fixed
+
+- The CLI crashed with `UnicodeEncodeError` on consoles that are not UTF-8, such as cp1252 on Windows or redirected output; characters the console cannot show are now replaced.
+
 ## [0.10.0] - 2026-11-13
 
 ### ✨ Added

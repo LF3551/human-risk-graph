@@ -124,6 +124,7 @@ runs:
         HRG_MIN_SCORE: ${{ inputs.min-score }}
         HRG_FAIL_ABOVE: ${{ inputs.fail-above }}
         HRG_OUT: ${{ inputs.output-dir }}
+        PYTHONUTF8: "1"
       run: |
         set -uo pipefail
         hrg() { "$HRG_PY" -m human_risk_graph.cli "$@"; }

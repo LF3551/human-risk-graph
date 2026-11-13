@@ -482,8 +482,17 @@ def scan_github(repo, output, branch, max_prs, include_bots, token):
     console.print(f"  Next: review it, set confirmed: true, then [bold]hrg analyze {output}[/]\n")
 
 
+def _tolerate_encoding(streams=None):
+    """Replace characters a console cannot encode (e.g. cp1252 on Windows) instead of crashing."""
+    for stream in streams if streams is not None else (sys.stdout, sys.stderr):
+        encoding = (getattr(stream, "encoding", None) or "").lower().replace("-", "")
+        if encoding != "utf8" and hasattr(stream, "reconfigure"):
+            stream.reconfigure(errors="replace")
+
+
 def main():
     """Entry point for CLI."""
+    _tolerate_encoding()
     cli()
 
 
