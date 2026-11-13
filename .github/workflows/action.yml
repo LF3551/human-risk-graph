@@ -86,3 +86,42 @@ jobs:
         env:
           SCORE: ${{ steps.hrg.outputs.score }}
         run: test -n "$SCORE"
+
+  scan-org:
+    name: Scan an organization, pseudonymized
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./
+        id: hrg
+        env:
+          HRG_PSEUDONYM_KEY: self-test-key-not-secret-0123456789
+        with:
+          scan-org: ${{ github.repository_owner }}
+          max-repos: "2"
+          max-prs: "10"
+          pseudonymize: "true"
+          artifact-name: hrg-report-scan-org
+      - name: Check outputs and that no login reached the reports
+        shell: bash
+        env:
+          SCORE: ${{ steps.hrg.outputs.score }}
+          DIR: ${{ steps.hrg.outputs.report-dir }}
+          DRAFT: ${{ runner.temp }}/${{ github.repository_owner }}-org.yaml
+        run: |
+          set -euo pipefail
+          test -n "$SCORE"
+          if ls "$DIR"/*-org.yaml 2>/dev/null; then echo "::error::draft uploaded"; exit 1; fi
+          grep -q "pseudonymized" "$DIR"/*_report.md
+          logins=$(awk '/^people:/{p=1;next} /^[a-z]/{p=0} p && /^- id: /{print $3}' "$DRAFT" | tr -d "'")
+          test -n "$logins"
+          for login in $logins; do
+            if grep -rqF -w -- "$login" "$DIR"/*_report.*; then
+              echo "::error::login $login found in a report"; exit 1
+            fi
+          done

@@ -74,7 +74,7 @@ hrg analyze my-org.yaml
 ```
 
 ```
-Human Risk Graph 0.14.2 · organization.yaml · 5 people · 5 dependencies
+Human Risk Graph 0.15.0 · organization.yaml · 5 people · 5 dependencies
 
   Score  25/100  ██░░░░░░░░  F · Critical risk  model hrg-2
 
@@ -145,6 +145,42 @@ of the effect is project activity.
   evidence: merged 3 PR(s) without an approving review (#812, #815, #820); also approved 4 of 9 merged PRs by dev
   confirmed: false
 ```
+
+### A whole organization
+
+One repository rarely shows the risk: the person who is the only releaser of one service is
+often the only releaser of ten. Scan the most recently pushed repositories of an organization
+into one draft:
+
+```bash
+hrg scan github --org my-org --max-repos 50     # archived repositories and forks are skipped
+hrg analyze my-org-org.yaml --model hrg-3
+```
+
+People appear once, with the highest criticality any repository gave them. Dependencies
+between the same two people are merged (a bypass in any repository outranks approvals; the
+weight is the highest seen). The `merge`, `release` and `admin` functions stay per
+repository (`payments-api/release`), so hrg-3 shows everything one person's absence stops
+across the organization. Repositories that cannot be read are listed under
+`coverage.gaps`; `--max-prs` (default 30 with `--org`) bounds the API calls per repository.
+
+## Privacy: pseudonymized reports
+
+HRG analyses identifiable people, so in the EU it processes personal data, and in Germany
+it is typically a matter for the works council. `--pseudonymize` (or
+`pseudonymize = true` in `hrg.toml`) replaces everyone by a keyed pseudonym in every
+report and drops names, roles and evidence:
+
+```bash
+export HRG_PSEUDONYM_KEY=...      # secret, at least 16 characters; keeps pseudonyms stable
+hrg analyze org.yaml --pseudonymize
+hrg pseudonyms org.yaml           # pseudonym,id,name table for whoever holds the key
+```
+
+Pseudonyms are HMAC-SHA256 of the id with your key, so they cannot be reversed by trying
+likely logins. HRG sends nothing anywhere and has no telemetry. What it processes, the
+re-identification process and a deployment checklist (purpose, works council, DPIA) are in
+[docs/privacy.md](docs/privacy.md).
 
 ## HTML report
 
@@ -307,6 +343,9 @@ hrg analyze examples/organization.yaml --format sarif --format junit --no-visual
 # Compare two snapshots (text, markdown or json)
 hrg diff org-q1.yaml org-q2.yaml --format markdown
 
+# Reports with keyed pseudonyms instead of people (docs/privacy.md)
+HRG_PSEUDONYM_KEY=... hrg analyze org.yaml --pseudonymize
+
 # Original model from the paper, no fix plan, only errors
 hrg analyze data/example_organization.json --model hrg-1 --fixes 0 --quiet
 
@@ -331,6 +370,7 @@ expiry date instead of lowering the bar for everyone:
 
 ```toml
 min-score = 70
+pseudonymize = true  # optional: keyed pseudonyms in every report (key in HRG_PSEUDONYM_KEY)
 
 [weights]            # optional, must add up to 1
 key-person = 0.4
@@ -382,7 +422,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: LF3551/human-risk-graph@v0.14.2
+      - uses: LF3551/human-risk-graph@v0.15.0
         with:
           file: org/organization.yaml
           min-score: 70
@@ -392,17 +432,33 @@ Or draft the organization from the repository itself (approvals, CODEOWNERS, bra
 rules) and report on it, for example on a schedule:
 
 ```yaml
-      - uses: LF3551/human-risk-graph@v0.14.2
+      - uses: LF3551/human-risk-graph@v0.15.0
         with:
           scan: ${{ github.repository }}
 ```
 
+Or the whole organization, with pseudonymized reports (the draft with real logins is then
+not uploaded):
+
+```yaml
+      - uses: LF3551/human-risk-graph@v0.15.0
+        env:
+          HRG_PSEUDONYM_KEY: ${{ secrets.HRG_PSEUDONYM_KEY }}
+        with:
+          scan-org: my-org
+          token: ${{ secrets.HRG_ORG_TOKEN }}   # read access to the organization's repositories
+          pseudonymize: true
+```
+
 | Input | Default | Description |
 |---|---|---|
-| `file` | | Organization file to analyze (set `file` or `scan`) |
+| `file` | | Organization file to analyze (set one of `file`, `scan`, `scan-org`) |
 | `scan` | | `OWNER/REPO` to draft with `hrg scan github` first |
-| `max-prs` | `100` | With `scan`: merged pull requests to read |
-| `token` | `github.token` | Token for `scan` |
+| `scan-org` | | Organization (or user) to draft with `hrg scan github --org` first |
+| `max-repos` | `30` | With `scan-org`: repositories to scan |
+| `max-prs` | `100` (`30` with `scan-org`) | Merged pull requests to read per repository |
+| `pseudonymize` | `false` | Keyed pseudonyms instead of people (key in `HRG_PSEUDONYM_KEY`) |
+| `token` | `github.token` | Token for `scan` and `scan-org` |
 | `config` | auto | `hrg.toml`, `.hrg.toml` or `[tool.hrg]` in `pyproject.toml` |
 | `min-score` / `fail-above` | | Fail below this score (0-100) / above this risk (0-1) |
 | `upload-sarif` | `true` | Upload findings to code scanning (with `file`) |

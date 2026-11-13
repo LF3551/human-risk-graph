@@ -3,6 +3,7 @@
 import json
 import re
 import xml.etree.ElementTree as ET
+from dataclasses import replace
 from typing import Any, Dict, List, Optional
 
 from . import __version__
@@ -85,7 +86,12 @@ def _sarif_rule(rule: Rule) -> Dict[str, Any]:
     }
 
 
-def generate_sarif_report(findings: List[Finding], artifact_uri: str, source_text: str) -> str:
+def generate_sarif_report(
+    findings: List[Finding],
+    artifact_uri: str,
+    source_text: str,
+    ids_in_file: Optional[Dict[str, str]] = None,
+) -> str:
     """
     Build a SARIF 2.1.0 log, for example for GitHub code scanning.
 
@@ -93,10 +99,19 @@ def generate_sarif_report(findings: List[Finding], artifact_uri: str, source_tex
         findings: Findings from ``collect_findings``.
         artifact_uri: Path of the analysed file, relative to the repository root.
         source_text: Content of the analysed file, used to point results at the right line.
+        ids_in_file: For pseudonymized findings, pseudonym -> id as written in the file, used
+            only to find the line; messages keep the pseudonyms.
     """
     rules = list(RULES.values())
     rule_index = {rule.id: i for i, rule in enumerate(rules)}
     lines = source_text.splitlines()
+
+    def in_file(f: Finding) -> Finding:
+        if not ids_in_file:
+            return f
+        real = lambda p: ids_in_file.get(p, p) if p else p  # noqa: E731
+        dependency = tuple(real(p) for p in f.dependency) if f.dependency else None
+        return replace(f, person=real(f.person), dependency=dependency)
 
     results = []
     for f in findings:
@@ -109,7 +124,7 @@ def generate_sarif_report(findings: List[Finding], artifact_uri: str, source_tex
                 {
                     "physicalLocation": {
                         "artifactLocation": {"uri": artifact_uri},
-                        "region": {"startLine": _find_line(lines, f)},
+                        "region": {"startLine": _find_line(lines, in_file(f))},
                     }
                 }
             ],

@@ -7,6 +7,7 @@ Example ``hrg.toml``::
     min-score = 70
     fixes = 3
     critical-threshold = 0.7
+    pseudonymize = true   # reports show keyed pseudonyms instead of people
 
     [weights]
     key-person = 0.4
@@ -44,6 +45,7 @@ TOP_LEVEL_KEYS = {
     "fail-above",
     "fixes",
     "critical-threshold",
+    "pseudonymize",
     "weights",
     "accept",
 }
@@ -87,6 +89,7 @@ class Config:
     fail_above: Optional[float] = None
     fixes: Optional[int] = None
     critical_threshold: Optional[float] = None
+    pseudonymize: Optional[bool] = None
     weights: Dict[str, float] = field(default_factory=dict)
     accept: List[Acceptance] = field(default_factory=list)
 
@@ -159,6 +162,10 @@ def parse_config(raw: Dict[str, Any], source: Path) -> Config:
         config.critical_threshold = float(
             _number(raw["critical-threshold"], f"{source}: critical-threshold", 0, 1)
         )
+    if "pseudonymize" in raw:
+        if not isinstance(raw["pseudonymize"], bool):
+            raise ConfigError(f"{source}: pseudonymize must be true or false")
+        config.pseudonymize = raw["pseudonymize"]
 
     weights = raw.get("weights", {})
     if not isinstance(weights, dict):

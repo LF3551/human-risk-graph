@@ -5,6 +5,20 @@ All notable changes to Human Risk Graph will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.0] - 2026-11-13
+
+### ✨ Added
+
+- **Pseudonymized reports** for GDPR and works-council requirements: `--pseudonymize` on `analyze`, `diff` and `visualize`, or `pseudonymize = true` in `hrg.toml`. People become keyed pseudonyms (`P-` + HMAC-SHA256 of the id with the key in `HRG_PSEUDONYM_KEY` or `--pseudonym-key-file`), stable across runs with the same key. Only allow-listed fields are kept: names, roles, e-mail addresses and evidence are dropped, and known ids and names are replaced in coverage gaps, the input file name and risk acceptance reasons. Risk acceptances keep matching; SARIF results still point at the right line.
+- `hrg pseudonyms FILE`: the pseudonym, id and name of everyone, for re-identification by the key holder.
+- [docs/privacy.md](docs/privacy.md): what HRG processes, what it is not for, pseudonymization, re-identification, and a deployment checklist (purpose and legal basis, works council, DPIA, retention).
+- **Organization scan**: `hrg scan github --org ORG` scans the most recently pushed repositories (`--max-repos`, default 30; archived repositories and forks skipped unless `--include-archived` / `--include-forks`) and merges them into one draft. People appear once; dependencies between the same people are merged (a bypass outranks approvals, the highest weight wins); the `merge`, `release` and `admin` functions stay per repository (`REPO/release`), so hrg-3 shows everything one person's absence stops. Repositories that cannot be read become coverage gaps; a rate limit stops the scan. Re-scans keep human decisions.
+- GitHub Action inputs `scan-org`, `max-repos` and `pseudonymize`. With `pseudonymize: true` the draft with real logins is not uploaded with the artifact; a self-test checks that no login reaches the reports.
+
+### 🔧 Changed
+
+- `--max-prs` of `hrg scan github` (and the action) defaults to 30 per repository with `--org`, 100 otherwise.
+
 ## [0.14.2] - 2026-11-13
 
 ### 🐛 Fixed

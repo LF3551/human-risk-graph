@@ -14,10 +14,14 @@ from human_risk_graph.github_scan import (
     GitHubClient,
     GitHubError,
     GitHubScanner,
+    ScanResult,
     draft_yaml,
+    list_repositories,
+    merge_scans,
     merge_with_existing,
     owners_for,
     parse_codeowners,
+    scan_organization,
 )
 from human_risk_graph.loader import load_organization
 
@@ -531,3 +535,185 @@ def test_client_does_not_retry_client_errors(monkeypatch, code, calls_expected):
         with pytest.raises(GitHubError, match="400"):
             GitHubClient("t").get("repos/acme/api")
     assert len(calls) == calls_expected
+
+
+# Organization scan
+
+
+def _repo(name, pushed, **flags):
+    return {"full_name": f"acme/{name}", "pushed_at": pushed, **flags}
+
+
+def _org_routes(**extra):
+    routes = _routes(
+        **{
+            "orgs/acme/repos": [
+                _repo("api", "2026-10-01"),
+                _repo("web", "2026-11-01"),
+                _repo("old", "2026-11-05", archived=True),
+                _repo("forked", "2026-11-06", fork=True),
+            ],
+            "repos/acme/api/releases": [_release("lead")],
+            "repos/acme/web": {"default_branch": "main"},
+            "repos/acme/web/pulls": [_pr(10, "dev")],
+            "repos/acme/web/pulls/10/reviews": [_review("lead")],
+            "repos/acme/web/releases": [_release("lead"), _release("lead")],
+        }
+    )
+    routes.update(extra)
+    return routes
+
+
+def test_list_repositories_filters_and_sorts():
+    client = FakeClient(_org_routes())
+    names, skipped = list_repositories(client, "acme")
+    assert names == ["acme/web", "acme/api"]  # most recently pushed first
+    assert skipped == {"archived": 1, "forks": 1}
+    names, skipped = list_repositories(client, "acme", include_archived=True, include_forks=True)
+    assert names == ["acme/forked", "acme/old", "acme/web", "acme/api"] and not skipped
+
+
+def test_list_repositories_falls_back_to_a_user_account():
+    client = FakeClient({"users/solo/repos": [_repo("tool", "2026-01-01")]})
+    assert list_repositories(client, "solo")[0] == ["acme/tool"]
+    with pytest.raises(GitHubError, match="not found"):
+        list_repositories(FakeClient({}), "nobody")
+
+
+def test_scan_organization_merges_repositories():
+    result = scan_organization(FakeClient(_org_routes()), "acme", max_prs=10)
+    assert result.repositories == ["acme/web", "acme/api"]
+    assert [p["id"] for p in result.people].count("lead") == 1
+    lead = next(p for p in result.people if p["id"] == "lead")
+    assert "(in 2 repositories)" in lead["role"]
+    assert lead["evidence"].startswith("web: ") and "; api: " in lead["evidence"]
+
+    dep = _deps(result)[("lead", "dev")]
+    assert dep["type"] == "approval" and dep["weight"] == 1.0  # web: 1 of 1 PR approved
+    assert (
+        dep["evidence"].startswith("web: approved 1 of 1") and "; api: approved" in dep["evidence"]
+    )
+
+    functions = {f["id"]: f for f in result.functions}
+    assert {"web/release", "api/release", "web/merge", "api/merge"} <= set(functions)
+    assert functions["web/release"]["name"] == "Publish a release (web)"
+    assert functions["web/release"]["performers"] == ["lead"]
+    assert result.notes == [
+        "Scanned 2 of 2 repositories of acme, most recently pushed first; "
+        "skipped 1 archived, 1 forks."
+    ]
+    assert result.coverage()["repositories"] == ["acme/web", "acme/api"]
+
+    v3 = HumanRiskGraph(result.people, result.dependencies, result.functions).calculate(
+        model="hrg-3"
+    )
+    lead_v3 = next(p for p in v3["key_people"] if p["id"] == "lead")
+    assert {"web/release", "api/release"} <= set(lead_v3["functions"])  # sole releaser of both
+
+
+def test_scan_organization_limits_and_reports_unscanned_repositories():
+    result = scan_organization(FakeClient(_org_routes()), "acme", max_repos=1)
+    assert result.repositories == ["acme/web"]
+    assert "1 less recently pushed repositories were not scanned" in result.notes[1]
+
+
+def test_scan_organization_keeps_going_when_a_repository_fails():
+    routes = _org_routes()
+    routes["orgs/acme/repos"].append(_repo("gone", "2026-12-01"))
+    result = scan_organization(FakeClient(routes), "acme")
+    assert result.repositories == ["acme/web", "acme/api"]
+    assert result.gaps[-1].startswith("Could not scan acme/gone: Repository acme/gone not found")
+    with pytest.raises(GitHubError, match="No repository of acme could be scanned"):
+        scan_organization(FakeClient({"orgs/acme/repos": [_repo("gone", "x")]}), "acme")
+    with pytest.raises(ValueError, match="organization or user name"):
+        scan_organization(FakeClient({}), "acme/api")
+
+
+def test_scan_organization_stops_on_rate_limit():
+    class Limited(FakeClient):
+        def get(self, path, params=None, limit=0):
+            if path.startswith("repos/"):
+                raise GitHubError("GitHub API rate limit reached")
+            return super().get(path, params, limit)
+
+    with pytest.raises(GitHubError, match="rate limit"):
+        scan_organization(Limited(_org_routes()), "acme")
+
+
+def _scan(repo, people, deps, functions=(), gaps=(), review_required=True):
+    return ScanResult(
+        repo=repo, branch="main", pull_requests=3, api_calls=5, notes=[],
+        people=[{"id": p, "name": p, "role": "dev", "criticality": c, "evidence": f"{p} in {repo}"}
+                for p, c in people],
+        dependencies=[{"from": a, "to": b, "type": t, "weight": w, "source": s,
+                       "evidence": f"{t} in {repo}", "confirmed": False}
+                      for a, b, t, w, s in deps],
+        functions=list(functions), gaps=list(gaps), review_required=review_required,
+    )  # fmt: skip
+
+
+def test_merge_scans_strongest_dependency_wins():
+    a = _scan("acme/a", [("x", 0.4), ("y", 0.3)], [("x", "y", "approval", 0.9, "pr-reviews")])
+    b = _scan(
+        "acme/b",
+        [("x", 0.8), ("y", 0.3)],
+        [("x", "y", "bypass", 0.5, "branch-rules"), ("y", "x", "approval", 0.2, "codeowners")],
+        gaps=["Admins are not visible"],
+        review_required=False,
+    )
+    merged = merge_scans("acme", [a, b])
+    deps = _deps(merged)
+    assert deps[("x", "y")]["type"] == "bypass" and deps[("x", "y")]["weight"] == 0.5
+    assert deps[("x", "y")]["source"] == "branch-rules+pr-reviews"
+    assert deps[("x", "y")]["evidence"] == "a: approval in acme/a; b: bypass in acme/b"
+    assert deps[("y", "x")]["type"] == "approval"
+    assert next(p for p in merged.people if p["id"] == "x")["criticality"] == 0.8
+    assert merged.review_required is None  # required in one repository, not in the other
+    assert merged.gaps == ["b: Admins are not visible"]
+    assert (merged.pull_requests, merged.branch) == (6, "default branch of each repository")
+
+
+def test_merge_scans_limits_evidence():
+    scans = [_scan(f"acme/r{i}", [("x", 0.5), ("y", 0.5)], [("x", "y", "approval", 0.5, "s")])
+             for i in range(7)]  # fmt: skip
+    evidence = _deps(merge_scans("acme", scans))[("x", "y")]["evidence"]
+    assert evidence.count("approval in") == 5 and evidence.endswith("; and 2 more")
+
+
+def test_cli_scan_org(tmp_path, fake_github, monkeypatch):
+    fake_github(_org_routes())
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["scan", "github", "--org", "acme", "--max-prs", "5"])
+    assert result.exit_code == 0, result.output
+    draft = tmp_path / "acme-org.yaml"
+    text = draft.read_text()
+    assert text.startswith("# Draft generated by `hrg scan github --org acme`")
+    assert "into 2 repositories" in text
+    data = load_organization(draft)
+    assert data["coverage"]["repositories"] == ["acme/web", "acme/api"]
+
+    data["functions"][0]["criticality"] = 0.3  # a human decision the next scan keeps
+    draft.write_text(yaml.safe_dump(data))
+    again = runner.invoke(cli, ["scan", "github", "--org", "acme"])
+    assert again.exit_code == 0, again.output
+    assert load_organization(draft)["functions"][0]["criticality"] == 0.3
+
+    analyzed = runner.invoke(
+        cli, ["analyze", str(draft), "--model", "hrg-3", "--format", "json", "--no-visualize", "-q"]
+    )
+    assert analyzed.exit_code in (0, 3), analyzed.output
+
+
+@pytest.mark.parametrize(
+    "args, message",
+    [
+        (["acme/api", "--org", "acme"], "either REPO"),
+        ([], "either REPO"),
+        (["--org", "acme", "--branch", "dev"], "--branch applies to one repository"),
+    ],
+)
+def test_cli_scan_org_usage(args, message, fake_github):
+    fake_github(_org_routes())
+    result = CliRunner().invoke(cli, ["scan", "github", *args])
+    assert result.exit_code == 2 and message in result.output

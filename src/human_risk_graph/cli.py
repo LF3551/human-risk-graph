@@ -12,11 +12,13 @@ Exit codes: 0 success, 1 invalid input or error, 2 usage error, 3 score below
 """
 
 import click
+import csv
 import hashlib
 import sys
 from collections import Counter
 from pathlib import Path
 from datetime import datetime
+from typing import Optional
 
 from rich.console import Console
 from click.core import ParameterSource
@@ -34,11 +36,18 @@ from .github_scan import (
     default_token,
     draft_yaml,
     merge_with_existing,
+    scan_organization,
 )
 from .hrg import HumanRiskGraph
 from .loader import load_organization, organization_schema
 from .model_v2 import MODEL_V2, MODELS
-from .reports import generate_json_report, generate_markdown_report, generate_html_report
+from .privacy import KEY_ENV, PseudonymKeyError, Pseudonymizer, load_key
+from .reports import (
+    generate_html_report,
+    generate_json_report,
+    generate_markdown_report,
+    privacy_text,
+)
 from .visualization import generate_graph_visualization
 
 EXIT_RISK = 3
@@ -75,6 +84,47 @@ def _config(path) -> Config:
     except (OSError, ConfigError) as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
+
+
+def privacy_options(command):
+    command = click.option(
+        "--pseudonym-key-file",
+        type=click.Path(exists=True, dir_okay=False, path_type=Path),
+        help=f"File with the pseudonym key (default: the {KEY_ENV} environment variable).",
+    )(command)
+    return click.option(
+        "--pseudonymize/--no-pseudonymize",
+        default=False,
+        help="Replace people by keyed pseudonyms and drop names, roles and evidence "
+        "(also `pseudonymize = true` in hrg.toml).",
+    )(command)
+
+
+def _pseudonymizer(enabled: bool, key_file: Optional[Path], need_key: bool = False):
+    """A Pseudonymizer when pseudonymization is on, else None; exits on a bad key."""
+    if not enabled:
+        return None
+    try:
+        key = load_key(key_file)
+    except (OSError, PseudonymKeyError) as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+    if key is None:
+        if need_key:
+            click.echo(f"Error: set {KEY_ENV} or --pseudonym-key-file.", err=True)
+            sys.exit(1)
+        click.echo(
+            f"Warning: no pseudonym key ({KEY_ENV} or --pseudonym-key-file); pseudonyms "
+            "change on every run, so reports cannot be compared or re-identified.",
+            err=True,
+        )
+    return Pseudonymizer(key)
+
+
+def _pseudonymized(pz, data):
+    """(data, HumanRiskGraph) with pseudonymous people."""
+    data = pz.organization(data)
+    return data, HumanRiskGraph(data["people"], data["dependencies"], data.get("functions"))
 
 
 def _setting(ctx, name, cli_value, config_value):
@@ -156,11 +206,12 @@ def cli():
     help="Number of remediations to simulate and rank (0 to skip).",
 )
 @click.option("--quiet", "-q", is_flag=True, help="Only print errors.")
+@privacy_options
 @CONFIG_OPTION
 @click.pass_context
 def analyze(
     ctx, input_file, formats, output, visualize, fail_above, min_score, model, fix_steps, quiet,
-    config_path,
+    pseudonymize, pseudonym_key_file, config_path,
 ):  # fmt: skip
     """
     Analyze an organization's human risk graph.
@@ -180,16 +231,22 @@ def analyze(
     fix_steps = _setting(ctx, "fix_steps", fix_steps, config.fixes)
     min_score = _setting(ctx, "min_score", min_score, config.min_score)
     fail_above = _setting(ctx, "fail_above", fail_above, config.fail_above)
+    pseudonymize = _setting(ctx, "pseudonymize", pseudonymize, config.pseudonymize)
     calc = {"model": model, **config.calculate_kwargs()}
 
     data, hrg = _load(input_file)
+    pz = _pseudonymizer(pseudonymize, pseudonym_key_file)
+    accept = config.accept
+    if pz:
+        data, hrg = _pseudonymized(pz, data)
+        accept = pz.acceptances(accept)
     try:
         results = hrg.calculate(**calc)
     except ValueError as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
     findings = collect_findings(hrg, results, fail_above, min_score)
-    findings, unused = apply_acceptances(findings, config.accept)
+    findings, unused = apply_acceptances(findings, accept)
     fixes = hrg.fix_plan(steps=fix_steps, **calc) if fix_steps else []
     breach = threshold_breach(results, fail_above, min_score)
     if breach and any(f.rule_id == "HRG004" and f.accepted for f in findings):
@@ -238,7 +295,12 @@ def analyze(
             str(gap) for gap in ((data.get("coverage") or {}).get("gaps") or []) if gap
         ],
         "confirmed_only": _confirmed_only(data, calc),
+        "pseudonymized": ({"method": "HMAC-SHA256", "stable": pz.stable} if pz else None),
     }
+    if pz:
+        # A file name such as anna-org.yaml would identify someone too.
+        metadata["input_file"] = pz.scrub(metadata["input_file"])
+        metadata["input_name"] = pz.scrub(metadata["input_name"])
 
     # Generate reports
     formats_to_generate = []
@@ -267,6 +329,7 @@ def analyze(
                     findings,
                     _artifact_uri(input_path),
                     input_path.read_text(encoding="utf-8"),
+                    {p: i for i, p in pz.mapping.items()} if pz else None,
                 )
             else:
                 content = generate_junit_report(findings, results, fail_above, min_score)
@@ -298,6 +361,8 @@ def analyze(
             config_file=metadata["config_file"],
             confirmed_only=metadata["confirmed_only"],
         )
+        if pz:
+            click.echo(f"Privacy: {privacy_text(metadata)}")
     for acceptance in unused:
         target = f" {acceptance.target}" if acceptance.target else ""
         click.echo(
@@ -324,13 +389,17 @@ def analyze(
 @cli.command()
 @click.argument("input_file", type=click.Path(exists=True, dir_okay=False))
 @click.option("--output", type=click.Path(), help="Output HTML file")
-def visualize(input_file, output):
+@privacy_options
+def visualize(input_file, output, pseudonymize, pseudonym_key_file):
     """
     Generate interactive graph visualization only.
 
     INPUT_FILE: JSON or YAML file with people and dependencies.
     """
-    _, hrg = _load(input_file)
+    data, hrg = _load(input_file)
+    pz = _pseudonymizer(pseudonymize, pseudonym_key_file)
+    if pz:
+        data, hrg = _pseudonymized(pz, data)
 
     try:
         results = hrg.calculate()
@@ -367,9 +436,13 @@ def visualize(input_file, output):
     help=f"Exit with code {EXIT_RISK} if the composite risk went up.",
 )
 @click.option("--model", type=click.Choice(MODELS), default=MODEL_V2, show_default=True)
+@privacy_options
 @CONFIG_OPTION
 @click.pass_context
-def diff(ctx, old_file, new_file, fmt, output, fail_on_increase, model, config_path):
+def diff(
+    ctx, old_file, new_file, fmt, output, fail_on_increase, model, pseudonymize,
+    pseudonym_key_file, config_path,
+):  # fmt: skip
     """
     Compare two snapshots of an organization.
 
@@ -381,8 +454,12 @@ def diff(ctx, old_file, new_file, fmt, output, fail_on_increase, model, config_p
     """
     config = _config(config_path)
     model = _setting(ctx, "model", model, config.model)
+    pseudonymize = _setting(ctx, "pseudonymize", pseudonymize, config.pseudonymize)
     old_data, _ = _load(old_file)
     new_data, _ = _load(new_file)
+    pz = _pseudonymizer(pseudonymize, pseudonym_key_file)
+    if pz:
+        old_data, new_data = pz.organization(old_data), pz.organization(new_data)
     try:
         changes = diff_module.compare(old_data, new_data, model=model, **config.calculate_kwargs())
     except ValueError as e:
@@ -411,26 +488,65 @@ def schema():
     click.echo(organization_schema(), nl=False)
 
 
+@cli.command()
+@click.argument("input_file", type=click.Path(exists=True, dir_okay=False))
+@click.option(
+    "--pseudonym-key-file",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    help=f"File with the pseudonym key (default: the {KEY_ENV} environment variable).",
+)
+def pseudonyms(input_file, pseudonym_key_file):
+    """
+    Print the pseudonym of every person in an organization file (CSV).
+
+    For re-identification by whoever holds the key, for example the data protection
+    officer answering "who is P-3f9a2c1d?". Needs the key the reports were made with.
+
+    Example:
+        HRG_PSEUDONYM_KEY=... hrg pseudonyms org.yaml > pseudonyms.csv
+    """
+    data, _ = _load(input_file)
+    pz = _pseudonymizer(True, pseudonym_key_file, need_key=True)
+    pz.organization(data)
+    names = {p["id"]: p.get("name") or p["id"] for p in data["people"]}
+    writer = csv.writer(sys.stdout, lineterminator="\n")
+    writer.writerow(["pseudonym", "id", "name"])
+    for pseudonym, pid in pz.table():
+        writer.writerow([pseudonym, pid, names.get(pid, pid)])
+
+
 @cli.group()
 def scan():
     """Build a draft organization file from real data."""
 
 
 @scan.command("github")
-@click.argument("repo")
+@click.argument("repo", required=False)
+@click.option(
+    "--org",
+    help="Scan the repositories of this organization (or user) instead of one REPO.",
+)
+@click.option(
+    "--max-repos",
+    type=click.IntRange(1, 1000),
+    default=30,
+    show_default=True,
+    help="With --org: most recently pushed repositories to scan.",
+)
+@click.option("--include-archived", is_flag=True, help="With --org: also archived repositories.")
+@click.option("--include-forks", is_flag=True, help="With --org: also forks.")
 @click.option(
     "--output",
     "-o",
     type=click.Path(dir_okay=False, path_type=Path),
-    help="Draft file to write (default: REPO-org.yaml). An existing draft is updated.",
+    help="Draft file to write (default: REPO-org.yaml or ORG-org.yaml). An existing draft is updated.",
 )
 @click.option("--branch", help="Protected branch to analyze (default: the default branch).")
 @click.option(
     "--max-prs",
     type=click.IntRange(1, 1000),
-    default=100,
-    show_default=True,
-    help="Most recent merged pull requests to read.",
+    default=None,
+    help="Most recent merged pull requests to read per repository [default: 100; 30 with --org].",
 )
 @click.option("--include-bots", is_flag=True, help="Keep bot accounts such as dependabot[bot].")
 @click.option(
@@ -438,20 +554,36 @@ def scan():
     envvar="HRG_GITHUB_TOKEN",
     help="GitHub token (default: GITHUB_TOKEN, GH_TOKEN or `gh auth token`).",
 )
-def scan_github(repo, output, branch, max_prs, include_bots, token):
+def scan_github(
+    repo, org, max_repos, include_archived, include_forks, output, branch, max_prs, include_bots,
+    token,
+):  # fmt: skip
     """
-    Draft an organization from a GitHub repository.
+    Draft an organization from a GitHub repository or a whole organization.
 
     REPO is OWNER/NAME. Reads pull request reviews, CODEOWNERS, branch rules and merges
     without review, and writes a YAML draft where every dependency has its source,
     evidence and confirmed: false. Review the draft, then run hrg analyze on it.
 
+    With --org, the most recently pushed repositories of the organization are scanned and
+    merged into one draft: people appear once, and the merge, release and admin functions
+    are kept per repository, so a person who is the only releaser of many services shows up.
+
     Example:
         hrg scan github my-org/payments-api
+        hrg scan github --org my-org --max-repos 50
         hrg analyze payments-api-org.yaml
     """
+    if bool(repo) == bool(org):
+        raise click.UsageError("Give either REPO (OWNER/NAME) or --org ORG.")
+    if org and branch:
+        raise click.UsageError(
+            "--branch applies to one repository; with --org the default branch of each is used."
+        )
+    max_prs = max_prs or (30 if org else 100)
+    label = org or repo
     console = Console(stderr=True, highlight=False)
-    output = output or Path(f"{repo.split('/')[-1]}-org.yaml")
+    output = output or Path(f"{(org or repo.split('/')[-1])}-org.yaml")
     existing = None
     if output.exists():
         try:
@@ -464,16 +596,28 @@ def scan_github(repo, output, branch, max_prs, include_bots, token):
     if not client.token:
         console.print("[yellow]No GitHub token: limited to 60 requests per hour.[/]")
     try:
-        with console.status(f"Scanning {repo}") as status:
-            scanner = GitHubScanner(
-                client,
-                repo,
-                branch=branch,
-                max_prs=max_prs,
-                include_bots=include_bots,
-                progress=lambda message: status.update(f"{repo}: {message}"),
-            )
-            result = scanner.scan()
+        with console.status(f"Scanning {label}") as status:
+            if org:
+                result = scan_organization(
+                    client,
+                    org,
+                    max_repos=max_repos,
+                    max_prs=max_prs,
+                    include_bots=include_bots,
+                    include_archived=include_archived,
+                    include_forks=include_forks,
+                    progress=status.update,
+                )
+            else:
+                scanner = GitHubScanner(
+                    client,
+                    repo,
+                    branch=branch,
+                    max_prs=max_prs,
+                    include_bots=include_bots,
+                    progress=lambda message: status.update(f"{repo}: {message}"),
+                )
+                result = scanner.scan()
     except (GitHubError, ValueError) as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
@@ -483,8 +627,9 @@ def scan_github(repo, output, branch, max_prs, include_bots, token):
 
     kinds = Counter(d["type"] for d in result.dependencies)
     unconfirmed = sum(1 for d in result.dependencies if d.get("confirmed") is False)
+    where = f"{len(result.repositories)} repositories" if org else result.branch
     console.print(
-        f"\n[bold]{repo}[/] · {result.pull_requests} merged PRs on {result.branch} · "
+        f"\n[bold]{label}[/] · {result.pull_requests} merged PRs on {where} · "
         f"{result.api_calls} API calls"
     )
     people = len(result.people)

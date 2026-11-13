@@ -33,6 +33,17 @@ def _metric_labels(results: Dict[str, Any]):
     return METRIC_LABELS.get(results.get("model", MODEL_V2), METRIC_LABELS[MODEL_V2])
 
 
+def privacy_text(metadata: Dict[str, Any]) -> str:
+    """Notice for pseudonymized reports, or an empty string."""
+    privacy = metadata.get("pseudonymized")
+    if not privacy:
+        return ""
+    return (
+        "People are pseudonymized (keyed HMAC-SHA256); names, roles and evidence are removed."
+        + ("" if privacy.get("stable") else " Without a key the pseudonyms change on every run.")
+    )
+
+
 def unconfirmed_text(metadata: Dict[str, Any]) -> str:
     """'2 of 9 dependencies and 1 of 3 functions are unconfirmed', or '' if none are."""
     parts = []
@@ -207,6 +218,9 @@ def generate_markdown_report(
     md.append(f"**Input File:** `{metadata['input_file']}`")
     md.append(f"**Organization Size:** {metadata['organization_size']} people")
     md.append(f"**Dependencies:** {metadata['dependencies_count']}")
+    if privacy_text(metadata):
+        md.append("")
+        md.append(f"> **Privacy:** {privacy_text(metadata)}")
     if unconfirmed_text(metadata):
         md.append("")
         md.append(
