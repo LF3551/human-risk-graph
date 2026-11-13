@@ -8,6 +8,7 @@
   <a href="https://pypistats.org/packages/human-risk-graph"><img src="https://img.shields.io/pypi/dm/human-risk-graph?cacheSeconds=3600" alt="Downloads"></a>
   <a href="https://github.com/LF3551/human-risk-graph/actions/workflows/ci.yml"><img src="https://github.com/LF3551/human-risk-graph/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://codecov.io/gh/LF3551/human-risk-graph"><img src="https://codecov.io/gh/LF3551/human-risk-graph/branch/main/graph/badge.svg" alt="Coverage"></a>
+  <a href="https://github.com/marketplace/actions/human-risk-graph"><img src="https://img.shields.io/badge/Marketplace-Human%20Risk%20Graph-2ea44f?logo=github" alt="GitHub Marketplace"></a>
   <br>
   <a href="https://scorecard.dev/viewer/?uri=github.com/LF3551/human-risk-graph"><img src="https://api.scorecard.dev/projects/github.com/LF3551/human-risk-graph/badge" alt="OpenSSF Scorecard"></a>
   <a href="https://www.bestpractices.dev/projects/12048"><img src="https://www.bestpractices.dev/projects/12048/badge" alt="OpenSSF Best Practices"></a>
@@ -18,7 +19,7 @@
 <p align="center">
   <a href="#quick-start">Quick start</a> ·
   <a href="#html-report">HTML report</a> ·
-  <a href="#ci-integration">CI integration</a> ·
+  <a href="#github-action">GitHub Action</a> ·
   <a href="docs/compliance.md">ISO 27001 · SOC 2 · DORA</a> ·
   <a href="docs/model.md">Model</a> ·
   <a href="https://doi.org/10.5281/zenodo.20260930">Paper</a>
