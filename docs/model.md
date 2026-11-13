@@ -29,9 +29,123 @@ A node v ∈ V is **critical** if C(v) ≥ θ where θ is a criticality threshol
 
 Let **V_critical ⊆ V** denote the set of all critical nodes.
 
-## 3. Risk Metrics
+### Model versions
 
-### 3.1 Bus Factor Score (BF)
+| Model | Default | Use |
+|-------|---------|-----|
+| `hrg-2` | since 0.5.0 | Section 3. Size-independent, explainable metrics and a fix plan. |
+| `hrg-1` | up to 0.4.x | Section 4. The model of the original paper; `--model hrg-1` reproduces its results. |
+
+Every report records the model it was computed with.
+
+## 3. Model hrg-2
+
+Model hrg-1 has three known weaknesses: a single approver for everyone gives a decision
+concentration of 0 (the Gini coefficient of one value), the bus factor is divided by |V| so
+the same single point of failure looks harmless in a large organization, and the linear
+composite lets one severe weakness be averaged away by two good metrics. hrg-2 fixes all three.
+
+Let U be the undirected version of G. Connectivity uses every dependency type, including
+bypasses: an emergency path is still a path.
+
+### 3.1 Key-person risk (K)
+
+For a person v, let P₋ᵥ be the number of connected pairs of people other than v in U, and
+L(v) the number of those pairs that are disconnected in U − v. The **impact** of v is
+
+$$I(v) = \frac{L(v)}{P_{-v}}$$
+
+I(v) > 0 exactly when v is an articulation point, so impact generalises the single point of
+failure to "how much depends on this person". The key-person risk is
+
+$$K = \max_{v \in V} C(v) \cdot I(v)$$
+
+K does not depend on the size of the organization: in a star with centre c, K = C(c) for any
+number of leaves. The reports also show how many people v **cuts off** (people outside the
+largest remaining group) and the **bus factor**: the node connectivity of the largest
+connected component of U, i.e. the smallest number of people whose loss splits it.
+
+### 3.2 Approval concentration (D)
+
+Let A be the approval edges. The approval weight held by person u is
+$w_u = \sum_{(u,v) \in A} W(u,v)$ (u is the approver), and $s_u = w_u / \sum_x w_x$ is u's share.
+D is the Herfindahl-Hirschman index:
+
+$$D = \sum_u s_u^2, \qquad N_{\text{eff}} = 1/D$$
+
+N_eff is the **effective number of approvers**: D = 1 for a single approver, 1/n for n
+equal approvers. Findings: fewer than 4 effective approvers (D ≥ 0.25) is a warning,
+fewer than 2 (D ≥ 0.5) an error.
+
+### 3.3 Override exposure (B)
+
+A bypass edge (x, a) means x can override the controls a enforces, so every approval
+(a, t) can be overridden. Let A_c be the **critical approvals**: approval edges with a
+critical approver or a critical approvee. Then
+
+$$B = \frac{\sum_{e \in A_c,\ e \text{ overridable}} W(e)}{\sum_{e \in A_c} W(e)}$$
+
+with B = 0 when A_c is empty.
+
+### 3.4 Composite risk, score and grade
+
+Each weakness is treated as an independent way to fail (noisy-OR), normalised so that the
+worst case is 1:
+
+$$R = \frac{1 - (1 - \alpha K)(1 - \beta D)(1 - \gamma B)}{1 - (1 - \alpha)(1 - \beta)(1 - \gamma)}$$
+
+with α = 0.4, β = 0.3, γ = 0.3 by default. R = 0 without weaknesses, R = 1 when all three
+metrics are 1, R is increasing in each metric, and a single metric at 1 contributes more than
+its linear share (for example 0.57 instead of 0.4 for K). The **score** is
+$\text{round}(100 \cdot (1 - R))$.
+
+| Score | Grade | Risk level |
+|-------|-------|------------|
+| 90-100 | A | Low |
+| 80-89 | B | Low |
+| 70-79 | C | Low |
+| 50-69 | D | Moderate |
+| 30-49 | F | High |
+| 0-29 | F | Critical |
+
+### 3.5 Fix plan
+
+`hrg analyze` simulates remediations, applies the one that lowers R the most, and repeats
+(three steps by default):
+
+- **Deputy** for a key person or one of the top three approvers: a new person with the same
+  criticality who shares each of their approvals (the weight is split in two), has the same
+  escalations and can be overridden by the same bypasses, but does not get their bypass powers.
+- **Second-person check on a bypass** involving a critical person: the bypass is treated as
+  an escalation.
+
+A deputy removes a person's own impact, but adds one more person behind any other
+bottleneck, so a deputy is not always an improvement; the plan only lists steps that lower R
+by at least half a point.
+
+### 3.6 Properties checked by the test suite
+
+- K, D, B, R ∈ [0, 1]; R is increasing in each metric.
+- K does not decrease when any criticality increases.
+- Adding a bypass never decreases B; putting a check on a bypass never increases R.
+- A deputy never increases the person's own impact.
+- Relabelling people does not change any result.
+- Reference structures: star (K = C(c), independent of size), single approver (D = 1),
+  n equal approvers (D = 1/n), complete team (K = 0, bus factor n − 1).
+
+### 3.7 Complexity
+
+| Metric | Time |
+|--------|------|
+| K | O(\|AP\| · (\|V\| + \|E\|)), AP = articulation points |
+| Bus factor | O(\|V\| + \|E\|) with a single point of failure, otherwise node connectivity (max-flow) |
+| D, B | O(\|E\|) |
+
+The hrg-1 bypass risk enumerates paths of length up to 5 and grows exponentially on dense graphs.
+
+## 4. Model hrg-1 (original paper)
+
+### 4.1 Bus Factor Score (BF)
 
 The Bus Factor Score measures organizational fragility to loss of key individuals.
 
@@ -48,7 +162,7 @@ where AP(G) is the set of **articulation points** (cut vertices) in G — nodes 
 
 **Algorithm Complexity:** O(|V| + |E|) using Tarjan's algorithm for finding articulation points.
 
-### 3.2 Decision Concentration Score (DC)
+### 4.2 Decision Concentration Score (DC)
 
 Measures inequality in the distribution of decision authority.
 
@@ -56,9 +170,9 @@ Measures inequality in the distribution of decision authority.
 
 Let A = {e ∈ E : τ(e) = approval} be the set of approval edges.
 
-For each person v ∈ V, define their approval weight:
+For each person u ∈ V, define their approval weight (u is the approver):
 
-$$w_v = \sum_{(u,v) \in A} W((u,v))$$
+$$w_u = \sum_{(u,v) \in A} W((u,v))$$
 
 Let **w = (w_1, w_2, ..., w_n)** be the sorted sequence of approval weights.
 
@@ -77,7 +191,7 @@ $$DC_{entropy}(G) = 1 - \frac{H(w)}{H_{max}}$$
 
 where $H(w) = -\sum_{i=1}^{n} p_i \log_2(p_i)$ and $p_i = \frac{w_i}{\sum w_j}$
 
-### 3.3 Bypass Risk Score (BR)
+### 4.3 Bypass Risk Score (BR)
 
 Quantifies the fraction of critical paths that can be circumvented.
 
@@ -104,7 +218,7 @@ $$BR(G) = \frac{|\{P \in CP(G) : P \text{ is bypassable}\}|}{|CP(G)|}$$
 
 **Algorithm Complexity:** O(|V| · |E|) using modified BFS to enumerate critical paths.
 
-### 3.4 Composite HRG Risk Score
+### 4.4 Composite HRG Risk Score
 
 **Definition 8 (HRG Risk Score):**
 
@@ -116,7 +230,7 @@ where α + β + γ = 1 and α, β, γ ≥ 0 are weight parameters.
 
 **Standard weighting:** α = 0.4, β = 0.3, γ = 0.3
 
-## 4. Theoretical Properties
+## 5. Theoretical Properties (hrg-1)
 
 ### Theorem 1 (Monotonicity)
 
@@ -136,7 +250,7 @@ If no bypass edges exist (∀e ∈ E, τ(e) ≠ bypass), then BR(G) = 0.
 
 **Proof:** Trivial from Definition 7. □
 
-## 5. Computational Complexity
+## 6. Computational Complexity (hrg-1)
 
 | Metric | Time Complexity | Space Complexity |
 |--------|-----------------|------------------|
@@ -146,7 +260,7 @@ If no bypass edges exist (∀e ∈ E, τ(e) ≠ bypass), then BR(G) = 0.
 
 All metrics are efficiently computable for graphs with thousands of nodes.
 
-## 6. Interpretation Guidelines
+## 7. Interpretation Guidelines
 
 ### Risk Level Classification
 
@@ -163,14 +277,14 @@ All metrics are efficiently computable for graphs with thousands of nodes.
 - **DC > 0.5**: Authority excessively centralized
 - **BR > 0.4**: Too many bypass mechanisms, control effectiveness reduced
 
-## 7. Limitations
+## 8. Limitations
 
 1. **Static Analysis**: Model captures structure at a point in time, not dynamics
 2. **Binary Relationships**: Edge weights are simplified; real dependencies are complex
 3. **Assumes Rational Actors**: Does not model malicious insiders explicitly
 4. **No Temporal Dimension**: Does not account for time-dependent availability
 
-## 8. Future Extensions
+## 9. Future Extensions
 
 - Dynamic HRG: time-varying graphs G(t)
 - Probabilistic HRG: uncertainty in C(v) and W(e)

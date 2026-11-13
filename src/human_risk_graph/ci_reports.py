@@ -132,19 +132,23 @@ def generate_sarif_report(findings: List[Finding], artifact_uri: str, source_tex
 
 
 def generate_junit_report(
-    findings: List[Finding], results: Dict[str, Any], fail_above: Optional[float] = None
+    findings: List[Finding],
+    results: Dict[str, Any],
+    fail_above: Optional[float] = None,
+    min_score: Optional[int] = None,
 ) -> str:
     """
     Build a JUnit XML report with one test case per rule.
 
     A rule's test case fails when the analysis produced findings for it. The threshold
-    rule (HRG004) is skipped when no ``fail_above`` threshold was given.
+    rule (HRG004) is skipped when neither ``fail_above`` nor ``min_score`` was given.
     """
     suite = ET.Element("testsuite", name="human-risk-graph")
     props = ET.SubElement(suite, "properties")
+    for key in ("model", "score", "grade", "risk_level"):
+        ET.SubElement(props, "property", name=key, value=str(results.get(key)))
     for key in ("composite_score", "bus_factor", "decision_concentration", "bypass_risk"):
         ET.SubElement(props, "property", name=key, value=f"{results[key]:.3f}")
-    ET.SubElement(props, "property", name="risk_level", value=str(results.get("risk_level")))
 
     failures = skipped = 0
     for rule in RULES.values():
@@ -152,8 +156,8 @@ def generate_junit_report(
             suite, "testcase", classname="human-risk-graph", name=f"{rule.id} {rule.name}"
         )
         rule_findings = [f for f in findings if f.rule_id == rule.id]
-        if rule.id == "HRG004" and fail_above is None:
-            ET.SubElement(case, "skipped", message="No --fail-above threshold set")
+        if rule.id == "HRG004" and fail_above is None and min_score is None:
+            ET.SubElement(case, "skipped", message="No --fail-above or --min-score threshold set")
             skipped += 1
         elif rule_findings:
             failures += 1

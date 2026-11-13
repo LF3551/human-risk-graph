@@ -57,9 +57,21 @@ risk metrics that highlight human single points of failure.
 
 ## What HRG Measures
 
-- **Bus Factor Risk** — how fragile the organization is to the loss of key people
-- **Decision Concentration** — how much authority is centralized
-- **Bypass Risk** — how often normal controls are overridden by humans
+The result is a **score from 0 to 100 with a grade from A to F**, built from three metrics
+(model `hrg-2`, see [docs/model.md](docs/model.md)):
+
+- **Key-person risk** — how much of the organization depends on one person: losing them
+  cuts off N people and X% of the connections between the others. Also reported as the
+  classic **bus factor**.
+- **Approval concentration** — the **effective number of approvers** (Herfindahl-Hirschman
+  index): one person approving everything is as concentrated as it gets.
+- **Override exposure** — the share of critical approvals someone can override through a
+  bypass.
+
+On top of the score, HRG simulates remediations (a deputy for a key person, a second-person
+check on a bypass) and tells you **which three fixes raise the score most**.
+
+The original model from the paper is still available as `--model hrg-1`.
 
 ## Repository Structure
 
@@ -140,50 +152,55 @@ hrg analyze data/example_organization.json --format html
 # Specify output file
 hrg analyze data/example_organization.json --format html --output my_report.html
 
-# CI: SARIF and JUnit reports, fail if the composite score is above 0.5
-hrg analyze examples/organization.yaml --format sarif --format junit --no-visualize --fail-above 0.5
+# CI: SARIF and JUnit reports, fail if the score is below 70
+hrg analyze examples/organization.yaml --format sarif --format junit --no-visualize --min-score 70
 
 # Compare two snapshots (text, markdown or json)
 hrg diff org-q1.yaml org-q2.yaml --format markdown
+
+# Original model from the paper, no fix plan, only errors
+hrg analyze data/example_organization.json --model hrg-1 --fixes 0 --quiet
 
 # Generate interactive graph visualization only
 hrg visualize data/example_organization.json
 ```
 
 Exit codes: `0` success, `1` invalid input or error, `2` usage error,
-`3` composite score above `--fail-above` (or increased, with `hrg diff --fail-on-increase`).
+`3` score below `--min-score`, composite risk above `--fail-above`, or risk increased with
+`hrg diff --fail-on-increase`.
 
 ### Example Output
 
 ```
-🔍 Analyzing: data/example_organization.json
-⚙️  Running Human Risk Graph analysis...
-✅ Generated: data/example_organization_report.json
-✅ Generated: data/example_organization_report.md
-✅ Generated: data/example_organization_report.html
-✅ Generated: data/example_organization_graph.html
+Human Risk Graph 0.5.0 · example_organization.json · 10 people · 14 dependencies
 
-============================================================
-📊 ANALYSIS SUMMARY
-============================================================
-Composite HRG Score: 0.269
-  • Bus Factor Score: 0.113
-  • Decision Concentration: 0.351
-  • Bypass Risk Score: 0.394
+  Score  61/100  ██████░░░░  D · Moderate risk  model hrg-2
 
-⚠️  Critical People (Articulation Points): 2
-   - Ines Silva (Product Security Engineer)
-   - Johan Lindberg (DevOps Engineer)
+  Key people  bus factor 1 · losing Johan Lindberg cuts off 2 people (39% of connections)
+  Approvals   3.5 effective approvers of 5 · Luca Rossi holds 44%
+  Overrides   4 of 7 critical approvals can be overridden
 
-🧾 Findings: 0 error(s), 6 warning(s)
-   [HRG001] Ines Silva (ines.silva) is a single point of failure (criticality 0.55): removing them disconnects the dependency graph.
-   [HRG001] Johan Lindberg (johan.lindberg) is a single point of failure (criticality 0.58): removing them disconnects the dependency graph.
-   [HRG002] Approval authority is concentrated (Gini 0.35); Luca Rossi (luca.rossi) holds 44% of the approval weight.
-   [HRG003] Bypass from Elena Popescu (elena.popescu) to Anna Mueller (anna.mueller) involves a critical person.
-   [HRG003] Bypass from Luca Rossi (luca.rossi) to Carlos Garcia (carlos.garcia) involves a critical person.
-   [HRG003] Bypass from Marie Dubois (marie.dubois) to Carlos Garcia (carlos.garcia) involves a critical person.
+  Top fixes
+  1  Require a second person for Elena Popescu's bypass of Anna Mueller  61 → 70  +9
+  2  Add a deputy for Johan Lindberg                                     70 → 76  +6
+  3  Add a deputy for Ines Silva                                         76 → 81  +5
 
-✅ Analysis complete! Generated 4 file(s).
+  Findings  0 errors · 6 warnings
+   △ HRG001 Ines Silva (ines.silva) is a single point of failure (criticality 0.55): losing them cuts
+            off 1 person and 22% of the connections between the others.
+   △ HRG001 Johan Lindberg (johan.lindberg) is a single point of failure (criticality 0.58): losing them
+            cuts off 2 people and 39% of the connections between the others.
+   △ HRG002 Approval authority is concentrated (3.5 effective approvers of 5); Luca Rossi (luca.rossi)
+            holds 44% of the approval weight.
+   △ HRG003 Elena Popescu (elena.popescu) can bypass Anna Mueller (anna.mueller) and override the
+            controls they enforce; one of them is critical.
+   ...
+
+  Reports
+   data/example_organization_report.json
+   data/example_organization_report.md
+   data/example_organization_report.html
+   data/example_organization_graph.html
 ```
 
 **Generated files:**
@@ -201,7 +218,7 @@ informative, not a compliance assessment. See [docs/compliance.md](docs/complian
 ### CI Integration
 
 GitHub Actions example: findings appear as code scanning alerts on the organization file,
-and the job fails when the composite score is above 0.5.
+and the job fails when the score drops below 70.
 
 ```yaml
 name: Human risk
@@ -222,7 +239,7 @@ jobs:
       - run: pip install human-risk-graph
       - run: >
           hrg analyze org/organization.yaml
-          --format sarif --format junit --no-visualize --fail-above 0.5
+          --format sarif --format junit --no-visualize --min-score 70
       - uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
@@ -249,10 +266,14 @@ dependencies = [...]
 
 # Create and analyze
 hrg = HumanRiskGraph(people, dependencies)
-results = hrg.calculate()
+results = hrg.calculate()  # model="hrg-1" for the original model
 
-print(f"Composite Risk Score: {results['composite_score']:.3f}")
-print(f"Single points of failure: {results['articulation_points']}")
+print(f"Score: {results['score']}/100 ({results['grade']}, {results['risk_level']} risk)")
+print(f"Bus factor: {results['bus_factor_people']}")
+print(f"Effective approvers: {results['effective_approvers']:.1f}")
+
+for fix in hrg.fix_plan():
+    print(f"{fix['title']}: {fix['score_before']} -> {fix['score_after']}")
 ```
 
 ## Development
@@ -279,8 +300,9 @@ python experiments/visualize.py
 ## Key Features
 
 - **Graph-based analysis** using NetworkX
-- **Three core metrics**: Bus Factor, Decision Concentration, Bypass Risk
-- **CI-ready**: SARIF for code scanning, JUnit XML, `--fail-above` risk gate, `hrg diff` between snapshots
+- **Score 0-100 and grade A-F** from three explainable metrics: key-person risk, approval concentration, override exposure
+- **Fix plan**: simulated remediations ranked by how much they raise the score
+- **CI-ready**: SARIF for code scanning, JUnit XML, `--min-score` gate, `hrg diff` between snapshots
 - **Audit-friendly**: findings mapped to ISO/IEC 27001:2022, SOC 2 and DORA controls
 - **JSON or YAML input** with a published JSON Schema for editor completion
 - **Polynomial-time algorithms** with proven complexity bounds

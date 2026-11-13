@@ -10,10 +10,92 @@ from html import escape
 from typing import Dict, Any, List, Optional
 
 from .findings import FRAMEWORKS, Finding
+from .model_v2 import MODEL_V1, MODEL_V2
 
 CONTROLS_DISCLAIMER = (
     "Related controls are informative pointers for audits, not an assessment of compliance."
 )
+METRIC_KEYS = ("bus_factor", "decision_concentration", "bypass_risk")
+METRIC_LABELS = {
+    MODEL_V2: ("Key-person risk", "Approval concentration", "Override exposure"),
+    MODEL_V1: ("Bus factor risk", "Decision concentration", "Bypass risk"),
+}
+RISK_INTERPRETATION = {
+    "Low": "Human dependency risks are low.",
+    "Moderate": "Human dependency risks are manageable; the top fixes below are worth doing.",
+    "High": "Significant human dependency risks that should be addressed.",
+    "Critical": "Severe human dependency risks that need immediate attention.",
+}
+
+
+def _metric_labels(results: Dict[str, Any]):
+    return METRIC_LABELS.get(results.get("model", MODEL_V2), METRIC_LABELS[MODEL_V2])
+
+
+def _weights(results: Dict[str, Any]):
+    w = results.get("weights", {})
+    return (w.get("alpha", 0.4), w.get("beta", 0.3), w.get("gamma", 0.3))
+
+
+def _formula(results: Dict[str, Any]) -> str:
+    a, b, c = _weights(results)
+    risk = results["composite_score"]
+    if results.get("model") == MODEL_V1:
+        return (
+            f"Composite risk = {a}·BF + {b}·DC + {c}·BR = {risk:.3f} (model hrg-1); "
+            f"score = 100·(1 − risk) = {results['score']}"
+        )
+    return (
+        f"Composite risk = (1 − (1 − {a}·K)(1 − {b}·D)(1 − {c}·B)) / "
+        f"(1 − (1 − {a})(1 − {b})(1 − {c})) = {risk:.3f}; "
+        f"score = 100·(1 − risk) = {results['score']}"
+    )
+
+
+def _explanations(results: Dict[str, Any], metadata: Dict[str, Any]) -> List[str]:
+    """One plain-language line per metric."""
+
+    def name(person_id: str) -> str:
+        return metadata.get("person_lookup", {}).get(person_id, {}).get("name") or person_id
+
+    labels = _metric_labels(results)
+    k, d, b = (results[key] for key in METRIC_KEYS)
+    if results.get("model") == MODEL_V1:
+        return [
+            f"{labels[0]} {k:.3f}: criticality of single points of failure per person.",
+            f"{labels[1]} {d:.3f}: Gini coefficient of approval weight.",
+            f"{labels[2]} {b:.3f}: share of critical paths with a bypass shortcut.",
+        ]
+
+    lines = []
+    key_people = results.get("key_people", [])
+    if key_people:
+        top = key_people[0]
+        bus = results.get("bus_factor_people")
+        lines.append(
+            f"{labels[0]} K = {k:.3f}: losing {name(top['id'])} cuts off {top['cut_off']} "
+            f"{'person' if top['cut_off'] == 1 else 'people'} and {top['impact']:.0%} of the "
+            f"connections between the others" + (f" (bus factor {bus})." if bus else ".")
+        )
+    else:
+        lines.append(f"{labels[0]} K = {k:.3f}: no single point of failure.")
+
+    shares = results.get("approval_shares", {})
+    if shares:
+        top_id, top_share = next(iter(shares.items()))
+        lines.append(
+            f"{labels[1]} D = {d:.3f}: {results['effective_approvers']:.1f} effective approvers "
+            f"of {len(shares)}; {name(top_id)} holds {top_share:.0%} of the approval weight."
+        )
+    else:
+        lines.append(f"{labels[1]} D = {d:.3f}: no approvals in the data.")
+
+    lines.append(
+        f"{labels[2]} B = {b:.3f}: {len(results.get('overridable_approvals', []))} of "
+        f"{results.get('critical_approvals', 0)} critical approvals can be overridden "
+        "through a bypass."
+    )
+    return lines
 
 
 def _controls_text(finding: Finding, framework: str) -> str:
@@ -42,27 +124,11 @@ def _get_metric_level(score: float) -> str:
     return "Low"
 
 
-def _get_primary_risk_driver(results: Dict[str, Any]) -> str:
-    """Return the metric that contributes most to perceived risk."""
-    metric_scores = {
-        "Bus Factor Risk": results.get("bus_factor", 0.0),
-        "Decision Concentration": results.get("decision_concentration", 0.0),
-        "Bypass Risk": results.get("bypass_risk", 0.0),
-    }
-    return max(metric_scores, key=metric_scores.get)
-
-
-def _score_breakdown(results: Dict[str, Any]) -> Dict[str, float]:
-    """Return weighted contributions of each metric to the composite score."""
-    return {
-        "bus_factor_contribution": results.get("bus_factor", 0.0) * 0.4,
-        "decision_contribution": results.get("decision_concentration", 0.0) * 0.3,
-        "bypass_contribution": results.get("bypass_risk", 0.0) * 0.3,
-    }
-
-
 def generate_json_report(
-    results: Dict[str, Any], metadata: Dict[str, Any], findings: Optional[List[Finding]] = None
+    results: Dict[str, Any],
+    metadata: Dict[str, Any],
+    findings: Optional[List[Finding]] = None,
+    fixes: Optional[List[Dict[str, Any]]] = None,
 ) -> str:
     """
     Generate JSON report.
@@ -71,6 +137,7 @@ def generate_json_report(
         results: Analysis results from HRG
         metadata: Metadata about the analysis
         findings: Optional findings from ``collect_findings``
+        fixes: Optional fix plan from ``HumanRiskGraph.fix_plan``
 
     Returns:
         JSON string
@@ -78,12 +145,17 @@ def generate_json_report(
     report = {"metadata": metadata, "results": results, "generated_at": datetime.now().isoformat()}
     if findings is not None:
         report["findings"] = [f.to_dict() for f in findings]
+    if fixes is not None:
+        report["fix_plan"] = fixes
 
     return json.dumps(report, indent=2, ensure_ascii=False)
 
 
 def generate_markdown_report(
-    results: Dict[str, Any], metadata: Dict[str, Any], findings: Optional[List[Finding]] = None
+    results: Dict[str, Any],
+    metadata: Dict[str, Any],
+    findings: Optional[List[Finding]] = None,
+    fixes: Optional[List[Dict[str, Any]]] = None,
 ) -> str:
     """
     Generate Markdown report.
@@ -92,6 +164,7 @@ def generate_markdown_report(
         results: Analysis results from HRG
         metadata: Metadata about the analysis
         findings: Optional findings from ``collect_findings``
+        fixes: Optional fix plan from ``HumanRiskGraph.fix_plan``
 
     Returns:
         Markdown string
@@ -108,112 +181,61 @@ def generate_markdown_report(
     md.append("")
 
     # Executive Summary
+    labels = _metric_labels(results)
+    weights = _weights(results)
     md.append("## 📊 Executive Summary")
     md.append("")
     md.append(
-        f"The organization's **Composite HRG Score** is **{results['composite_score']:.3f}**."
+        f"**Score: {results['score']}/100 · grade {results['grade']} · "
+        f"{results['risk_level']} risk** (composite risk {results['composite_score']:.3f}, "
+        f"model `{results.get('model', MODEL_V2)}`)"
     )
     md.append("")
-
-    # Risk interpretation (aligned with metrics.interpret_risk_level)
-    score = results["composite_score"]
-    risk_level_raw = results.get("risk_level")
-    if not risk_level_raw:
-        if score < 0.3:
-            risk_level_raw = "Low"
-        elif score < 0.5:
-            risk_level_raw = "Moderate"
-        elif score < 0.7:
-            risk_level_raw = "High"
-        else:
-            risk_level_raw = "Critical"
-
-    risk_label_map = {
-        "Low": "✅ **LOW**",
-        "Moderate": "🟢 **MODERATE**",
-        "High": "🟡 **HIGH**",
-        "Critical": "🔴 **CRITICAL**",
-    }
-    interpretation_map = {
-        "Low": "The organization has low human dependency risks.",
-        "Moderate": "The organization has manageable human dependency risks.",
-        "High": "The organization has significant human dependency risks that should be addressed.",
-        "Critical": "The organization has severe human dependency risks that require immediate attention.",
-    }
-
-    risk_level = risk_label_map.get(risk_level_raw, "✅ **LOW**")
-    interpretation = interpretation_map.get(
-        risk_level_raw, "The organization has low human dependency risks."
-    )
-
-    md.append(f"**Risk Level:** {risk_level}")
+    md.append(RISK_INTERPRETATION.get(results["risk_level"], ""))
     md.append("")
-    md.append(interpretation)
-    md.append("")
-
-    # Key findings for non-technical readers
-    primary_driver = _get_primary_risk_driver(results)
-    critical_people_count = len(results.get("articulation_points", []))
-    dep_type_counts = metadata.get("dependency_type_counts", {})
-    dep_profile = ", ".join(
-        f"{dep_type}: {count}" for dep_type, count in sorted(dep_type_counts.items())
-    ) or "No typed dependencies provided"
-
-    md.append("## 🔎 Key Findings")
-    md.append("")
-    md.append(f"- **Primary Risk Driver:** {primary_driver}")
-    md.append(f"- **Critical People Identified:** {critical_people_count}")
-    md.append(f"- **Dependency Profile:** {dep_profile}")
-    md.append("")
-
-    breakdown = _score_breakdown(results)
-    critical_node_count = len(results.get("critical_nodes", []))
-    org_size = metadata.get("organization_size", 0)
-    critical_share = (critical_node_count / org_size) if org_size else 0.0
 
     md.append("## 🧠 Why This Score")
     md.append("")
-    md.append(
-        f"- Composite score is a weighted sum: **0.4×Bus + 0.3×Decision + 0.3×Bypass = {results['composite_score']:.3f}**"
-    )
-    md.append(
-        f"- Bus contribution: **{breakdown['bus_factor_contribution']:.3f}**, Decision contribution: **{breakdown['decision_contribution']:.3f}**, Bypass contribution: **{breakdown['bypass_contribution']:.3f}**"
-    )
-    md.append(
-        f"- Critical nodes above threshold: **{critical_node_count}/{org_size} ({critical_share:.0%})**"
-    )
+    for line in _explanations(results, metadata):
+        md.append(f"- {line}")
+    md.append(f"- {_formula(results)}")
     md.append("")
 
-    md.append("## 📘 How To Read Metrics")
-    md.append("")
-    md.append("- **Bus Factor Risk:** higher means stronger dependency on a few people.")
-    md.append("- **Decision Concentration:** higher means approval power is concentrated.")
-    md.append("- **Bypass Risk:** higher means controls are easier to bypass on critical paths.")
-    md.append("")
+    if fixes:
+        md.append("## 🛠️ Top Fixes")
+        md.append("")
+        md.append("| # | Fix | Why | Score |")
+        md.append("|---|-----|-----|-------|")
+        for i, fix in enumerate(fixes, 1):
+            gain = fix["score_after"] - fix["score_before"]
+            md.append(
+                f"| {i} | {fix['title']} | {fix['reason']} | "
+                f"{fix['score_before']} → {fix['score_after']} (+{gain}) |"
+            )
+        md.append("")
 
     # Metrics Breakdown
     md.append("## 📈 Risk Metrics")
     md.append("")
-    md.append("| Metric | Score | Weight | Description |")
-    md.append("|--------|-------|--------|-------------|")
-    md.append(
-        f"| **Bus Factor Risk** | {results['bus_factor']:.3f} | 40% | Risk from key person dependencies |"
-    )
-    md.append(
-        f"| **Decision Concentration** | {results['decision_concentration']:.3f} | 30% | Authority centralization risk |"
-    )
-    md.append(f"| **Bypass Risk** | {results['bypass_risk']:.3f} | 30% | Control override risk |")
-    md.append(
-        f"| **Composite Score** | {results['composite_score']:.3f} | 100% | Overall organizational risk |"
-    )
+    md.append("| Metric | Value | Weight | Level |")
+    md.append("|--------|-------|--------|-------|")
+    for key, label, weight in zip(METRIC_KEYS, labels, weights):
+        md.append(
+            f"| **{label}** | {results[key]:.3f} | {weight:.0%} | {_get_metric_level(results[key])} |"
+        )
+    md.append(f"| **Composite risk** | {results['composite_score']:.3f} | | {results['risk_level']} |")
     md.append("")
 
-    md.append("**Metric interpretation:**")
-    md.append(f"- Bus Factor Risk: **{_get_metric_level(results['bus_factor'])}**")
+    dep_type_counts = metadata.get("dependency_type_counts", {})
+    dep_profile = ", ".join(
+        f"{dep_type}: {count}" for dep_type, count in sorted(dep_type_counts.items())
+    ) or "No typed dependencies provided"
+    critical_node_count = len(results.get("critical_nodes", []))
+    org_size = metadata.get("organization_size", 0)
     md.append(
-        f"- Decision Concentration: **{_get_metric_level(results['decision_concentration'])}**"
+        f"Critical people (criticality ≥ {results.get('critical_threshold', 0.7)}): "
+        f"**{critical_node_count}/{org_size}** · Dependencies: {dep_profile}"
     )
-    md.append(f"- Bypass Risk: **{_get_metric_level(results['bypass_risk'])}**")
     md.append("")
 
     # Critical People
@@ -301,7 +323,10 @@ def generate_markdown_report(
 
 
 def generate_html_report(
-    results: Dict[str, Any], metadata: Dict[str, Any], findings: Optional[List[Finding]] = None
+    results: Dict[str, Any],
+    metadata: Dict[str, Any],
+    findings: Optional[List[Finding]] = None,
+    fixes: Optional[List[Dict[str, Any]]] = None,
 ) -> str:
     """
     Generate HTML report with styling.
@@ -310,11 +335,41 @@ def generate_html_report(
         results: Analysis results from HRG
         metadata: Metadata about the analysis
         findings: Optional findings from ``collect_findings``
+        fixes: Optional fix plan from ``HumanRiskGraph.fix_plan``
 
     Returns:
         HTML string
     """
     score = results["composite_score"]
+    why_items = "\n".join(
+        f"                    <li>{escape(line)}</li>"
+        for line in _explanations(results, metadata) + [_formula(results)]
+    )
+    metric_cards = "\n".join(
+        f"""            <div class="metric-card">
+                <div class="metric-name">{escape(label)}</div>
+                <div class="metric-value">{results[key]:.3f}</div>
+                <div class="metric-weight">Weight: {weight:.0%}</div>
+            </div>"""
+        for key, label, weight in zip(METRIC_KEYS, _metric_labels(results), _weights(results))
+    )
+    fixes_html = ""
+    if fixes:
+        rows = "\n".join(
+            f"                <tr><td>{i}</td><td>{escape(fix['title'])}</td>"
+            f"<td>{escape(fix['reason'])}</td><td>{fix['score_before']} → "
+            f"{fix['score_after']} (+{fix['score_after'] - fix['score_before']})</td></tr>"
+            for i, fix in enumerate(fixes, 1)
+        )
+        fixes_html = f"""
+        <div class="section">
+            <h2>🛠️ Top Fixes</h2>
+            <table class="findings">
+                <tr><th>#</th><th>Fix</th><th>Why</th><th>Score</th></tr>
+{rows}
+            </table>
+        </div>
+"""
 
     # Determine risk level styling
     if score >= 0.7:
@@ -570,66 +625,24 @@ def generate_html_report(
         </header>
 
         <div class="summary">
-            <div class="risk-label">{risk_label} RISK</div>
-            <div class="risk-score">{score:.3f}</div>
+            <div class="risk-label">{risk_label} RISK · GRADE {results['grade']}</div>
+            <div class="risk-score">{results['score']}<span style="font-size: 0.4em; color: #9ba4b5;">/100</span></div>
             <p style="color: #e4e4e7; font-size: 1.1em;">
-                Composite Human Risk Graph Score
+                Human Risk Graph score · composite risk {score:.3f} · model {escape(str(results.get('model', MODEL_V2)))}
             </p>
-        </div>
-
-        <div class="section">
-            <h2>🔎 Key Findings</h2>
-            <div class="recommendations">
-                <ul>
-                    <li><strong>Primary Risk Driver:</strong> {_get_primary_risk_driver(results)}</li>
-                    <li><strong>Critical People Identified:</strong> {len(results.get('articulation_points', []))}</li>
-                    <li><strong>Dependency Profile:</strong> {escape(", ".join(f"{k}: {v}" for k, v in sorted(metadata.get('dependency_type_counts', {}).items())) or "No typed dependencies provided")}</li>
-                </ul>
-            </div>
         </div>
 
         <div class="section">
             <h2>🧠 Why This Score</h2>
             <div class="recommendations">
                 <ul>
-                    <li><strong>Formula:</strong> 0.4 × Bus + 0.3 × Decision + 0.3 × Bypass = {results['composite_score']:.3f}</li>
-                    <li><strong>Bus contribution:</strong> {_score_breakdown(results)['bus_factor_contribution']:.3f}</li>
-                    <li><strong>Decision contribution:</strong> {_score_breakdown(results)['decision_contribution']:.3f}</li>
-                    <li><strong>Bypass contribution:</strong> {_score_breakdown(results)['bypass_contribution']:.3f}</li>
-                    <li><strong>Critical nodes:</strong> {len(results.get('critical_nodes', []))}/{metadata.get('organization_size', 0)}</li>
+{why_items}
                 </ul>
             </div>
         </div>
-
-        <div class="section">
-            <h2>📘 How To Read Metrics</h2>
-            <div class="recommendations">
-                <ul>
-                    <li><strong>Bus Factor Risk:</strong> higher means stronger dependency on a few people.</li>
-                    <li><strong>Decision Concentration:</strong> higher means approval power is concentrated.</li>
-                    <li><strong>Bypass Risk:</strong> higher means controls are easier to bypass on critical paths.</li>
-                </ul>
-            </div>
-        </div>
-
+{fixes_html}
         <div class="metrics">
-            <div class="metric-card">
-                <div class="metric-name">🚌 Bus Factor Risk</div>
-                <div class="metric-value">{results['bus_factor']:.3f}</div>
-                <div class="metric-weight">Weight: 40%</div>
-            </div>
-
-            <div class="metric-card">
-                <div class="metric-name">🎯 Decision Concentration</div>
-                <div class="metric-value">{results['decision_concentration']:.3f}</div>
-                <div class="metric-weight">Weight: 30%</div>
-            </div>
-
-            <div class="metric-card">
-                <div class="metric-name">⚡ Bypass Risk</div>
-                <div class="metric-value">{results['bypass_risk']:.3f}</div>
-                <div class="metric-weight">Weight: 30%</div>
-            </div>
+{metric_cards}
         </div>
 """
 

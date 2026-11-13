@@ -58,11 +58,48 @@ def test_ci_formats_and_threshold(org):
     )
 
     assert result.exit_code == 3, result.output
-    assert "above --fail-above 0.200" in result.output
+    assert "is above the threshold 0.200" in result.output
     sarif = json.loads((org.parent / "org_report.sarif").read_text())
     assert sarif["runs"][0]["results"][-1]["ruleId"] == "HRG004"
     assert (org.parent / "org_report.junit.xml").exists()
     assert not (org.parent / "org_report.json").exists()
+
+
+def test_summary_shows_score_and_fixes(org):
+    result = run("analyze", org, "--format", "json", "--no-visualize")
+
+    assert result.exit_code == 0, result.output
+    assert "61/100" in result.output
+    assert "D · Moderate risk" in result.output
+    assert "Top fixes" in result.output
+    assert "61 → 70" in result.output
+    report = json.loads((org.parent / "org_report.json").read_text())
+    assert report["results"]["score"] == 61
+    assert len(report["fix_plan"]) == 3
+
+
+def test_min_score_and_quiet(org):
+    result = run("analyze", org, "--format", "json", "--no-visualize", "-q", "--min-score", "70")
+
+    assert result.exit_code == 3
+    assert result.output.strip() == "Error: Score 61 is below the minimum 70."
+
+    result = run("analyze", org, "--format", "json", "--no-visualize", "-q", "--min-score", "60")
+    assert result.exit_code == 0
+    assert result.output == ""
+
+
+def test_model_v1_and_no_fixes(org):
+    result = run(
+        "analyze", org, "--format", "json", "--no-visualize", "--model", "hrg-1", "--fixes", "0"
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "model hrg-1" in result.output
+    assert "Top fixes" not in result.output
+    report = json.loads((org.parent / "org_report.json").read_text())
+    assert round(report["results"]["composite_score"], 3) == 0.269
+    assert report["fix_plan"] == []
 
 
 def test_below_threshold_passes(org):
@@ -114,14 +151,15 @@ def test_yaml_id_must_be_string(tmp_path):
 
 def test_diff(org, tmp_path):
     data = json.loads(org.read_text())
-    ines = next(p for p in data["people"] if p["id"] == "ines.silva")
-    ines["criticality"] = 0.95  # a single point of failure becomes more critical
+    johan = next(p for p in data["people"] if p["id"] == "johan.lindberg")
+    johan["criticality"] = 0.95  # the main single point of failure becomes more critical
     new = tmp_path / "new.json"
     new.write_text(json.dumps(data))
 
     result = run("diff", org, new, "--format", "markdown")
     assert result.exit_code == 0, result.output
-    assert "~ person ines.silva: criticality 0.55 => 0.95" in result.output
+    assert "~ person johan.lindberg: criticality 0.58 => 0.95" in result.output
+    assert "| **Score** | 61 (D) |" in result.output
 
     result = run("diff", org, new, "--fail-on-increase")
     assert result.exit_code == 3

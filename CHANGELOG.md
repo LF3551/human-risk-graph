@@ -5,6 +5,33 @@ All notable changes to Human Risk Graph will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-11-13
+
+### ⚠️ Breaking
+
+- New default scoring model **hrg-2** ([docs/model.md](docs/model.md#3-model-hrg-2)). Scores change for every organization; `--model hrg-1` (or `calculate(model="hrg-1")`) reproduces the original model and the paper's results. Every result records its `model`.
+  - Key-person risk replaces the bus factor score: the largest criticality × impact over all people, where impact is the share of connections between the others that depend on that person. It no longer shrinks with organization size (a star with a critical centre scored 0.004 in hrg-1).
+  - Approval concentration uses the Herfindahl-Hirschman index (effective number of approvers). A single approver for everyone scored 0 in hrg-1; it is now 1.
+  - Override exposure replaces bypass path enumeration: the weighted share of critical approvals that someone can override through a bypass. Linear time instead of exponential on dense graphs.
+  - Composite risk combines the metrics as a normalised noisy-OR, so one severe weakness is not averaged away.
+- `--fail-above` compares against the hrg-2 composite risk, so thresholds tuned for hrg-1 need review. `--min-score` is usually simpler.
+
+### ✨ Added
+
+- Score from 0 to 100 and grade A-F in every result, report and the CLI.
+- Fix plan: `hrg analyze` simulates deputies for key people and second-person checks on bypasses, and lists the three that improve the score most, with the score after each step (`--fixes N`, `HumanRiskGraph.fix_plan()`).
+- New terminal summary: score bar, plain-language metrics (bus factor, effective approvers, overridable approvals), top fixes, findings. `--quiet` prints only errors.
+- `--min-score N` exits with code 3 when the score is below N; `--model` for `analyze` and `diff`.
+- Results include `key_people` (impact and people cut off), `bus_factor_people`, `approval_shares`, `effective_approvers`, `critical_approvals`, `overridable_approvals`, `weights` and `critical_threshold`.
+- `hrg diff` shows the score and grade change.
+- Property-based tests for the model (bounds, monotonicity, invariance, reference structures).
+
+### 🔧 Changed
+
+- HRG001 and HRG003 messages say how many people a single point of failure cuts off and whose controls a bypass overrides. HRG002 uses effective approvers with hrg-2.
+- `simulate_node_removal` computes both scores with the same model (it mixed models before).
+- New dependency: rich.
+
 ## [0.4.0] - 2026-11-12
 
 ### ✨ Added

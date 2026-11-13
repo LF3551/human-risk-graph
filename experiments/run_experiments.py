@@ -39,7 +39,8 @@ def run_experiment(data_file: str) -> dict:
     hrg = HumanRiskGraph(people, dependencies)
     
     # Calculate metrics
-    results = hrg.calculate()
+    # The paper's results use the original model.
+    results = hrg.calculate(model="hrg-1")
     
     # Add graph statistics
     graph = hrg.export_graph()

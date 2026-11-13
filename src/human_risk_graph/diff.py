@@ -4,12 +4,13 @@ import json
 from typing import Any, Dict, List, Tuple
 
 from .hrg import HumanRiskGraph
+from .model_v2 import MODEL_V2
 
 METRICS = (
-    ("composite_score", "Composite HRG score"),
-    ("bus_factor", "Bus factor"),
-    ("decision_concentration", "Decision concentration"),
-    ("bypass_risk", "Bypass risk"),
+    ("composite_score", "Composite risk"),
+    ("bus_factor", "Key-person risk"),
+    ("decision_concentration", "Approval concentration"),
+    ("bypass_risk", "Override exposure"),
 )
 
 
@@ -38,16 +39,16 @@ def _dependencies(data: Dict[str, Any]) -> Dict[Tuple[str, str], Dict[str, Any]]
     }
 
 
-def compare(old: Dict[str, Any], new: Dict[str, Any]) -> Dict[str, Any]:
+def compare(old: Dict[str, Any], new: Dict[str, Any], model: str = MODEL_V2) -> Dict[str, Any]:
     """
     Compare two organizations (dicts with ``people`` and ``dependencies``).
 
     Returns:
-        Dict with metric deltas, risk level change, added/removed/changed people,
+        Dict with score and metric deltas, risk level change, added/removed/changed people,
         added/removed/changed dependencies, and introduced/resolved single points of failure.
     """
-    old_results = HumanRiskGraph(old["people"], old["dependencies"]).calculate()
-    new_results = HumanRiskGraph(new["people"], new["dependencies"]).calculate()
+    old_results = HumanRiskGraph(old["people"], old["dependencies"]).calculate(model=model)
+    new_results = HumanRiskGraph(new["people"], new["dependencies"]).calculate(model=model)
 
     old_people, new_people = _people(old), _people(new)
     old_deps, new_deps = _dependencies(old), _dependencies(new)
@@ -71,6 +72,13 @@ def compare(old: Dict[str, Any], new: Dict[str, Any]) -> Dict[str, Any]:
             for key, _ in METRICS
         },
         "risk_level": {"old": old_results["risk_level"], "new": new_results["risk_level"]},
+        "score": {
+            "old": old_results["score"],
+            "new": new_results["score"],
+            "delta": new_results["score"] - old_results["score"],
+            "old_grade": old_results["grade"],
+            "new_grade": new_results["grade"],
+        },
         "people": {
             "added": sorted(new_people.keys() - old_people.keys()),
             "removed": sorted(old_people.keys() - new_people.keys()),
@@ -129,8 +137,11 @@ def _change_lines(diff: Dict[str, Any]) -> List[str]:
 
 
 def format_text(diff: Dict[str, Any]) -> str:
-    level = diff["risk_level"]
-    lines = []
+    level, score = diff["risk_level"], diff["score"]
+    lines = [
+        f"{'Score:':<25} {score['old']} ({score['old_grade']}) -> {score['new']} "
+        f"({score['new_grade']}) ({score['delta']:+d})"
+    ]
     for key, label in METRICS:
         m = diff["metrics"][key]
         lines.append(f"{label + ':':<25} {m['old']:.3f} -> {m['new']:.3f} ({m['delta']:+.3f})")
@@ -141,12 +152,14 @@ def format_text(diff: Dict[str, Any]) -> str:
 
 
 def format_markdown(diff: Dict[str, Any]) -> str:
-    level = diff["risk_level"]
+    level, score = diff["risk_level"], diff["score"]
     lines = [
         "## Human Risk Graph changes",
         "",
         "| Metric | Old | New | Change |",
         "|---|---:|---:|---:|",
+        f"| **Score** | {score['old']} ({score['old_grade']}) | {score['new']} "
+        f"({score['new_grade']}) | {score['delta']:+d} |",
     ]
     for key, label in METRICS:
         m = diff["metrics"][key]

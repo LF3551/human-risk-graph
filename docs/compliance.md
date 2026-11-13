@@ -13,9 +13,9 @@ SOC 2 and DORA. The findings appear in the JSON, Markdown, HTML, SARIF and JUnit
 | Rule | Raised when | Level |
 |------|-------------|-------|
 | `HRG001` single-point-of-failure | A person is an articulation point: removing them disconnects the dependency graph. | `error` if the person is critical (criticality ≥ 0.7), otherwise `warning` |
-| `HRG002` approval-concentration | Decision concentration (Gini coefficient of approval weight) is 0.3 or higher. Reported against the person with the largest share. | `error` at 0.7 or higher, otherwise `warning` |
+| `HRG002` approval-concentration | Fewer than 4 effective approvers (Herfindahl-Hirschman index of approval weight ≥ 0.25; model hrg-1: Gini coefficient ≥ 0.3). Reported against the person with the largest share. | `error` below 2 effective approvers (hrg-1: Gini ≥ 0.7), otherwise `warning` |
 | `HRG003` critical-bypass | A `bypass` dependency starts or ends at a critical person. | `warning` |
-| `HRG004` risk-above-threshold | The composite score is above `--fail-above`. | `error` |
+| `HRG004` risk-above-threshold | The score is below `--min-score`, or the composite risk is above `--fail-above`. | `error` |
 
 ## Related controls
 
@@ -34,7 +34,7 @@ Control titles are short paraphrases. Read the standard or regulation for the ex
   analysis date, the scores and every finding with its related controls.
 - **Periodic review:** run `hrg diff` between two snapshots (for example, quarterly) to
   show which single points of failure were resolved or introduced, and how the scores changed.
-- **Risk tolerance:** `--fail-above` makes the agreed tolerance explicit and enforces it in CI.
-  The HRG004 finding records every breach.
+- **Risk tolerance:** `--min-score` (or `--fail-above`) makes the agreed tolerance explicit
+  and enforces it in CI. The HRG004 finding records every breach.
 - **Code scanning:** upload the SARIF report to GitHub code scanning to track findings as
   alerts, with history and dismissal reasons.
