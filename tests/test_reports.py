@@ -109,6 +109,25 @@ def test_html_report_escapes_input_everywhere():
     assert json.loads(data)["people"]["x"]["name"].startswith("</script>")
 
 
+@pytest.mark.parametrize(
+    "confirmed_only, expected",
+    [
+        ({"score": 61, "grade": "D", "dependencies": 2}, "<strong>61/100</strong> (grade D, 2"),
+        (None, None),  # metadata from before 0.9.0
+    ],
+)
+def test_html_report_unconfirmed_notice(confirmed_only, expected):
+    results, _ = _analyze()
+    metadata = {**_metadata(), "unconfirmed_dependencies": 1, "confirmed_only": confirmed_only}
+    report = generate_html_report(results, metadata)
+
+    assert "1 of 3 dependencies are unconfirmed" in report
+    if expected:
+        assert expected in report
+    else:
+        assert "On confirmed data only" not in report
+
+
 def test_html_report_panel_data():
     results, _ = _analyze()
     report = generate_html_report(results, _metadata(), hrg=HumanRiskGraph(PEOPLE, DEPENDENCIES))
