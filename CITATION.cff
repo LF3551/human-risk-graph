@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 type: software
 title: "Human Risk Graph: A Quantitative Model for Organizational Security Risk"
-version: 0.14.0
+version: 0.14.1
 date-released: 2026-11-13
 url: "https://github.com/LF3551/human-risk-graph"
 repository-code: "https://github.com/LF3551/human-risk-graph"
@@ -29,6 +29,8 @@ keywords:
   - security-metrics
   - network-analysis
   - quantitative-risk
+  - predictive-validation
+  - open-source-sustainability
 
 identifiers:
   - type: doi
@@ -49,6 +51,15 @@ references:
     publisher:
       name: Zenodo
     doi: 10.5281/zenodo.20260930
+  - type: report
+    title: "Does a single releaser predict a release stall? A pre-registered predictive check of hrg-3"
+    authors:
+      - family-names: "Aleinikov"
+        given-names: "Aleksei"
+        orcid: "https://orcid.org/0009-0003-8866-3131"
+    year: 2026
+    url: "https://github.com/LF3551/human-risk-graph/blob/v0.14.1/docs/validation-hrg3.md"
+    abstract: "Retrospective cohort of 284 popular PyPI projects with index date 2024-11-01, protocol committed before data collection. A single release author before the index date went with a 4.8 times higher rate of no release in the following year (95% CI 1.5-15.3); a commit-based truck factor gave 1.9 (0.9-4.3); adjusted for release activity 2.7 (0.8-9.2)."
 
 preferred-citation:
   type: software
@@ -58,6 +69,6 @@ preferred-citation:
       given-names: "Aleksei"
       orcid: "https://orcid.org/0009-0003-8866-3131"
   year: 2026
-  version: 0.14.0
+  version: 0.14.1
   doi: 10.5281/zenodo.18288055
   url: "https://github.com/LF3551/human-risk-graph"
