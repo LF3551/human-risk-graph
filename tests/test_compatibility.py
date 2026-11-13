@@ -11,7 +11,6 @@ import networkx as nx
 from human_risk_graph.hrg import HumanRiskGraph
 from human_risk_graph.metrics import interpret_risk_level
 
-
 PYTHON_VERSION = sys.version_info[:2]
 
 
@@ -46,6 +45,7 @@ class TestImportCompatibility:
 
     def test_import_package(self):
         import human_risk_graph
+
         assert hasattr(human_risk_graph, "__version__")
         assert hasattr(human_risk_graph, "HumanRiskGraph")
 
@@ -191,7 +191,7 @@ class TestEndToEndCompatibility:
         assert expected_keys.issubset(set(result.keys()))
 
         # Risk level is a valid string
-        assert result["risk_level"] in ("Low", "Medium", "High", "Critical")
+        assert result["risk_level"] in ("Low", "Moderate", "High", "Critical")
 
         # Node analysis works
         node_analysis = hrg.analyze_node("alice")

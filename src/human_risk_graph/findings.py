@@ -9,6 +9,13 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
 from .hrg import HumanRiskGraph
+from .model_v2 import (
+    CONCENTRATION_ERROR,
+    CONCENTRATION_WARNING,
+    MODEL_V1,
+    approval_shares,
+    key_person_impacts,
+)
 
 FRAMEWORKS = {
     "iso27001": "ISO/IEC 27001:2022",
@@ -16,7 +23,7 @@ FRAMEWORKS = {
     "dora": "DORA (Regulation (EU) 2022/2554)",
 }
 
-# Metric levels used by the reports: >= 0.7 high, >= 0.3 moderate.
+# hrg-1 metric levels used by the reports: >= 0.7 high, >= 0.3 moderate.
 HIGH_LEVEL = 0.7
 MODERATE_LEVEL = 0.3
 
@@ -104,7 +111,9 @@ RULES: Dict[str, Rule] = {
             title="Concentrated approval authority",
             description=(
                 "Approval authority is unevenly distributed: a few people hold most of the "
-                "approval weight (Gini coefficient of approval weights)."
+                "approval weight. Model hrg-2 measures it with the Herfindahl-Hirschman index "
+                "(fewer than 4 effective approvers is a warning, fewer than 2 an error); "
+                "hrg-1 with the Gini coefficient."
             ),
             remediation=(
                 "Add secondary approvers for sensitive workflows and spread ownership of "
@@ -133,8 +142,8 @@ RULES: Dict[str, Rule] = {
             name="critical-bypass",
             title="Bypass involving a critical person",
             description=(
-                "A bypass dependency lets a person skip or override the normal control, and "
-                "at least one side of it is a critical person."
+                "A bypass dependency lets a person override the controls another person "
+                "enforces, and at least one of them is a critical person."
             ),
             remediation=(
                 "Require a second person for the bypass, log every use, and review each use "
@@ -160,8 +169,10 @@ RULES: Dict[str, Rule] = {
         Rule(
             id="HRG004",
             name="risk-above-threshold",
-            title="Composite risk above threshold",
-            description="The composite HRG score is above the threshold set with --fail-above.",
+            title="Risk above threshold",
+            description=(
+                "The composite risk is above --fail-above, or the score is below --min-score."
+            ),
             remediation=(
                 "Address the other findings, or record a risk acceptance if the threshold is "
                 "deliberately exceeded."
@@ -182,17 +193,27 @@ def _label(hrg: HumanRiskGraph, person_id: str) -> str:
     return f"{name} ({person_id})" if name and name != person_id else person_id
 
 
-def _approval_shares(hrg: HumanRiskGraph) -> Dict[str, float]:
-    weights: Dict[str, float] = {}
-    for edge, edge_type in hrg.edge_types.items():
-        if edge_type == "approval":
-            weights[edge[0]] = weights.get(edge[0], 0.0) + hrg.weights.get(edge, 0.0)
-    total = sum(weights.values())
-    return {person: w / total for person, w in weights.items()} if total else {}
+def _people(count: int) -> str:
+    return f"{count} {'person' if count == 1 else 'people'}"
+
+
+def threshold_breach(
+    results: Dict[str, Any], fail_above: Optional[float] = None, min_score: Optional[int] = None
+) -> Optional[str]:
+    """Describe why the result breaks the given thresholds, or None."""
+    risk, score = results["composite_score"], results["score"]
+    if fail_above is not None and risk > fail_above:
+        return f"Composite risk {risk:.3f} is above the threshold {fail_above:.3f}."
+    if min_score is not None and score < min_score:
+        return f"Score {score} is below the minimum {min_score}."
+    return None
 
 
 def collect_findings(
-    hrg: HumanRiskGraph, results: Dict[str, Any], fail_above: Optional[float] = None
+    hrg: HumanRiskGraph,
+    results: Dict[str, Any],
+    fail_above: Optional[float] = None,
+    min_score: Optional[int] = None,
 ) -> List[Finding]:
     """
     Turn analysis results into findings.
@@ -200,38 +221,50 @@ def collect_findings(
     Args:
         hrg: The analysed graph.
         results: Output of ``hrg.calculate()``.
-        fail_above: Optional composite score threshold; exceeding it adds an HRG004 finding.
+        fail_above: Optional composite risk threshold (0-1).
+        min_score: Optional minimum score (0-100). Breaking either adds an HRG004 finding.
 
     Returns:
         Findings ordered by rule, then by person.
     """
     findings: List[Finding] = []
     critical = set(results.get("critical_nodes", []))
+    impacts = key_person_impacts(hrg.graph)
 
     for person in sorted(results.get("articulation_points", [])):
         crit = hrg.criticality.get(person, 0.5)
+        impact = impacts.get(person, {"impact": 0.0, "cut_off": 0})
         findings.append(
             Finding(
                 rule_id="HRG001",
                 level="error" if person in critical else "warning",
                 message=(
                     f"{_label(hrg, person)} is a single point of failure "
-                    f"(criticality {crit:.2f}): removing them disconnects the dependency graph."
+                    f"(criticality {crit:.2f}): losing them cuts off "
+                    f"{_people(int(impact['cut_off']))} and {impact['impact']:.0%} of the "
+                    "connections between the others."
                 ),
                 person=person,
             )
         )
 
-    dc = results.get("decision_concentration", 0.0)
-    shares = _approval_shares(hrg)
-    if dc >= MODERATE_LEVEL and shares:
+    shares = approval_shares(hrg.edge_types, hrg.weights)
+    concentration = results.get("decision_concentration", 0.0)
+    if results.get("model") == MODEL_V1:
+        warn, error = MODERATE_LEVEL, HIGH_LEVEL
+        measure = f"Gini {concentration:.2f}"
+    else:
+        warn, error = CONCENTRATION_WARNING, CONCENTRATION_ERROR
+        effective = 1 / concentration if concentration else 0.0
+        measure = f"{effective:.1f} effective approvers of {len(shares)}"
+    if concentration >= warn and shares:
         top = max(sorted(shares), key=shares.get)
         findings.append(
             Finding(
                 rule_id="HRG002",
-                level="error" if dc >= HIGH_LEVEL else "warning",
+                level="error" if concentration >= error else "warning",
                 message=(
-                    f"Approval authority is concentrated (Gini {dc:.2f}); "
+                    f"Approval authority is concentrated ({measure}); "
                     f"{_label(hrg, top)} holds {shares[top]:.0%} of the approval weight."
                 ),
                 person=top,
@@ -245,22 +278,16 @@ def collect_findings(
                     rule_id="HRG003",
                     level="warning",
                     message=(
-                        f"Bypass from {_label(hrg, source)} to {_label(hrg, target)} "
-                        "involves a critical person."
+                        f"{_label(hrg, source)} can bypass {_label(hrg, target)} and "
+                        "override the controls they enforce; one of them is critical."
                     ),
                     person=source,
                     dependency=(source, target),
                 )
             )
 
-    score = results["composite_score"]
-    if fail_above is not None and score > fail_above:
-        findings.append(
-            Finding(
-                rule_id="HRG004",
-                level="error",
-                message=f"Composite HRG score {score:.3f} is above the threshold {fail_above:.3f}.",
-            )
-        )
+    breach = threshold_breach(results, fail_above, min_score)
+    if breach:
+        findings.append(Finding(rule_id="HRG004", level="error", message=breach))
 
     return findings

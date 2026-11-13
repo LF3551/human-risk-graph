@@ -6,6 +6,7 @@ Human Risk Graphs.
 """
 
 import networkx as nx
+import numpy as np
 from typing import Dict, List, Tuple
 from .metrics import (
     bus_factor_score,
@@ -17,6 +18,14 @@ from .metrics import (
 from .graph_analysis import (
     find_articulation_points,
     compute_betweenness_centrality,
+)
+from .model_v2 import (
+    MODEL_V1,
+    MODEL_V2,
+    MODELS,
+    calculate_v2,
+    risk_level_from_score,
+    score_and_grade,
 )
 
 
@@ -127,26 +136,57 @@ class HumanRiskGraph:
         beta: float = 0.3,
         gamma: float = 0.3,
         critical_threshold: float = 0.7,
+        model: str = MODEL_V2,
+        with_bus_factor: bool = True,
     ) -> Dict:
         """
         Calculate all HRG risk metrics.
 
         Args:
-            alpha: Weight for bus factor score (default 0.4)
+            alpha: Weight for bus factor / key-person risk (default 0.4)
             beta: Weight for decision concentration (default 0.3)
-            gamma: Weight for bypass risk (default 0.3)
+            gamma: Weight for bypass risk / override exposure (default 0.3)
             critical_threshold: Minimum criticality for critical nodes (default 0.7)
+            model: "hrg-2" (default) or "hrg-1", the original model from the paper
+            with_bus_factor: Compute ``bus_factor_people`` (hrg-2 only; the slowest part)
 
         Returns:
-            Dict containing:
-                - bus_factor: Bus factor score [0,1]
-                - decision_concentration: DC score [0,1]
-                - bypass_risk: Bypass risk score [0,1]
-                - composite_score: Overall HRG score [0,1]
+            Dict containing at least:
+                - model: model identifier
+                - bus_factor, decision_concentration, bypass_risk: metrics in [0,1]
+                - composite_score: overall risk in [0,1]
+                - score: 0-100, higher is better; grade: A-F
                 - risk_level: 'Low', 'Moderate', 'High', or 'Critical'
                 - critical_nodes: List of critical node IDs
                 - articulation_points: List of articulation point IDs
+            hrg-2 adds key_people, bus_factor_people, approval_shares,
+            effective_approvers, critical_approvals and overridable_approvals.
         """
+        if model not in MODELS:
+            raise ValueError(f"Unknown model {model!r}; expected one of {', '.join(MODELS)}")
+
+        if model == MODEL_V2:
+            if not np.isclose(alpha + beta + gamma, 1.0):
+                raise ValueError("Weights must sum to 1.0")
+            result = calculate_v2(
+                self.graph,
+                self.criticality,
+                self.edge_types,
+                self.weights,
+                alpha,
+                beta,
+                gamma,
+                critical_threshold,
+                with_bus_factor,
+            )
+            result["risk_level"] = risk_level_from_score(result["score"])
+            return result
+
+        return self._calculate_v1(alpha, beta, gamma, critical_threshold)
+
+    def _calculate_v1(
+        self, alpha: float, beta: float, gamma: float, critical_threshold: float
+    ) -> Dict:
         # Calculate individual metrics
         bf = bus_factor_score(self.graph, self.criticality, critical_threshold)
         dc = decision_concentration_score(self.graph, self.edge_types, self.weights)
@@ -162,12 +202,18 @@ class HumanRiskGraph:
 
         # Find articulation points
         articulation_pts = list(find_articulation_points(self.graph))
+        score, grade = score_and_grade(composite)
 
         return {
+            "model": MODEL_V1,
+            "weights": {"alpha": alpha, "beta": beta, "gamma": gamma},
+            "critical_threshold": critical_threshold,
             "bus_factor": bf,
             "decision_concentration": dc,
             "bypass_risk": br,
             "composite_score": composite,
+            "score": score,
+            "grade": grade,
             "risk_level": interpret_risk_level(composite),
             "critical_nodes": critical_nodes,
             "articulation_points": articulation_pts,
@@ -224,12 +270,13 @@ class HumanRiskGraph:
 
         return critical_deps
 
-    def simulate_node_removal(self, node_id: str) -> Dict:
+    def simulate_node_removal(self, node_id: str, model: str = MODEL_V2) -> Dict:
         """
         Simulate the impact of removing a node from the graph.
 
         Args:
             node_id: ID of node to remove
+            model: Model used for both scores
 
         Returns:
             Dict with impact analysis:
@@ -238,27 +285,16 @@ class HumanRiskGraph:
                 - score_change: Difference (new - original)
                 - disconnected_nodes: Nodes that become isolated
         """
-        # Calculate original score
-        original_result = self.calculate()
-        original_score = original_result["composite_score"]
+        if node_id not in self.graph:
+            raise ValueError(f"Node {node_id} not found in graph")
 
-        # Create copy without the node
-        temp_graph = self.graph.copy()
-        temp_graph.remove_node(node_id)
+        original_score = self.calculate(model=model, with_bus_factor=False)["composite_score"]
 
-        # Calculate new metrics on reduced graph
-        temp_criticality = {k: v for k, v in self.criticality.items() if k != node_id}
-        temp_edge_types = {
-            k: v for k, v in self.edge_types.items() if k[0] != node_id and k[1] != node_id
-        }
-        temp_weights = {
-            k: v for k, v in self.weights.items() if k[0] != node_id and k[1] != node_id
-        }
-
-        new_bf = bus_factor_score(temp_graph, temp_criticality)
-        new_dc = decision_concentration_score(temp_graph, temp_edge_types, temp_weights)
-        new_br = bypass_risk_score(temp_graph, temp_criticality, temp_edge_types)
-        new_score = composite_hrg_score(new_bf, new_dc, new_br)
+        people = [p for p in self.people if p["id"] != node_id]
+        dependencies = [d for d in self.dependencies if d["from"] != node_id and d["to"] != node_id]
+        reduced = HumanRiskGraph(people, dependencies)
+        new_score = reduced.calculate(model=model, with_bus_factor=False)["composite_score"]
+        temp_graph = reduced.graph
 
         # Find disconnected nodes
         if len(temp_graph.nodes()) > 0:
@@ -271,8 +307,22 @@ class HumanRiskGraph:
             "original_score": original_score,
             "new_score": new_score,
             "score_change": new_score - original_score,
-            "disconnected_nodes": list(disconnected),
+            "disconnected_nodes": sorted(disconnected),
         }
+
+    def fix_plan(self, steps: int = 3, **calculate_kwargs) -> List[Dict]:
+        """
+        Rank remediations by how much they improve the score.
+
+        Each step simulates adding a deputy for a key person or putting a second-person
+        check on a bypass, applies the best one, and repeats.
+
+        Returns:
+            List of dicts with action, target, title, reason, score_before and score_after.
+        """
+        from .fixes import fix_plan
+
+        return fix_plan(self.people, self.dependencies, steps=steps, **calculate_kwargs)
 
     def export_graph(self) -> nx.DiGraph:
         """
