@@ -84,6 +84,15 @@ def _setting(ctx, name, cli_value, config_value):
     return cli_value
 
 
+def _confirmed_only(data, calc):
+    """Score without the dependencies marked ``confirmed: false``, or None if there are none."""
+    kept = [d for d in data["dependencies"] if d.get("confirmed") is not False]
+    if len(kept) == len(data["dependencies"]):
+        return None
+    results = HumanRiskGraph(data["people"], kept).calculate(with_bus_factor=False, **calc)
+    return {"score": results["score"], "grade": results["grade"], "dependencies": len(kept)}
+
+
 def _artifact_uri(path: Path) -> str:
     """Path for SARIF results: relative to the working directory (the repo root in CI)."""
     try:
@@ -213,6 +222,7 @@ def analyze(
         "coverage_gaps": [
             str(gap) for gap in ((data.get("coverage") or {}).get("gaps") or []) if gap
         ],
+        "confirmed_only": _confirmed_only(data, calc),
     }
 
     # Generate reports
@@ -271,6 +281,7 @@ def analyze(
             generated_files,
             breach,
             config_file=metadata["config_file"],
+            confirmed_only=metadata["confirmed_only"],
         )
     for acceptance in unused:
         target = f" {acceptance.target}" if acceptance.target else ""

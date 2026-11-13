@@ -44,6 +44,31 @@ def org(tmp_path):
     return path
 
 
+def test_confirmed_only_score(tmp_path):
+    path = tmp_path / "org.yaml"
+    path.write_text(
+        "people:\n"
+        "  - {id: boss, criticality: 0.9}\n"
+        "  - {id: dev}\n"
+        "  - {id: ops}\n"
+        "dependencies:\n"
+        "  - {from: boss, to: dev, type: approval, weight: 1.0}\n"
+        "  - {from: ops, to: boss, type: bypass, confirmed: false}\n"
+    )
+    result = run("analyze", path, "--format", "json", "--no-visualize", "--fixes", "0")
+    assert result.exit_code == 0, result.output
+    report = json.loads((tmp_path / "org_report.json").read_text())
+    only = report["metadata"]["confirmed_only"]
+    assert only["dependencies"] == 1
+    assert only["score"] > report["results"]["score"]
+    assert f"On confirmed data only: {only['score']}/100" in " ".join(result.output.split())
+
+    path.write_text(path.read_text().replace(", confirmed: false", ""))
+    run("analyze", path, "--format", "json", "--no-visualize", "--fixes", "0")
+    report = json.loads((tmp_path / "org_report.json").read_text())
+    assert report["metadata"]["confirmed_only"] is None
+
+
 def test_ci_formats_and_threshold(org):
     result = run(
         "analyze",

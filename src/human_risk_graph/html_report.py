@@ -140,9 +140,15 @@ def _tiles(results: Dict[str, Any], people: Dict[str, Dict[str, Any]]) -> List[D
     overridable, critical = len(results.get("overridable_approvals", [])), results.get(
         "critical_approvals", 0
     )
+    break_glass = len(results.get("break_glass_approvals", []))
     overrides = {
         "headline": f"{overridable} of {critical} critical approvals",
-        "detail": "can be overridden through a bypass.",
+        "detail": "can be overridden through a bypass"
+        + (
+            f"; {break_glass} only through a break-glass bypass reviewed after use."
+            if break_glass
+            else "."
+        ),
     }
     return [
         {"label": labels[0], "value": k, "level": _level(k, 0.15, 0.5), **key},
@@ -453,6 +459,16 @@ def _audit_html(results: Dict[str, Any], metadata: Dict[str, Any]) -> str:
     return f'<table class="kv audit">{rows}</table>'
 
 
+def _confirmed_only_text(confirmed_only: Optional[Dict[str, Any]]) -> str:
+    if not confirmed_only:
+        return ""
+    return (
+        f" On confirmed data only: <strong>{_e(confirmed_only['score'])}/100</strong> "
+        f"(grade {_e(confirmed_only['grade'])}, {_e(confirmed_only['dependencies'])} "
+        "dependencies)."
+    )
+
+
 def _gaps_html(gaps: List[str]) -> str:
     if not gaps:
         return ""
@@ -512,7 +528,9 @@ def render(
         unconfirmed=(
             f'<p class="notice">{metadata["unconfirmed_dependencies"]} of '
             f'{metadata.get("dependencies_count", "")} dependencies are unconfirmed (from '
-            "<code>hrg scan</code>): review them before relying on the score.</p>"
+            "<code>hrg scan</code>): review them before relying on the score."
+            + _confirmed_only_text(metadata.get("confirmed_only"))
+            + "</p>"
             if metadata.get("unconfirmed_dependencies")
             else ""
         )

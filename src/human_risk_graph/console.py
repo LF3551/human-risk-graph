@@ -63,11 +63,13 @@ def _metric_rows(results: Dict[str, Any], name) -> List[tuple]:
     else:
         rows.append(("Approvals", "no approvals in the data"))
 
+    break_glass = len(results.get("break_glass_approvals", []))
     rows.append(
         (
             "Overrides",
             f"{len(results.get('overridable_approvals', []))} of "
-            f"{results.get('critical_approvals', 0)} critical approvals can be overridden",
+            f"{results.get('critical_approvals', 0)} critical approvals can be overridden"
+            + (f" ({break_glass} only via break-glass)" if break_glass else ""),
         )
     )
     return rows
@@ -83,6 +85,7 @@ def render_summary(
     generated: List[str],
     breach: Optional[str] = None,
     config_file: Optional[str] = None,
+    confirmed_only: Optional[Dict[str, Any]] = None,
 ) -> None:
     names = {p["id"]: p.get("name") or p["id"] for p in data["people"]}
 
@@ -107,7 +110,13 @@ def render_summary(
         console.print(
             Text(
                 f"  {unconfirmed} of {deps} dependencies are unconfirmed (from hrg scan): "
-                "review them before relying on the score.",
+                "review them before relying on the score."
+                + (
+                    f" On confirmed data only: {confirmed_only['score']}/100 "
+                    f"({confirmed_only['grade']})."
+                    if confirmed_only
+                    else ""
+                ),
                 style="yellow",
             )
         )

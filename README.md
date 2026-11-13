@@ -69,7 +69,7 @@ hrg analyze my-org.yaml
 ```
 
 ```
-Human Risk Graph 0.8.1 · organization.yaml · 5 people · 5 dependencies
+Human Risk Graph 0.9.0 · organization.yaml · 5 people · 5 dependencies
 
   Score  25/100  ██░░░░░░░░  F · Critical risk  model hrg-2
 
@@ -156,6 +156,19 @@ check on a bypass) and lists the three that raise the score most.
 
 The original model from the paper is still available as `--model hrg-1`.
 
+### What HRG is not
+
+HRG models **authority**: who approves, who escalates to whom, and who can override a
+control. It does not measure who **knows** the code. Tools that mine Git history, such as
+[CodeScene](https://codescene.com) or [Busfactor](https://busfactor.tech), are better at
+knowledge islands and code ownership; the two questions are complementary, since an
+expert may not be allowed to approve a production change and an approver may not know
+the system. HRG is also not an employee-behaviour or phishing-risk platform.
+
+The score is a structural index, not the probability of an incident, and the fix plan
+shows changes that improve the structure; whether a deputy can really do the job is for
+you to judge. See [what the score means](docs/model.md#34-composite-risk-score-and-grade).
+
 ## Usage
 
 ### Installation
@@ -200,6 +213,11 @@ Describe your organization in a JSON or YAML file:
 - `dependencies.from/to` — person IDs
 - `dependencies.type` — relationship type (approval, bypass, etc.)
 - `dependencies.weight` — dependency strength (0.0-1.0)
+- `dependencies.review` — for bypasses: `after` if every use is reviewed afterwards
+  (break-glass). It still counts as an override, at half weight, and is labelled as such.
+- `dependencies.confirmed` — `false` for dependencies nobody has checked yet (set by
+  `hrg scan`). Reports then also show the score on confirmed dependencies only, so you can
+  see how much the result depends on unverified data.
 
 Invalid input (duplicate or unknown IDs, values outside 0.0-1.0) is rejected with an error
 that points to the offending entry.

@@ -27,6 +27,9 @@ MODELS = (MODEL_V2, MODEL_V1)
 CONCENTRATION_WARNING = 0.25
 CONCENTRATION_ERROR = 0.5
 
+# A break-glass bypass (reviewed after use) can still be misused, but misuse is caught.
+BREAK_GLASS_FACTOR = 0.5
+
 Edge = Tuple[str, str]
 
 
@@ -131,6 +134,19 @@ def overridable_approvals(
     return critical_approvals, overridable
 
 
+def override_factors(edge_types: Dict[Edge, str], reviewed: Set[Edge]) -> Dict[str, float]:
+    """
+    How fully each approver can be overridden: 1 through an unreviewed bypass, or
+    ``BREAK_GLASS_FACTOR`` when every bypass of them is reviewed after use.
+    """
+    factors: Dict[str, float] = {}
+    for (source, target), edge_type in edge_types.items():
+        if edge_type == "bypass" and source != target:
+            factor = BREAK_GLASS_FACTOR if (source, target) in reviewed else 1.0
+            factors[target] = max(factors.get(target, 0.0), factor)
+    return factors
+
+
 def composite_risk(metrics: Tuple[float, float, float], weights: Tuple[float, float, float]):
     """
     Normalised noisy-OR: R = (1 - prod(1 - w_i m_i)) / (1 - prod(1 - w_i)).
@@ -171,6 +187,7 @@ def calculate_v2(
     gamma: float,
     critical_threshold: float,
     with_bus_factor: bool = True,
+    reviewed: Optional[Set[Edge]] = None,
 ) -> Dict:
     critical = {node for node, crit in criticality.items() if crit >= critical_threshold}
 
@@ -194,9 +211,12 @@ def calculate_v2(
     concentration = sum(s * s for s in shares.values())
 
     critical_approvals, overridable = overridable_approvals(edge_types, weights, critical)
+    factors = override_factors(edge_types, reviewed or set())
     total_weight = sum(weights.get(e, 0.0) for e in critical_approvals)
     override_exposure = (
-        sum(weights.get(e, 0.0) for e in overridable) / total_weight if total_weight else 0.0
+        sum(weights.get(e, 0.0) * factors[e[0]] for e in overridable) / total_weight
+        if total_weight
+        else 0.0
     )
 
     risk = composite_risk((key_person_risk, concentration, override_exposure), (alpha, beta, gamma))
@@ -218,6 +238,7 @@ def calculate_v2(
         "effective_approvers": 1 / concentration if concentration else 0.0,
         "critical_approvals": len(critical_approvals),
         "overridable_approvals": [list(e) for e in overridable],
+        "break_glass_approvals": [list(e) for e in overridable if factors[e[0]] < 1],
         "critical_nodes": sorted(critical),
         "articulation_points": sorted(impacts),
     }

@@ -80,20 +80,28 @@ N_eff is the **effective number of approvers**: D = 1 for a single approver, 1/n
 equal approvers. Findings: fewer than 4 effective approvers (D ≥ 0.25) is a warning,
 fewer than 2 (D ≥ 0.5) an error.
 
+Concentration is not always a weakness: approving every production change through one
+security team can be a deliberate control. D measures how few people the decisions depend
+on (availability and the room for one person's error), not whether the process is right.
+When the concentration is intended, record it as a risk acceptance with a reason and an
+expiry date, so that it stays visible without failing CI.
+
 ### 3.3 Override exposure (B)
 
 A bypass edge (x, a) means x can override the controls a enforces, so every approval
 (a, t) can be overridden. Let A_c be the **critical approvals**: approval edges with a
-critical approver or a critical approvee. Then
+critical approver or a critical approvee, and f(a) how fully a can be overridden: 1 if any
+bypass of a is unreviewed, ½ if every bypass of a is a **break-glass** bypass whose use is
+reviewed afterwards (`review: after`), 0 if a cannot be bypassed. Then
 
-$$B = \frac{\sum_{e \in A_c,\ e \text{ overridable}} W(e)}{\sum_{e \in A_c} W(e)}$$
+$$B = \frac{\sum_{(a,t) \in A_c} W(a,t)\, f(a)}{\sum_{e \in A_c} W(e)}$$
 
-with B = 0 when A_c is empty.
+with B = 0 when A_c is empty. A break-glass bypass still lets one person override the
+control, but misuse is caught; the factor ½ is a model parameter like the weights below.
 
 ### 3.4 Composite risk, score and grade
 
-Each weakness is treated as an independent way to fail (noisy-OR), normalised so that the
-worst case is 1:
+The three weaknesses are combined with a noisy-OR, normalised so that the worst case is 1:
 
 $$R = \frac{1 - (1 - \alpha K)(1 - \beta D)(1 - \gamma B)}{1 - (1 - \alpha)(1 - \beta)(1 - \gamma)}$$
 
@@ -101,6 +109,11 @@ with α = 0.4, β = 0.3, γ = 0.3 by default. R = 0 without weaknesses, R = 1 wh
 metrics are 1, R is increasing in each metric, and a single metric at 1 contributes more than
 its linear share (for example 0.57 instead of 0.4 for K). The **score** is
 $\text{round}(100 \cdot (1 - R))$.
+
+The noisy-OR is a modelling choice, not a claim that the three risks are independent: in a
+real organization a key person often also holds the approvals and the bypass. It is used
+because a severe weakness then dominates the score instead of being averaged away by two
+good metrics.
 
 The weights are model parameters, not empirically calibrated values: they express that a
 key person weighs a little more than concentration or overrides. Set them in `hrg.toml`
@@ -122,7 +135,9 @@ overridden. It is not a calibrated probability of an incident, and two organizat
 the same score can fail in different ways; read the three metrics and the findings, not
 only the number. It is as good as the graph: a dependency that exists only in practice
 (an approval in chat, an admin who never merges) is invisible until someone adds it, which
-is why `hrg scan` marks inferred dependencies as unconfirmed.
+is why `hrg scan` marks inferred dependencies as unconfirmed. When some dependencies are
+unconfirmed, the reports also give the score on confirmed dependencies only; a large gap
+between the two means the result rests on data nobody has checked yet.
 
 ### 3.5 Fix plan
 
@@ -139,12 +154,17 @@ A deputy removes a person's own impact, but adds one more person behind any othe
 bottleneck, so a deputy is not always an improvement; the plan only lists steps that lower R
 by at least half a point.
 
+The plan shows which structural changes improve the model, not that they are feasible: a
+deputy only helps if they have the skills, the access and the time, and a second-person
+check only helps if the second person is independent.
+
 ### 3.6 Properties checked by the test suite
 
 - K, D, B, R ∈ [0, 1]; R is increasing in each metric.
 - K does not decrease when any criticality increases.
 - Adding a bypass never decreases B and never improves the score; it does not change K or
-  the bus factor. Putting a check on a bypass never increases R.
+  the bus factor. Putting a check on a bypass never increases R; marking a bypass as
+  reviewed after use (break-glass) never increases R.
 - A deputy never increases the person's own impact.
 - Relabelling people does not change any result.
 - Reference structures: star (K = C(c), independent of size), single approver (D = 1),

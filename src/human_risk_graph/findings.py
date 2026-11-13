@@ -300,6 +300,7 @@ def collect_findings(
 
     for (source, target), edge_type in sorted(hrg.edge_types.items()):
         if edge_type == "bypass" and (source in critical or target in critical):
+            break_glass = (source, target) in hrg.reviewed_bypasses
             findings.append(
                 Finding(
                     rule_id="HRG003",
@@ -307,6 +308,12 @@ def collect_findings(
                     message=(
                         f"{_label(hrg, source)} can bypass {_label(hrg, target)} and "
                         "override the controls they enforce; one of them is critical."
+                        + (
+                            " Every use is reviewed afterwards (break-glass), which catches "
+                            "misuse but does not prevent it."
+                            if break_glass
+                            else ""
+                        )
                     ),
                     person=source,
                     dependency=(source, target),
