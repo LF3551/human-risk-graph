@@ -85,6 +85,28 @@ def test_latest_release():
     }
     assert tp.latest_release(releases, T0) == ("2.0", ["a-2.0-py3-none-any.whl", "a-2.0.tar.gz"])
     assert tp.latest_release({}, T0) == (None, [])
+    many = {"9.0": [_file(f"a-9.0-{i:02}.whl", 2) for i in range(80)]}
+    assert len(tp.latest_release(many, T0)[1]) == 80  # every file, no cap
+
+
+# The publisher object PyPI's integrity API returned for pip 26.3 (2026-11-14), and the
+# form in PEP 740's example. Both must be read the same way.
+PYPI_PUBLISHER = {"environment": "pypi", "kind": "GitHub", "repository": "pypa/pip",
+                  "workflow": "release.yml"}  # fmt: skip
+PEP_740_PUBLISHER = {
+    "kind": "GitHub", "claims": {"ref": "refs/tags/v1.0.0"}, "repository_name": "pip",
+    "repository_owner": "pypa", "repository_owner_id": "1",
+    "workflow_filename": "release.yml", "environment": "pypi",
+}  # fmt: skip
+
+
+def test_publisher_repository_both_forms():
+    assert tp.publisher_repository(PYPI_PUBLISHER) == "pypa/pip"
+    assert tp.publisher_repository(PEP_740_PUBLISHER) == "pypa/pip"
+    assert tp.publisher_repository({"kind": "GitHub", "repository_owner": "pypa"}) == ""
+    gates = [tp.environment_gate(_env("PyPI", ["a"], self_review=False, admin_bypass=False))]
+    for publisher in (PYPI_PUBLISHER, PEP_740_PUBLISHER):
+        assert tp.release_path([publisher, publisher], "pypa/pip", gates) == "V2"
 
 
 def test_release_path():
@@ -117,6 +139,26 @@ def test_human_publishers_window_and_bots():
     releases = [item("a", 10), item("b", 400), item("dependabot[bot]", 5), item(None, 5)]
     deployments = [item("c", 364), item("a", 1), {"login": "d", "when": T0}]  # T0 excluded
     assert tp.human_publishers(releases, deployments, T0) == {"a", "c"}
+
+
+def test_standing_approvals():
+    def review(login, state, minute):
+        return {"user": {"login": login}, "state": state,
+                "submitted_at": f"2026-11-01T10:{minute:02}:00Z"}  # fmt: skip
+
+    reviews = [
+        review("a", "APPROVED", 1),
+        review("a", "COMMENTED", 2),  # a comment does not withdraw an approval
+        review("b", "APPROVED", 3),
+        review("b", "CHANGES_REQUESTED", 4),  # withdrawn
+        review("c", "DISMISSED", 5),  # a dismissed approval
+        review("d", "CHANGES_REQUESTED", 6),
+        review("d", "APPROVED", 7),  # approved after requesting changes
+        review("author", "APPROVED", 8),  # self
+        review("ci-bot", "APPROVED", 9),
+        {"user": None, "state": "APPROVED"},  # deleted account
+    ]
+    assert tp.standing_approvals(list(reversed(reviews)), "author") == ["a", "d"]
 
 
 def test_effective_approvers():
@@ -220,6 +262,7 @@ def test_collect_repo(tmp_path, pypi):
     row = tp.collect_repo(client, tp.Cache(tmp_path), "acme/lib", T0, "acme-lib")
     assert row["gate"] == "G1" and row["gate_any_name"] == "G1"
     assert (row["latest_version"], row["release_files"], row["path"]) == ("1.0", 1, "V1")
+    assert row["release_age_days"] == 3
     assert row["publishing_environments"] == 1  # docs is not a publishing environment
     assert row["publishers"] == 1  # lead; the bot deployment and the draft do not count
     assert row["assessable_reviewers"] == 2  # old and lead; the team is not assessable

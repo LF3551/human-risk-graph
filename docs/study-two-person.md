@@ -88,11 +88,13 @@ is gated, prevents self-review, and does not allow administrators to bypass its 
 
 **RQ1, path of the latest release** (`latest_release`, `release_path`). The latest
 release is the PyPI version whose last non-yanked upload before T0 is the most recent.
-For each of its files (up to 30, by name) the study reads the PyPI provenance
+For every one of its files the study reads the PyPI provenance
 ([PEP 740](https://peps.python.org/pep-0740/), `https://pypi.org/integrity/...`), which
 exists for files uploaded through Trusted Publishing with attestations and names the
-publisher: kind, repository, workflow and environment. The release gets the class of its
-weakest file:
+publisher: kind, repository, workflow and environment. The repository is read from
+`repository`, the field PyPI's integrity API returns, or from `repository_owner` and
+`repository_name`, the form of PEP 740's example (`publisher_repository`); environment
+names are compared case-insensitively. The release gets the class of its weakest file:
 
 | Class | Meaning |
 |---|---|
@@ -150,7 +152,9 @@ separately: team members are not public.
 branch whose author is not a bot (found among the 300 most recently updated closed pull
 requests), and for each the people other than the author, not bots, who approved it.
 Effective approvers (`effective_approvers`): 1 / Σ sᵢ², where sᵢ is reviewer i's share of
-approvals. *Single reviewer in practice*: fewer than 2 effective approvers, the HRG002
+approvals. An approval counts when it stood (`standing_approvals`): the reviewer's latest
+review that changes the state is an approval; a later request for changes or a dismissed
+approval withdraws it, a comment does not. *Single reviewer in practice*: fewer than 2 effective approvers, the HRG002
 error threshold. Primary outcome: share of projects with a single reviewer in practice,
 among projects with at least 10 approved pull requests in the 50. Secondary: the same
 share among those whose default branch visibly requires an approving review (a ruleset
@@ -160,7 +164,7 @@ share among those whose default branch visibly requires an approving review (a r
 
 1. Each primary outcome as a proportion with a Wilson score 95% interval (`wilson`).
 2. RQ1: the distribution over the path classes, the distribution over G2, G1, G0 and NE,
-   and the configured gate by path.
+   the configured gate by path, and the median age of the latest release at T0.
 3. Sensitivity, labelled as such: RQ1 with every gated environment counted as publishing
    whatever its name (`publish_gate(any_name=True)`); RQ3 with a 180-day threshold.
 4. Exploratory, labelled as such: RQ1 and RQ2 by owner type (organization or user account)
@@ -202,7 +206,14 @@ others), some of which are in the frame. A pilot of the code ran on frame positi
 hold only a few merged pull requests by people, and the code was changed to read up to
 300. After a review of a draft of this protocol, the path of the latest release
 from PyPI provenance, the measurement check and the wording rules were added, and the
-pilot was run again on the same positions. No data from positions 1-1000 was collected.
+pilot was run again on the same positions. While checking a second review, which
+pointed to the field names of PEP 740's example, the author looked at the provenance of
+the latest release of a few packages in the frame to see which fields PyPI returns: the
+publisher of pip (environment `pypi`) and requests (environment `publish`), and only the
+field names for urllib3, attrs, idna, certifi and pydantic-core (which has no provenance).
+The review also led to reading every file of a release, to the rule for withdrawn
+approvals and to the limitation on settings over time. No other data from positions
+1-1000 was collected.
 
 ### Data collection
 
@@ -224,6 +235,10 @@ during collection; the cached responses are the data the results are computed fr
   repository, not that the account is abandoned.
 - **Publishers.** PyPI does not publish uploader identities; RQ2 sees GitHub releases and
   deployments only.
+- **Settings over time.** Environment settings are read at T0, but the latest release can
+  be months older. Current settings are used as a proxy for the settings in effect when it
+  was published; historical changes are not observable. The median age of the latest
+  release is reported to show how large the gap is.
 - **Provenance.** Attestations exist only for files uploaded through Trusted Publishing
   with attestations; older uploads and uploads with API tokens have none (class U), and
   provenance says nothing about other paths a project could use.

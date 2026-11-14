@@ -77,7 +77,6 @@ PATH_NAMES = {
     "P": "only some files attested",
     "U": "no file attested: path not observable",
 }
-MAX_FILES = 30  # files of the latest release whose provenance is read
 INTEGRITY = "https://pypi.org/integrity/{project}/{version}/{filename}/provenance"
 GATE_NAMES = {
     "G2": "two-person gate",
@@ -144,7 +143,7 @@ def publish_gate(gates: Iterable[Dict[str, Any]], any_name: bool = False) -> str
 def latest_release(
     releases: Dict[str, List[Dict[str, Any]]], t0: datetime
 ) -> Tuple[Optional[str], List[str]]:
-    """The version whose last non-yanked upload before t0 is the most recent, and its files."""
+    """The version whose last non-yanked upload before t0 is the most recent, and all its files."""
     best: Tuple[Optional[datetime], Optional[str]] = (None, None)
     for version, files in releases.items():
         times = [parse_time(f.get("upload_time_iso_8601")) for f in files if not f.get("yanked")]
@@ -159,7 +158,18 @@ def latest_release(
         for f in releases[latest]
         if not f.get("yanked") and (parse_time(f.get("upload_time_iso_8601")) or t0) < t0
     )
-    return latest, names[:MAX_FILES]
+    return latest, names
+
+
+def publisher_repository(publisher: Dict[str, Any]) -> str:
+    """
+    OWNER/REPO of a GitHub Trusted Publisher. PyPI's integrity API returns ``repository``;
+    PEP 740's example uses ``repository_owner`` and ``repository_name``. Both are read.
+    """
+    if publisher.get("repository"):
+        return str(publisher["repository"])
+    owner, name = publisher.get("repository_owner"), publisher.get("repository_name")
+    return f"{owner}/{name}" if owner and name else ""
 
 
 def release_path(
@@ -177,7 +187,7 @@ def release_path(
     by_name = {g["name"].lower(): g for g in gates}
     classes = []
     for p in attested:
-        if p.get("kind") != "GitHub" or (p.get("repository") or "").lower() != repo.lower():
+        if p.get("kind") != "GitHub" or publisher_repository(p).lower() != repo.lower():
             return "O"
         gate = by_name.get((p.get("environment") or "").lower())
         classes.append(
@@ -200,6 +210,24 @@ def human_publishers(
         if login and when and start <= when < t0 and not _is_bot(login):
             people.add(login)
     return people
+
+
+def standing_approvals(reviews: List[Dict[str, Any]], author: str) -> List[str]:
+    """
+    People other than the author (not bots) whose approval stood: their latest review that
+    changes the state is an approval. A later request for changes, or a dismissed approval,
+    withdraws it; comments do not (GitHub's rule).
+    """
+    state: Dict[str, bool] = {}
+    for r in sorted(reviews, key=lambda r: r.get("submitted_at") or ""):
+        login = (r.get("user") or {}).get("login")
+        if not login or _is_bot(login) or login == author:
+            continue
+        if r.get("state") == "APPROVED":
+            state[login] = True
+        elif r.get("state") in ("CHANGES_REQUESTED", "DISMISSED"):
+            state[login] = False
+    return sorted(login for login, approved in state.items() if approved)
 
 
 def effective_approvers(counts: Dict[str, int]) -> Optional[float]:
@@ -260,6 +288,9 @@ def analyze(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
                 g: _shares([r for r in rows if r["gate"] == g], "path", PATHS) for g in GATES
             },
             "secondary_no_configured_two_person_gate": _share(rows, no_two_person),
+            "median_latest_release_age_days": _median(
+                [r["release_age_days"] for r in rows if r.get("release_age_days") is not None]
+            ),
             "distribution": _gate_shares(rows, "gate"),
             "sensitivity_any_environment_name": _gate_shares(rows, "gate_any_name"),
             "exploratory_by_group": by_group(lambda r: r["path"] != "V2", rows),
@@ -342,6 +373,12 @@ def _release_path(cache: Cache, package: str, repo: str, gates, t0: datetime) ->
         ),
     )
     version, files = latest_release(data, t0)
+    uploads = [
+        parse_time(f.get("upload_time_iso_8601"))
+        for f in (data.get(version) or [] if version else [])
+        if f.get("filename") in files
+    ]
+    uploaded = max((u for u in uploads if u), default=None)
     publishers: List[Optional[Dict[str, Any]]] = []
     for filename in files:
         url = INTEGRITY.format(project=package, version=version, filename=filename)
@@ -354,6 +391,7 @@ def _release_path(cache: Cache, package: str, repo: str, gates, t0: datetime) ->
     return {
         "latest_version": version,
         "release_files": len(files),
+        "release_age_days": (t0 - uploaded).days if uploaded else None,
         "path": release_path(publishers, repo, gates) if files else "U",
     }
 
@@ -387,15 +425,11 @@ def _pull_activity(client, cache, repo: str, branch: str) -> Tuple[List[Dict[str
             client, cache, f"tp:reviews:{repo}:{p['number']}",
             f"repos/{repo}/pulls/{p['number']}/reviews", {"per_page": 100},
         )  # fmt: skip
-        approvers = set()
         for r in reviews:
             login = (r.get("user") or {}).get("login")
-            if not login or _is_bot(login) or login == author:
-                continue
-            _seen(activity, login, r.get("submitted_at"))
-            if r.get("state") == "APPROVED":
-                approvers.add(login)
-        out.append({"approvers": sorted(approvers)})
+            if login and not _is_bot(login) and login != author:
+                _seen(activity, login, r.get("submitted_at"))
+        out.append({"approvers": standing_approvals(reviews, author)})
     return out, activity
 
 
@@ -556,6 +590,7 @@ def collect(client, cache: Cache, t0: datetime, offset: int, limit: int, log) ->
 
 COLUMNS = (
     "rank package repo status owner_type gate gate_any_name path latest_version release_files "
+    "release_age_days "
     "publishing_environments "
     "publishers assessable_reviewers dormant_90 dormant_180 dormant_solo_90 dormant_solo_180 "
     "review_required_visible merged_pulls approved_pulls effective_approvers unapproved_share"
