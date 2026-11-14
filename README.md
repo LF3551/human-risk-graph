@@ -408,11 +408,14 @@ hrg analyze data/example_organization.json --model hrg-1 --fixes 0 --quiet
 
 # Generate interactive graph visualization only
 hrg visualize data/example_organization.json
+
+# Who could release a PyPI package alone (docs/check.md)
+hrg check requests
 ```
 
 Exit codes: `0` success, `1` invalid input or error, `2` usage error,
-`3` score below `--min-score`, composite risk above `--fail-above`, or risk increased with
-`hrg diff --fail-on-increase`.
+`3` score below `--min-score`, composite risk above `--fail-above`, risk increased with
+`hrg diff --fail-on-increase`, or a finding at the `hrg check --fail-on` level.
 
 Each run writes the reports next to the input file: JSON (all results, findings and the fix
 plan), Markdown, the HTML report, and with `--visualize` (default) a standalone interactive

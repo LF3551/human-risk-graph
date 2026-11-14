@@ -330,3 +330,29 @@ def test_notes_for_missing_files_and_hidden_environments():
     assert "No release files on PyPI." in r["notes"]
     assert "Deployment environments are not visible." in r["notes"]
     assert worst_level({"findings": []}) == "ok"
+
+
+def test_inactive_reviewer_who_cannot_approve_alone_is_a_warning(fake):
+    envs = [
+        _env("docs", ["rev-docs-x6"]),  # not a publishing environment: ignored
+        _env("pypi", ["rev-gone-x2"], teams=["core"], self_review=False),
+    ]
+    fake(_github(envs, {"rev-gone-x2": 200}), _pypi())
+    result = CliRunner().invoke(cli, ["check", "pkg"])
+    assert result.exit_code == 0, result.output
+    assert "△ 1 reviewer(s) of a publishing environment have no activity seen" in result.output
+    assert "▲" not in result.output  # self-review is prevented: not solo
+    assert "Note: Team reviewers are not checked for activity" in result.output
+    data = json.loads(CliRunner().invoke(cli, ["check", "pkg", "--format", "json"]).output)
+    assert (data["reviewers"], data["dormant_reviewers"], data["dormant_solo_reviewers"]) == (
+        1,
+        1,
+        0,
+    )
+    assert [e["name"] for e in data["environments"]] == ["pypi"]
+
+
+def test_parse_time_of_nothing():
+    from human_risk_graph.publishing import parse_time
+
+    assert parse_time(None) is None and parse_time("") is None

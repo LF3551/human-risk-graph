@@ -33,6 +33,7 @@ hrg check my-package 2.1.0 · acme/my-package
       turn off the administrator bypass.
   △ One person published every release seen on GitHub in the last year.
     → Give a second maintainer the ability to release, and document how.
+  People are not named; use --show-people on your own project.
 ```
 
 The definitions are the ones of the
