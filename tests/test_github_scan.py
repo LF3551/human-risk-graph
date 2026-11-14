@@ -537,6 +537,24 @@ def test_client_does_not_retry_client_errors(monkeypatch, code, calls_expected):
     assert len(calls) == calls_expected
 
 
+def test_client_requires_https():
+    with pytest.raises(ValueError, match="https"):
+        GitHubClient("t", api="http://api.github.com")
+    assert GitHubClient("t", api="https://ghe.example.com/api/v3/").api == (
+        "https://ghe.example.com/api/v3"
+    )
+
+
+def test_client_keeps_the_token_inside_the_api(monkeypatch):
+    # Pagination follows Link headers; one pointing elsewhere must not receive the token.
+    calls = _flaky(monkeypatch, [{"ok": 1}])
+    client = GitHubClient("t")
+    for url in ("https://evil.example/x", "https://api.github.com.evil.example/x"):
+        with pytest.raises(GitHubError, match="Refusing to request"):
+            client._request(url)
+    assert calls == []
+
+
 # Organization scan
 
 

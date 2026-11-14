@@ -151,3 +151,21 @@ def test_invalid_input_rejected(people, dependencies, message):
 def test_boundary_values_accepted():
     people = [{"id": "A", "criticality": 0}, {"id": "B", "criticality": 1}]
     HumanRiskGraph(people, [{"from": "A", "to": "B", "weight": 1}])
+
+
+def _chain():
+    """A chain a-b-c-d-e: b, c and d are articulation points."""
+    ids = ["e", "c", "a", "d", "b"]
+    people = [{"id": i, "criticality": 0.8} for i in ids]
+    dependencies = [{"from": x, "to": y, "type": "approval"} for x, y in zip("abcd", "bcde")]
+    return HumanRiskGraph(people, dependencies)
+
+
+def test_hrg1_articulation_points_are_sorted():
+    # Was list(set): the order, and so every report, changed with PYTHONHASHSEED.
+    assert _chain().calculate(model="hrg-1")["articulation_points"] == ["b", "c", "d"]
+
+
+def test_analyze_nodes_matches_analyze_node():
+    hrg = _chain()
+    assert hrg.analyze_nodes() == {node: hrg.analyze_node(node) for node in hrg.graph}

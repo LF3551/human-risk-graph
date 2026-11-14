@@ -15,7 +15,7 @@ R = (1 - (1 - aK)(1 - bD)(1 - cB)) / (1 - (1 - a)(1 - b)(1 - c)), score = 100 * 
 """
 
 from math import prod
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 import networkx as nx
 
@@ -148,7 +148,7 @@ def override_factors(edge_types: Dict[Edge, str], reviewed: Set[Edge]) -> Dict[s
     return factors
 
 
-def composite_risk(metrics: Tuple[float, ...], weights: Tuple[float, ...]):
+def composite_risk(metrics: Tuple[float, ...], weights: Tuple[float, ...]) -> float:
     """
     Normalised noisy-OR: R = (1 - prod(1 - w_i m_i)) / (1 - prod(1 - w_i)).
 
@@ -193,7 +193,7 @@ def calculate_v2(
     critical = {node for node, crit in criticality.items() if crit >= critical_threshold}
 
     impacts = key_person_impacts(graph)
-    key_people = sorted(
+    key_people: List[Dict[str, Any]] = sorted(
         (
             {
                 "id": person,
@@ -206,7 +206,7 @@ def calculate_v2(
         ),
         key=lambda p: (-p["risk"], p["id"]),
     )
-    key_person_risk = key_people[0]["risk"] if key_people else 0.0
+    key_person_risk: float = key_people[0]["risk"] if key_people else 0.0
 
     shares = approval_shares(edge_types, weights)
     concentration = sum(s * s for s in shares.values())

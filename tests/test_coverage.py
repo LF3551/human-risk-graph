@@ -20,7 +20,7 @@ class TestDecisionConcentrationEdgeCases:
             ]
         )
 
-        weights = {"A": 1/3, "C": 1/3, "E": 1/3}  # Equal distribution
+        weights = {"A": 1 / 3, "C": 1 / 3, "E": 1 / 3}  # Equal distribution
         edge_types = {
             ("A", "B"): "approval",
             ("C", "D"): "approval",

@@ -4,9 +4,20 @@ Interactive graph visualization for Human Risk Graph.
 Uses pyvis to create beautiful, interactive network visualizations.
 """
 
-from pyvis.network import Network
-import networkx as nx
 from pathlib import Path
+from typing import Dict, Set, Tuple
+
+import networkx as nx
+from pyvis.network import Network
+
+# Edge type -> (colour, width, tooltip heading)
+EDGE_STYLES: Dict[str, Tuple[str, float, str]] = {
+    "critical_path": ("#ff0000", 3, "Critical Path"),
+    "bypass": ("#fcbf49", 2.4, "Bypass Route"),
+    "approval": ("#00d4ff", 2, "Approval Dependency"),
+    "escalation": ("#b388ff", 1.8, "Escalation Path"),
+}
+DEFAULT_EDGE_STYLE = ("#4a4e69", 1.5, "Dependency")
 
 
 def generate_graph_visualization(hrg, results, output_file):
@@ -72,67 +83,88 @@ def generate_graph_visualization(hrg, results, output_file):
     }
     """)
 
-    # Get critical people from results
     critical_people = set(results.get("articulation_points", []))
+    _add_nodes(net, hrg, critical_people)
+    _add_edges(net, hrg)
 
-    # Calculate node sizes based on degree centrality
-    G = hrg.graph
-    degree_centrality = nx.degree_centrality(G)
+    legend_html = _legend_html(hrg.graph, results, len(critical_people))
+
+    # Generate HTML
+    output_path = Path(output_file)
+    net.save_graph(str(output_path))
+
+    # Read and modify HTML to add legend
+    html_content = output_path.read_text(encoding="utf-8")
+
+    # Insert legend before closing body tag
+    html_content = html_content.replace("</body>", f"{legend_html}</body>")
+
+    # Add custom title
+    title = "Human Risk Graph - Interactive Visualization"
+    html_content = html_content.replace("<title>pyvis.html</title>", f"<title>{title}</title>")
+
+    # Write modified HTML
+    output_path.write_text(html_content, encoding="utf-8")
+
+    return str(output_path)
+
+
+def _node_color(is_critical: bool, node_score: float) -> str:
+    if is_critical:
+        return "#f77f00"  # Orange - critical (articulation point)
+    if node_score > 0.7:
+        return "#fcbf49"  # Yellow - high risk
+    if node_score > 0.4:
+        return "#0abfbc"  # Teal - medium risk
+    return "#00d4ff"  # Cyan - low risk
+
+
+def _node_title(person: Dict, analysis: Dict, node_score: float, is_critical: bool) -> str:
+    """
+    Tooltip of a person.
+
+    vis-network shows string titles as plain text (innerText), so this is text with
+    line breaks, not HTML: markup would appear literally, and user data stays inert.
+    """
+    lines = [
+        str(person.get("name", person["id"])),
+        f"ID: {person['id']}",
+        f"Risk Score: {node_score:.3f}",
+        f"Criticality: {analysis.get('criticality', 0):.3f}",
+        f"Betweenness: {analysis.get('betweenness_centrality', 0):.3f}",
+    ]
+    if "role" in person:
+        lines.append(f"Role: {person['role']}")
+    if is_critical:
+        lines += ["", "⚠️ CRITICAL NODE", "(Articulation Point)"]
+    lines += [
+        "",
+        f"Dependencies: {analysis['out_degree']}",
+        f"Depended by: {analysis['in_degree']}",
+    ]
+    return "\n".join(lines)
+
+
+def _add_nodes(net: Network, hrg, critical_people: Set[str]) -> None:
+    """Add people, coloured by risk and sized by degree centrality."""
+    degree_centrality = nx.degree_centrality(hrg.graph)
     max_degree = max(degree_centrality.values()) if degree_centrality else 1
     if max_degree <= 0:
         max_degree = 1
-    person_lookup = {person["id"]: person for person in hrg.people}
+    analyses = hrg.analyze_nodes()
 
-    # Add nodes with risk-based coloring
     for person in hrg.people:
         person_id = person["id"]
-        name = person.get("name", person_id)
-
-        # Analyze this specific node
-        node_analysis = hrg.analyze_node(person_id)
-        node_score = node_analysis.get("node_risk_score", node_analysis.get("criticality", 0))
-
-        # Determine node color based on risk level
-        if person_id in critical_people:
-            color = "#f77f00"  # Orange - critical (articulation point)
-        elif node_score > 0.7:
-            color = "#fcbf49"  # Yellow - high risk
-        elif node_score > 0.4:
-            color = "#0abfbc"  # Teal - medium risk
-        else:
-            color = "#00d4ff"  # Cyan - low risk
-
-        # Node size based on centrality
-        centrality = degree_centrality.get(person_id, 0)
-        size = 20 + (centrality / max_degree) * 30
-
-        # Build title (tooltip) with detailed info
-        title = f"<b>{name}</b><br>"
-        title += f"ID: {person_id}<br>"
-        title += f"Risk Score: {node_score:.3f}<br>"
-        title += f"Criticality: {node_analysis.get('criticality', 0):.3f}<br>"
-        title += f"Betweenness: {node_analysis.get('betweenness_centrality', 0):.3f}<br>"
-
-        if "role" in person:
-            title += f"Role: {person['role']}<br>"
-
-        if person_id in critical_people:
-            title += "<br><b style='color:#f77f00'>⚠️ CRITICAL NODE</b><br>"
-            title += "(Articulation Point)<br>"
-
-        # Add dependency info
-        in_degree = G.in_degree(person_id)
-        out_degree = G.out_degree(person_id)
-        title += f"<br>Dependencies: {out_degree}<br>"
-        title += f"Depended by: {in_degree}"
-
+        analysis = analyses[person_id]
+        node_score = analysis.get("node_risk_score", analysis.get("criticality", 0))
+        is_critical = person_id in critical_people
         net.add_node(
             person_id,
-            label=name,
-            title=title,
-            color=color,
-            borderWidth=3 if person_id in critical_people else 2,
-            size=size,
+            label=person.get("name", person_id),
+            title=_node_title(person, analysis, node_score, is_critical),
+            color=_node_color(is_critical, node_score),
+            borderWidth=3 if is_critical else 2,
+            size=20 + (degree_centrality.get(person_id, 0) / max_degree) * 30,
             shape="dot",
             font={"size": 14, "face": "arial", "color": "white"},
             borderWidthSelected=5,
@@ -140,54 +172,32 @@ def generate_graph_visualization(hrg, results, output_file):
             mass=2,
         )
 
-    # Add edges
-    for u, v, data in G.edges(data=True):
+
+def _add_edges(net: Network, hrg) -> None:
+    """Add dependencies, styled by type; bypasses are dashed."""
+    names = {person["id"]: person.get("name", person["id"]) for person in hrg.people}
+    for u, v, data in hrg.graph.edges(data=True):
         edge_type = data.get("edge_type", data.get("type", "dependency"))
-        edge_weight = data.get("weight", 0.0)
-
-        from_name = person_lookup.get(u, {}).get("name", u)
-        to_name = person_lookup.get(v, {}).get("name", v)
-
-        # Edge styling based on type
-        if edge_type == "critical_path":
-            color = "#ff0000"
-            width = 3
-            title = "Critical Path"
-        elif edge_type == "bypass":
-            color = "#fcbf49"
-            width = 2.4
-            title = "Bypass Route"
-        elif edge_type == "approval":
-            color = "#00d4ff"
-            width = 2
-            title = "Approval Dependency"
-        elif edge_type == "escalation":
-            color = "#b388ff"
-            width = 1.8
-            title = "Escalation Path"
-        else:
-            color = "#4a4e69"
-            width = 1.5
-            title = "Dependency"
-
-        title += f"<br>From: {from_name}<br>To: {to_name}<br>Type: {edge_type}<br>Weight: {edge_weight:.2f}"
-
-        # Add context to tooltip if available
+        color, width, title = EDGE_STYLES.get(edge_type, DEFAULT_EDGE_STYLE)
+        title += (
+            f"\nFrom: {names.get(u, u)}\nTo: {names.get(v, v)}"
+            f"\nType: {edge_type}\nWeight: {data.get('weight', 0.0):.2f}"
+        )
         if "context" in data:
             title += f": {data['context']}"
-
         net.add_edge(
             u,
             v,
             title=title,
             color=color,
             width=width,
-            dashes=True if edge_type == "bypass" else False,
+            dashes=edge_type == "bypass",
             arrows={"to": {"enabled": True, "scaleFactor": 0.5}},
         )
 
-    # Add legend to the visualization
-    legend_html = """
+
+def _legend_html(graph: nx.DiGraph, results: Dict, critical_count: int) -> str:
+    return """
     <div style="position: absolute; top: 10px; right: 10px; background: rgba(26, 26, 46, 0.9);
                 padding: 15px; border-radius: 8px; border: 2px solid #4a4e69; color: white;
                 font-family: Arial, sans-serif; font-size: 14px; z-index: 1000;">
@@ -226,30 +236,11 @@ def generate_graph_visualization(hrg, results, output_file):
         </div>
     </div>
     """.format(
-        nodes=len(G.nodes()),
-        edges=len(G.edges()),
-        critical_count=len(critical_people),
+        nodes=len(graph.nodes()),
+        edges=len(graph.edges()),
+        critical_count=critical_count,
         composite=results["composite_score"],
         bus_factor=results["bus_factor"],
         decision=results["decision_concentration"],
         bypass=results["bypass_risk"],
     )
-
-    # Generate HTML
-    output_path = Path(output_file)
-    net.save_graph(str(output_path))
-
-    # Read and modify HTML to add legend
-    html_content = output_path.read_text()
-
-    # Insert legend before closing body tag
-    html_content = html_content.replace("</body>", f"{legend_html}</body>")
-
-    # Add custom title
-    title = "Human Risk Graph - Interactive Visualization"
-    html_content = html_content.replace("<title>pyvis.html</title>", f"<title>{title}</title>")
-
-    # Write modified HTML
-    output_path.write_text(html_content)
-
-    return str(output_path)

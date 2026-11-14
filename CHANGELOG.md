@@ -5,6 +5,24 @@ All notable changes to Human Risk Graph will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 🐛 Fixed
+
+- hrg-1 reports listed the critical people (articulation points) in a different order on every run, so JSON, Markdown and pseudonymized reports of the same input differed; they are now sorted.
+- Tooltips of the interactive graph (`*_graph.html`) showed raw `<b>` and `<br>` tags: vis-network displays titles as plain text. They are now plain text with line breaks.
+- The graph visualization computed betweenness centrality and articulation points once per person; they are computed once (`HumanRiskGraph.analyze_nodes()`), and the file is read and written as UTF-8 on every platform.
+
+### 🔒 Security
+
+- `GitHubClient` requires an `https` API URL and refuses to send the token to a URL outside the API, for example through a `Link` pagination header.
+- `bandit` findings were reviewed and justified inline (`bandit -c pyproject.toml -r src/` is clean); `pip-audit` is in the hashed dev lock.
+
+### 🔧 Changed
+
+- black, flake8 (with the complexity limit) and mypy (now with `check_untyped_defs`) report no findings.
+- Refactored the 15 functions above the complexity limit (`hrg analyze`, `hrg scan github`, the GitHub scanner, report generation, configuration and input validation) into smaller functions, and fixed all type errors. Apart from the fixes above, reports and drafts are unchanged: compared byte for byte on the examples and on every GitHub scan scenario of the test suite.
+
 ## [0.15.2] - 2026-11-13
 
 ### 🗑️ Removed

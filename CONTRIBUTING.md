@@ -25,8 +25,18 @@ All pull requests must pass the CI pipeline (tests, linting, security checks) be
 ### Code Style
 - Python code must follow [PEP 8](https://peps.python.org/pep-0008/)
 - Format with `black`: `black src/ tests/`
-- Lint with `flake8`: `flake8 src/ tests/`
-- Type hints encouraged; check with `mypy`: `mypy src/`
+- Lint with `flake8`: `flake8 src/ tests/` (includes a cyclomatic complexity limit of 10)
+- Type hints encouraged; check with `mypy` (settings in `pyproject.toml`)
+- Security checks: `bandit -c pyproject.toml -r src/` and
+  `pip-audit -r requirements.txt --require-hashes --disable-pip`
+
+The tool versions are pinned in `requirements.txt` (compiled for Python 3.11). To use
+the same versions locally:
+
+```bash
+pip install --require-hashes -r requirements.txt   # Python 3.11
+pip install --no-deps -e .
+```
 
 ### Tests
 - All new features must include unit tests in `tests/`

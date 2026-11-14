@@ -6,7 +6,7 @@ finding is relevant to. They are not an assessment of compliance.
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 from .hrg import HumanRiskGraph
 from .model_v2 import (
@@ -17,6 +17,9 @@ from .model_v2 import (
     approval_shares,
     key_person_impacts,
 )
+
+if TYPE_CHECKING:  # config imports this module
+    from .config import Acceptance
 
 FRAMEWORKS = {
     "iso27001": "ISO/IEC 27001:2022",
@@ -47,7 +50,7 @@ class Finding:
     person: Optional[str] = None
     dependency: Optional[Tuple[str, str]] = None
     function: Optional[str] = None
-    acceptance: Optional[Any] = None  # config.Acceptance that matched this finding
+    acceptance: Optional["Acceptance"] = None  # the risk acceptance that matched
     acceptance_expired: bool = False
 
     @property
@@ -338,7 +341,7 @@ def _function_findings(hrg: HumanRiskGraph, results: Dict[str, Any]) -> List[Fin
     shares = results.get("approval_shares", {})
     concentration = results.get("decision_concentration", 0.0)
     if concentration >= CONCENTRATION_WARNING and len(shares) > 1:
-        top = max(sorted(shares), key=shares.get)
+        top = max(sorted(shares), key=shares.__getitem__)
         findings.append(
             Finding(
                 rule_id="HRG002",
@@ -438,7 +441,7 @@ def collect_findings(
         effective = 1 / concentration if concentration else 0.0
         measure = f"{effective:.1f} effective approvers of {len(shares)}"
     if concentration >= warn and shares:
-        top = max(sorted(shares), key=shares.get)
+        top = max(sorted(shares), key=shares.__getitem__)
         findings.append(
             Finding(
                 rule_id="HRG002",

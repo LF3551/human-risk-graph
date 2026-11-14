@@ -19,7 +19,9 @@ import json
 import os
 import re
 import shutil
-import subprocess
+
+# subprocess runs only `gh auth token`, with fixed arguments and no shell.
+import subprocess  # nosec B404
 import threading
 import time
 import urllib.error
@@ -41,6 +43,25 @@ class GitHubError(RuntimeError):
     pass
 
 
+def _not_available(error: urllib.error.HTTPError, url: str, final: bool) -> bool:
+    """
+    Classify an HTTP error: True when optional data is not available (403, 404, 409, 422),
+    False when the request is worth retrying; raises GitHubError when it is fatal.
+    """
+    if error.code in (403, 404, 409, 422):
+        if error.code == 403 and error.headers.get("X-RateLimit-Remaining") == "0":
+            raise GitHubError(
+                "GitHub API rate limit reached; use a token (--token, GITHUB_TOKEN "
+                "or `gh auth login`)"
+            ) from error
+        return True
+    if error.code == 401:
+        raise GitHubError("GitHub rejected the token (401)") from error
+    if error.code not in TRANSIENT or final:
+        raise GitHubError(f"GitHub API error {error.code} for {url}") from error
+    return False
+
+
 class GitHubClient:
     """Minimal REST client: GET with pagination; returns None for 403/404 on optional data.
 
@@ -48,13 +69,15 @@ class GitHubClient:
     """
 
     def __init__(self, token: Optional[str] = None, api: str = API):
+        if urllib.parse.urlsplit(api).scheme != "https":
+            raise ValueError(f"GitHub API URL must use https, got {api!r}")
         self.token = token
         self.api = api.rstrip("/")
         self.calls = 0
         self.retry_delays: Tuple[float, ...] = (1, 2, 4)  # seconds before each retry
         self._lock = threading.Lock()
 
-    def _request(self, url: str):
+    def _headers(self) -> Dict[str, str]:
         headers = {
             "Accept": "application/vnd.github+json",
             "X-GitHub-Api-Version": "2022-11-28",
@@ -62,30 +85,28 @@ class GitHubClient:
         }
         if self.token:
             headers["Authorization"] = f"Bearer {self.token}"
-        request = urllib.request.Request(url, headers=headers)
+        return headers
+
+    def _request(self, url: str):
+        # Pagination follows Link headers: never send the token outside the API.
+        if not url.startswith(self.api + "/"):
+            raise GitHubError(f"Refusing to request {url}: not under {self.api}")
+        request = urllib.request.Request(url, headers=self._headers())
         for delay in (*self.retry_delays, None):
             with self._lock:
                 self.calls += 1
             try:
-                with urllib.request.urlopen(request, timeout=30) as response:
+                # https only: checked in __init__ and above (bandit B310).
+                with urllib.request.urlopen(request, timeout=30) as response:  # nosec B310
                     return json.loads(response.read().decode("utf-8")), response.headers.get("Link")
             except urllib.error.HTTPError as e:
-                if e.code in (403, 404, 409, 422):
-                    if e.code == 403 and e.headers.get("X-RateLimit-Remaining") == "0":
-                        raise GitHubError(
-                            "GitHub API rate limit reached; use a token (--token, GITHUB_TOKEN "
-                            "or `gh auth login`)"
-                        ) from e
+                if _not_available(e, url, final=delay is None):
                     return None, None
-                if e.code == 401:
-                    raise GitHubError("GitHub rejected the token (401)") from e
-                if e.code not in TRANSIENT or delay is None:
-                    raise GitHubError(f"GitHub API error {e.code} for {url}") from e
             except (urllib.error.URLError, TimeoutError) as e:
                 if delay is None:
                     reason = getattr(e, "reason", e)
                     raise GitHubError(f"Cannot reach GitHub: {reason}") from e
-            time.sleep(delay)
+            time.sleep(delay or 0)
         raise AssertionError("unreachable")  # pragma: no cover
 
     def get(self, path: str, params: Optional[Dict[str, Any]] = None, limit: int = 0):
@@ -115,7 +136,7 @@ def default_token() -> Optional[str]:
             return os.environ[name]
     if shutil.which("gh"):
         try:
-            out = subprocess.run(
+            out = subprocess.run(  # nosec B603 B607
                 ["gh", "auth", "token"], capture_output=True, text=True, timeout=10, check=False
             )
             return out.stdout.strip() or None
@@ -218,6 +239,25 @@ class ScanResult:
         return coverage
 
 
+@dataclass
+class _PullRequest:
+    author: str
+    number: int
+    approved_by: Set[str]
+    files: Optional[List[Dict[str, Any]]]
+    merger: Optional[str]
+
+
+@dataclass
+class _Tally:
+    authored: Counter = field(default_factory=Counter)
+    approvals: Counter = field(default_factory=Counter)  # (approver, author) -> count
+    owner_reviews: Counter = field(default_factory=Counter)  # (owner, author) -> count
+    unreviewed_merges: Dict[str, List[int]] = field(default_factory=lambda: defaultdict(list))
+    approvers_seen: Counter = field(default_factory=Counter)
+    owners_seen: Set[str] = field(default_factory=set)
+
+
 def _is_bot(login: str) -> bool:
     """GitHub Apps ("name[bot]") and machine users named like bots (prombot, k8s-ci-robot)."""
     name = login.lower()
@@ -280,18 +320,24 @@ class GitHubScanner:
 
     def _bypass_actors(self) -> Tuple[Set[str], Optional[bool]]:
         """People who can bypass branch rules, and whether reviews are required (None: unknown)."""
+        rules = self.client.get(f"repos/{self.repo}/rules/branches/{self.branch}")
+        actors, review_required = self._ruleset_bypass(rules or [])
+        classic, review_required = self._classic_bypass(bool(rules), review_required)
+        return {a for a in actors | classic if self._keep(a)}, review_required
+
+    def _ruleset_bypass(self, rules: List[Dict[str, Any]]) -> Tuple[Set[str], Optional[bool]]:
+        """Bypass actors of the rulesets that apply to the branch, and whether they need reviews."""
         actors: Set[str] = set()
         review_required: Optional[bool] = False
-        rules = self.client.get(f"repos/{self.repo}/rules/branches/{self.branch}")
         ruleset_ids = set()
-        for rule in rules or []:
+        for rule in rules:
             ruleset_ids.add(rule.get("ruleset_id"))
-            if rule.get("type") == "pull_request":
-                params = rule.get("parameters") or {}
-                if params.get("required_approving_review_count") or params.get(
-                    "require_code_owner_review"
-                ):
-                    review_required = True
+            params = rule.get("parameters") or {}
+            if rule.get("type") == "pull_request" and (
+                params.get("required_approving_review_count")
+                or params.get("require_code_owner_review")
+            ):
+                review_required = True
         for ruleset_id in sorted(i for i in ruleset_ids if i):
             ruleset = self.client.get(
                 f"repos/{self.repo}/rulesets/{ruleset_id}", {"includes_parents": "true"}
@@ -304,34 +350,46 @@ class GitHubScanner:
                 continue
             for actor in bypass:
                 actors |= self._actor_logins(actor)
+        return actors, review_required
 
+    def _classic_bypass(
+        self, has_rules: bool, review_required: Optional[bool]
+    ) -> Tuple[Set[str], Optional[bool]]:
+        """Bypass allowances of classic branch protection; gaps when it is not visible."""
         branch = self.client.get(f"repos/{self.repo}/branches/{self.branch}") or {}
         protection = self.client.get(f"repos/{self.repo}/branches/{self.branch}/protection")
         if protection:
-            reviews = protection.get("required_pull_request_reviews") or {}
-            if reviews.get("required_approving_review_count") or reviews.get(
-                "require_code_owners_reviews"
-            ):
-                review_required = True
-            allowances = reviews.get("bypass_pull_request_allowances") or {}
-            actors |= {u["login"] for u in allowances.get("users", [])}
-            for team in allowances.get("teams", []):
-                actors |= set(self._expand(f"@{self.org}/{team['slug']}"))
-            if reviews and not (protection.get("enforce_admins") or {}).get("enabled"):
-                actors |= self._admins("branch protection does not apply to admins")
-        elif branch.get("protected") and not rules:
+            return self._protection_bypass(protection, review_required)
+        if branch.get("protected") and not has_rules:
             self.gaps.append(
                 f"Branch {self.branch} is protected but its protection settings are not "
                 "visible (needs admin access): required reviews and bypass allowances unknown."
             )
-            review_required = None
-        elif branch.get("protected"):
+            return set(), None
+        if branch.get("protected"):
             self.gaps.append(
                 f"Classic protection settings of {self.branch} are not visible (needs admin "
                 "access); only rulesets were read."
             )
-            review_required = review_required or None
-        return {a for a in actors if self._keep(a)}, review_required
+            return set(), review_required or None
+        return set(), review_required
+
+    def _protection_bypass(
+        self, protection: Dict[str, Any], review_required: Optional[bool]
+    ) -> Tuple[Set[str], Optional[bool]]:
+        actors: Set[str] = set()
+        reviews = protection.get("required_pull_request_reviews") or {}
+        if reviews.get("required_approving_review_count") or reviews.get(
+            "require_code_owners_reviews"
+        ):
+            review_required = True
+        allowances = reviews.get("bypass_pull_request_allowances") or {}
+        actors |= {u["login"] for u in allowances.get("users", [])}
+        for team in allowances.get("teams", []):
+            actors |= set(self._expand(f"@{self.org}/{team['slug']}"))
+        if reviews and not (protection.get("enforce_admins") or {}).get("enabled"):
+            actors |= self._admins("branch protection does not apply to admins")
+        return actors, review_required
 
     def _admins(self, why: str) -> Set[str]:
         if self._admin_cache is not None:
@@ -449,13 +507,37 @@ class GitHubScanner:
 
         self.progress("Reading CODEOWNERS and branch rules")
         codeowners = self._codeowners()
-        only_default_rule = all(pattern in ("*", "/*", "**") for _, pattern, _ in codeowners)
         bypassers, review_required = self._bypass_actors()
         if review_required:
             self.notes.append(f"Branch {self.branch} requires approving reviews.")
         elif review_required is False:
             self.notes.append(f"Branch {self.branch} does not require approving reviews.")
 
+        merged = self._merged_pull_requests()
+        tally = self._tally(self._fetch_pull_requests(merged, codeowners), codeowners)
+        self._discount_unreviewed(tally.unreviewed_merges, review_required)
+
+        self.progress("Reading releases and admins")
+        releases = self._releases()
+        admins = self._admins("they can change settings and branch protection")
+        functions = self._functions(
+            review_required, bypassers, tally.unreviewed_merges, tally.approvers_seen,
+            tally.owners_seen, releases, admins,
+        )  # fmt: skip
+        roles = {
+            login: f"published {n} releases" for login, n in releases.items() if self._keep(login)
+        }
+        for login in admins:
+            roles[login] = ", ".join(filter(None, [roles.get(login), "repository admin"]))
+
+        result = self._build(merged, tally, bypassers, roles)
+        result.review_required = review_required
+        result.gaps = self.gaps
+        result.functions = functions
+        return result
+
+    def _merged_pull_requests(self) -> List[Dict[str, Any]]:
+        """The most recent merged pull requests into the branch, by people (not bots)."""
         self.progress(f"Reading up to {self.max_prs} merged pull requests")
         pulls = self.client.get(
             f"repos/{self.repo}/pulls",
@@ -463,22 +545,18 @@ class GitHubScanner:
              "per_page": 100},
             self.max_prs * 2,
         ) or []  # fmt: skip
-        merged = [
+        return [
             p
             for p in pulls
             if p.get("merged_at") and self._keep((p.get("user") or {}).get("login"))
         ][: self.max_prs]
 
-        authored: Counter = Counter()
-        approvals: Dict[Tuple[str, str], int] = Counter()
-        owner_reviews: Dict[Tuple[str, str], int] = Counter()
-        unreviewed_merges: Dict[str, List[int]] = defaultdict(list)
-        approvers_seen: Counter = Counter()
-        owners_seen: Set[str] = set()
+    def _fetch_pull_requests(self, merged, codeowners) -> List[_PullRequest]:
+        """Approvers, changed files and merger of each pull request, read in parallel."""
+        only_default_rule = all(pattern in ("*", "/*", "**") for _, pattern, _ in codeowners)
         fetch_files = bool(codeowners) and not only_default_rule
 
-        def fetch(pr):
-            """Approvers, changed files and the merger of one pull request."""
+        def fetch(pr) -> _PullRequest:
             author, number = pr["user"]["login"], pr["number"]
             reviews = self.client.get(
                 f"repos/{self.repo}/pulls/{number}/reviews", {"per_page": 100}, 300
@@ -498,168 +576,172 @@ class GitHubScanner:
             if not approved_by:
                 detail = self.client.get(f"repos/{self.repo}/pulls/{number}") or {}
                 merger = (detail.get("merged_by") or {}).get("login")
-            return author, number, approved_by, files, merger
+            return _PullRequest(author, number, approved_by, files, merger)
 
+        fetched = []
         with ThreadPoolExecutor(max_workers=8) as pool:
-            fetched = []
             for i, item in enumerate(pool.map(fetch, merged), 1):
                 fetched.append(item)
                 if i % 10 == 0:
                     self.progress(f"Pull request {i}/{len(merged)}")
+        return fetched
 
-        for author, number, approved_by, files, merger in fetched:
-            authored[author] += 1
-            for approver in approved_by:
-                approvals[(approver, author)] += 1
-                approvers_seen[approver] += 1
+    def _tally(self, fetched: List[_PullRequest], codeowners) -> _Tally:
+        """Count authorship, approvals, code-owner reviews and merges without review."""
+        tally = _Tally()
+        for pr in fetched:
+            tally.authored[pr.author] += 1
+            for approver in pr.approved_by:
+                tally.approvals[(approver, pr.author)] += 1
+                tally.approvers_seen[approver] += 1
+            for login in self._pr_owners(pr, codeowners):
+                tally.owner_reviews[(login, pr.author)] += 1
+                tally.owners_seen.add(login)
+            if pr.merger and self._keep(pr.merger):
+                tally.unreviewed_merges[pr.merger].append(pr.number)
+        return tally
 
-            if codeowners:
-                if files is None:
-                    pr_owners = owners_for("README.md", codeowners)
-                else:
-                    pr_owners = sorted(
-                        {o for f in files for o in owners_for(f["filename"], codeowners)}
-                    )
-                for owner in pr_owners:
-                    for login in self._expand(owner):
-                        if self._keep(login) and login != author:
-                            owner_reviews[(login, author)] += 1
-                            owners_seen.add(login)
-
-            if self._keep(merger):
-                unreviewed_merges[merger].append(number)
-
-        unreviewed = sum(len(n) for n in unreviewed_merges.values())
-        if unreviewed and not review_required:
-            why = (
-                "the branch does not require reviews"
-                if review_required is False
-                else "whether the branch requires reviews is not visible"
-            )
-            message = (
-                f"{unreviewed} pull request(s) were merged without an approving review; "
-                f"{why}, so they are not counted as bypasses."
-            )
-            (self.notes if review_required is False else self.gaps).append(message)
-            unreviewed_merges.clear()
-
-        self.progress("Reading releases and admins")
-        releases = self._releases()
-        admins = self._admins("they can change settings and branch protection")
-        functions = self._functions(
-            review_required, bypassers, unreviewed_merges, approvers_seen, owners_seen,
-            releases, admins,
-        )  # fmt: skip
-        roles = {
-            login: f"published {n} releases" for login, n in releases.items() if self._keep(login)
-        }
-        for login in admins:
-            roles[login] = ", ".join(filter(None, [roles.get(login), "repository admin"]))
-
-        result = self._build(
-            merged, authored, approvals, owner_reviews, unreviewed_merges, bypassers,
-            approvers_seen, owners_seen, roles,
-        )  # fmt: skip
-        result.review_required = review_required
-        result.gaps = self.gaps
-        result.functions = functions
-        return result
-
-    def _build(
-        self, merged, authored, approvals, owner_reviews, unreviewed_merges, bypassers,
-        approvers_seen, owners_seen, roles=None,
-    ) -> ScanResult:  # fmt: skip
-        edges: Dict[Tuple[str, str, str], Edge] = {}
-
-        def add(source, target, kind, weight, origin, evidence):
-            edge = edges.setdefault((source, target, kind), Edge(weight=0.0))
-            edge.weight = max(edge.weight, round(min(1.0, weight), 2))
-            edge.sources.add(origin)
-            edge.evidence.append(evidence)
-
-        for (approver, author), count in sorted(approvals.items()):
-            add(approver, author, "approval", count / authored[author], "pr-reviews",
-                f"approved {count} of {authored[author]} merged PRs by {author}")  # fmt: skip
-        for (owner, author), count in sorted(owner_reviews.items()):
-            add(owner, author, "approval", count / authored[author], "codeowners",
-                f"code owner of files in {count} of {authored[author]} merged PRs by {author}")  # fmt: skip
-
-        approvers = set(approvers_seen) | owners_seen
-        for merger, numbers in sorted(unreviewed_merges.items()):
-            shown = ", ".join(f"#{n}" for n in numbers[:5]) + (" ..." if len(numbers) > 5 else "")
-            for approver in sorted(approvers - {merger}):
-                add(merger, approver, "bypass", 1.0, "merge-history",
-                    f"merged {len(numbers)} PR(s) without an approving review ({shown})")  # fmt: skip
-        for actor in sorted(bypassers):
-            for approver in sorted(approvers - {actor}):
-                add(actor, approver, "bypass", 1.0, "branch-rules",
-                    "can bypass the branch rules that require reviews")  # fmt: skip
-
-        roles = roles or {}
-        logins = set(authored) | approvers | set(unreviewed_merges) | set(bypassers) | set(roles)
-        total_approvals = sum(approvers_seen.values()) or 1
-        people = []
-        for login in logins:
-            crit, reasons = 0.3, []
-            if login in owners_seen:
-                crit += 0.3
-                reasons.append("code owner")
-            if login in bypassers or login in unreviewed_merges:
-                crit += 0.2
-                reasons.append("can bypass review")
-            if login in roles:
-                crit += 0.2
-                reasons.append(roles[login])
-            share = approvers_seen[login] / total_approvals
-            if share:
-                crit += 0.2 * share
-                reasons.append(f"gave {share:.0%} of approvals")
-            if authored[login]:
-                reasons.append(f"authored {authored[login]} merged PRs")
-            people.append(
-                {
-                    "id": login,
-                    "name": login,
-                    "role": ", ".join(reasons[:2]) or "contributor",
-                    "criticality": round(min(1.0, crit), 2),
-                    "source": "github",
-                    "evidence": "; ".join(reasons),
-                }
-            )
-        people.sort(key=lambda p: (-p["criticality"], p["id"]))
-
-        dependencies: List[Dict[str, Any]] = [
-            {
-                "from": source,
-                "to": target,
-                "type": kind,
-                "weight": edge.weight,
-                "source": "+".join(sorted(edge.sources)),
-                "evidence": "; ".join(edge.evidence),
-                "confirmed": False,
-            }
-            for (source, target, kind), edge in sorted(edges.items())
-            if source != target
+    def _pr_owners(self, pr: _PullRequest, codeowners) -> List[str]:
+        """Code owners of the files a pull request changed, other than its author."""
+        if not codeowners:
+            return []
+        if pr.files is None:
+            owners = owners_for("README.md", codeowners)
+        else:
+            owners = sorted({o for f in pr.files for o in owners_for(f["filename"], codeowners)})
+        return [
+            login
+            for owner in owners
+            for login in self._expand(owner)
+            if self._keep(login) and login != pr.author
         ]
-        # The model keeps one dependency per (from, to); a bypass outranks an approval.
-        best: Dict[Tuple[str, str], Dict[str, Any]] = {}
-        for dep in dependencies:
-            key = (dep["from"], dep["to"])
-            if key not in best or dep["type"] == "bypass":
-                if key in best:
-                    dep["evidence"] = f"{dep['evidence']}; also {best[key]['evidence']}"
-                best[key] = dep
+
+    def _discount_unreviewed(
+        self, unreviewed_merges: Dict[str, List[int]], review_required: Optional[bool]
+    ) -> None:
+        """Merges without review are bypasses only when the branch visibly requires reviews."""
+        unreviewed = sum(len(n) for n in unreviewed_merges.values())
+        if not unreviewed or review_required:
+            return
+        why = (
+            "the branch does not require reviews"
+            if review_required is False
+            else "whether the branch requires reviews is not visible"
+        )
+        message = (
+            f"{unreviewed} pull request(s) were merged without an approving review; "
+            f"{why}, so they are not counted as bypasses."
+        )
+        (self.notes if review_required is False else self.gaps).append(message)
+        unreviewed_merges.clear()
+
+    def _build(self, merged, tally: _Tally, bypassers, roles=None) -> ScanResult:
+        roles = roles or {}
+        edges = _edges(tally, bypassers)
+        approvers = set(tally.approvers_seen) | tally.owners_seen
+        logins = (
+            set(tally.authored)
+            | approvers
+            | set(tally.unreviewed_merges)
+            | set(bypassers)
+            | set(roles)
+        )
+        total_approvals = sum(tally.approvers_seen.values()) or 1
+        people = [_person(login, tally, bypassers, roles, total_approvals) for login in logins]
+        people.sort(key=lambda p: (-p["criticality"], p["id"]))
         return ScanResult(
             repo=self.repo,
             branch=self.branch or "",
             pull_requests=len(merged),
             people=people,
-            dependencies=list(best.values()),
+            dependencies=_strongest_dependencies(edges),
             notes=self.notes,
             api_calls=self.client.calls,
-            approvals_given=dict(approvers_seen),
-            code_owners=sorted(owners_seen),
+            approvals_given=dict(tally.approvers_seen),
+            code_owners=sorted(tally.owners_seen),
         )
+
+
+def _edges(tally: _Tally, bypassers) -> Dict[Tuple[str, str, str], Edge]:
+    """Evidence per (from, to, type): approvals, code ownership and bypasses."""
+    edges: Dict[Tuple[str, str, str], Edge] = {}
+    authored = tally.authored
+
+    def add(source, target, kind, weight, origin, evidence):
+        edge = edges.setdefault((source, target, kind), Edge(weight=0.0))
+        edge.weight = max(edge.weight, round(min(1.0, weight), 2))
+        edge.sources.add(origin)
+        edge.evidence.append(evidence)
+
+    for (approver, author), count in sorted(tally.approvals.items()):
+        add(approver, author, "approval", count / authored[author], "pr-reviews",
+            f"approved {count} of {authored[author]} merged PRs by {author}")  # fmt: skip
+    for (owner, author), count in sorted(tally.owner_reviews.items()):
+        add(owner, author, "approval", count / authored[author], "codeowners",
+            f"code owner of files in {count} of {authored[author]} merged PRs by {author}")  # fmt: skip
+
+    approvers = set(tally.approvers_seen) | tally.owners_seen
+    for merger, numbers in sorted(tally.unreviewed_merges.items()):
+        shown = ", ".join(f"#{n}" for n in numbers[:5]) + (" ..." if len(numbers) > 5 else "")
+        for approver in sorted(approvers - {merger}):
+            add(merger, approver, "bypass", 1.0, "merge-history",
+                f"merged {len(numbers)} PR(s) without an approving review ({shown})")  # fmt: skip
+    for actor in sorted(bypassers):
+        for approver in sorted(approvers - {actor}):
+            add(actor, approver, "bypass", 1.0, "branch-rules",
+                "can bypass the branch rules that require reviews")  # fmt: skip
+    return edges
+
+
+def _person(login: str, tally: _Tally, bypassers, roles, total_approvals: int) -> Dict[str, Any]:
+    """A person of the draft, with a criticality estimated from what the scan saw."""
+    crit, reasons = 0.3, []
+    if login in tally.owners_seen:
+        crit += 0.3
+        reasons.append("code owner")
+    if login in bypassers or login in tally.unreviewed_merges:
+        crit += 0.2
+        reasons.append("can bypass review")
+    if login in roles:
+        crit += 0.2
+        reasons.append(roles[login])
+    share = tally.approvers_seen[login] / total_approvals
+    if share:
+        crit += 0.2 * share
+        reasons.append(f"gave {share:.0%} of approvals")
+    if tally.authored[login]:
+        reasons.append(f"authored {tally.authored[login]} merged PRs")
+    return {
+        "id": login,
+        "name": login,
+        "role": ", ".join(reasons[:2]) or "contributor",
+        "criticality": round(min(1.0, crit), 2),
+        "source": "github",
+        "evidence": "; ".join(reasons),
+    }
+
+
+def _strongest_dependencies(edges: Dict[Tuple[str, str, str], Edge]) -> List[Dict[str, Any]]:
+    """One dependency per (from, to), as the model keeps; a bypass outranks an approval."""
+    best: Dict[Tuple[str, str], Dict[str, Any]] = {}
+    for (source, target, kind), edge in sorted(edges.items()):
+        if source == target:
+            continue
+        dep = {
+            "from": source,
+            "to": target,
+            "type": kind,
+            "weight": edge.weight,
+            "source": "+".join(sorted(edge.sources)),
+            "evidence": "; ".join(edge.evidence),
+            "confirmed": False,
+        }
+        key = (source, target)
+        if key not in best or kind == "bypass":
+            if key in best:
+                dep["evidence"] = f"{dep['evidence']}; also {best[key]['evidence']}"
+            best[key] = dep
+    return list(best.values())
 
 
 # Organization
@@ -843,21 +925,25 @@ def merge_with_existing(result: ScanResult, existing: Optional[Dict[str, Any]]) 
     """
     if not existing:
         return []
-    notes = []
-    old_people = {p["id"]: p for p in existing.get("people", [])}
+    _keep_people(result, existing.get("people", []))
+    notes = _keep_dependencies(result, existing.get("dependencies", []))
+    return notes + _keep_functions(result, existing.get("functions") or [])
+
+
+def _keep_people(result: ScanResult, old_people: List[Dict[str, Any]]) -> None:
+    old_by_id = {p["id"]: p for p in old_people}
     for person in result.people:
-        old = old_people.get(person["id"])
-        if old:
-            for attr in ("criticality", "name", "role"):
-                if attr in old:
-                    person[attr] = old[attr]
+        old = old_by_id.get(person["id"], {})
+        person.update({attr: old[attr] for attr in ("criticality", "name", "role") if attr in old})
     known = {p["id"] for p in result.people}
-    for pid, old in old_people.items():
+    for pid, old in old_by_id.items():
         if pid not in known:
             result.people.append(old)
             known.add(pid)
 
-    old_deps = {(d["from"], d["to"]): d for d in existing.get("dependencies", [])}
+
+def _keep_dependencies(result: ScanResult, old_dependencies: List[Dict[str, Any]]) -> List[str]:
+    old_deps = {(d["from"], d["to"]): d for d in old_dependencies}
     new_keys = set()
     carried = 0
     for dep in result.dependencies:
@@ -867,29 +953,32 @@ def merge_with_existing(result: ScanResult, existing: Optional[Dict[str, Any]]) 
         if old and old.get("confirmed") and old.get("type") == dep["type"]:
             dep["confirmed"] = True
             carried += 1
-    kept = 0
-    for key, old in old_deps.items():
-        if key not in new_keys and (old.get("confirmed") or "source" not in old):
-            result.dependencies.append(old)
-            kept += 1
+    kept = [
+        old
+        for key, old in old_deps.items()
+        if key not in new_keys and (old.get("confirmed") or "source" not in old)
+    ]
+    result.dependencies.extend(kept)
+    notes = []
     if carried:
         notes.append(f"Kept confirmation of {carried} dependencies found again.")
     if kept:
-        notes.append(f"Kept {kept} confirmed or hand-written dependencies the scan did not find.")
+        notes.append(
+            f"Kept {len(kept)} confirmed or hand-written dependencies the scan did not find."
+        )
+    return notes
 
-    old_functions = {f["id"]: f for f in existing.get("functions") or []}
+
+def _keep_functions(result: ScanResult, old_functions: List[Dict[str, Any]]) -> List[str]:
+    old_by_id = {f["id"]: f for f in old_functions}
     scanned = {f["id"] for f in result.functions}
     for f in result.functions:
-        old = old_functions.get(f["id"])
-        if old:
-            for attr in ("name", "criticality", "requires", "separation", "confirmed"):
-                if attr in old:
-                    f[attr] = old[attr]
-    own = [f for fid, f in old_functions.items() if fid not in scanned]
+        old = old_by_id.get(f["id"], {})
+        keep = ("name", "criticality", "requires", "separation", "confirmed")
+        f.update({attr: old[attr] for attr in keep if attr in old})
+    own = [f for fid, f in old_by_id.items() if fid not in scanned]
     result.functions.extend(own)
-    if own:
-        notes.append(f"Kept {len(own)} functions the scan does not draft.")
-    return notes
+    return [f"Kept {len(own)} functions the scan does not draft."] if own else []
 
 
 def draft_yaml(result: ScanResult, notes: Iterable[str] = ()) -> str:

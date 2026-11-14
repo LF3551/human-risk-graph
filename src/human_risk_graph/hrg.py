@@ -7,7 +7,7 @@ Human Risk Graphs.
 
 import networkx as nx
 import numpy as np
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 from .metrics import (
     bus_factor_score,
     decision_concentration_score,
@@ -41,38 +41,44 @@ def _check_unit_interval(value, where: str) -> None:
 def _validate(people, dependencies) -> None:
     if not isinstance(people, list) or not isinstance(dependencies, list):
         raise ValueError("'people' and 'dependencies' must be lists")
-
-    ids = set()
+    ids: Set[str] = set()
     for i, person in enumerate(people):
-        if not isinstance(person, dict) or "id" not in person:
-            raise ValueError(f"people[{i}] must be an object with an 'id'")
-        if not isinstance(person["id"], str) or not person["id"]:
-            raise ValueError(f"people[{i}].id must be a non-empty string, got {person['id']!r}")
-        if person["id"] in ids:
-            raise ValueError(f"people[{i}]: duplicate id {person['id']!r}")
+        _validate_person(person, i, ids)
         ids.add(person["id"])
-        if "criticality" in person:
-            _check_unit_interval(person["criticality"], f"people[{i}].criticality")
-
     for i, dep in enumerate(dependencies):
-        if not isinstance(dep, dict) or "from" not in dep or "to" not in dep:
-            raise ValueError(f"dependencies[{i}] must be an object with 'from' and 'to'")
-        for end in ("from", "to"):
-            if dep[end] not in ids:
-                raise ValueError(f"dependencies[{i}].{end}: unknown person id {dep[end]!r}")
-        if "weight" in dep:
-            _check_unit_interval(dep["weight"], f"dependencies[{i}].weight")
-        if dep.get("review", "none") not in REVIEW_VALUES:
-            raise ValueError(
-                f"dependencies[{i}].review must be one of {', '.join(REVIEW_VALUES)}, "
-                f"got {dep['review']!r}"
-            )
+        _validate_dependency(dep, i, ids)
+
+
+def _validate_person(person, i: int, ids: Set[str]) -> None:
+    if not isinstance(person, dict) or "id" not in person:
+        raise ValueError(f"people[{i}] must be an object with an 'id'")
+    if not isinstance(person["id"], str) or not person["id"]:
+        raise ValueError(f"people[{i}].id must be a non-empty string, got {person['id']!r}")
+    if person["id"] in ids:
+        raise ValueError(f"people[{i}]: duplicate id {person['id']!r}")
+    if "criticality" in person:
+        _check_unit_interval(person["criticality"], f"people[{i}].criticality")
+
+
+def _validate_dependency(dep, i: int, ids: Set[str]) -> None:
+    if not isinstance(dep, dict) or "from" not in dep or "to" not in dep:
+        raise ValueError(f"dependencies[{i}] must be an object with 'from' and 'to'")
+    for end in ("from", "to"):
+        if dep[end] not in ids:
+            raise ValueError(f"dependencies[{i}].{end}: unknown person id {dep[end]!r}")
+    if "weight" in dep:
+        _check_unit_interval(dep["weight"], f"dependencies[{i}].weight")
+    if dep.get("review", "none") not in REVIEW_VALUES:
+        raise ValueError(
+            f"dependencies[{i}].review must be one of {', '.join(REVIEW_VALUES)}, "
+            f"got {dep['review']!r}"
+        )
 
 
 def _validate_functions(functions, ids) -> None:
     if not isinstance(functions, list):
         raise ValueError("'functions' must be a list")
-    seen = set()
+    seen: Set[str] = set()
     for i, f in enumerate(functions):
         where = f"functions[{i}]"
         if not isinstance(f, dict) or not isinstance(f.get("id"), str) or not f["id"]:
@@ -80,20 +86,27 @@ def _validate_functions(functions, ids) -> None:
         if f["id"] in seen:
             raise ValueError(f"{where}: duplicate function id {f['id']!r}")
         seen.add(f["id"])
-        if "criticality" in f:
-            _check_unit_interval(f["criticality"], f"{where}.criticality")
-        requires = f.get("requires", 1)
-        if isinstance(requires, bool) or not isinstance(requires, int) or requires < 1:
-            raise ValueError(f"{where}.requires must be a whole number of at least 1")
-        if f.get("separation", SEPARATION_REQUIRED) not in SEPARATION_VALUES:
-            raise ValueError(f"{where}.separation must be one of {', '.join(SEPARATION_VALUES)}")
+        _validate_function_settings(f, where)
         for key in ("performers", "alone"):
-            members = f.get(key) or []
-            if not isinstance(members, list):
-                raise ValueError(f"{where}.{key} must be a list of person ids")
-            for member in members:
-                if member not in ids:
-                    raise ValueError(f"{where}.{key}: unknown person id {member!r}")
+            _validate_members(f.get(key) or [], f"{where}.{key}", ids)
+
+
+def _validate_function_settings(f, where: str) -> None:
+    if "criticality" in f:
+        _check_unit_interval(f["criticality"], f"{where}.criticality")
+    requires = f.get("requires", 1)
+    if isinstance(requires, bool) or not isinstance(requires, int) or requires < 1:
+        raise ValueError(f"{where}.requires must be a whole number of at least 1")
+    if f.get("separation", SEPARATION_REQUIRED) not in SEPARATION_VALUES:
+        raise ValueError(f"{where}.separation must be one of {', '.join(SEPARATION_VALUES)}")
+
+
+def _validate_members(members, where: str, ids) -> None:
+    if not isinstance(members, list):
+        raise ValueError(f"{where} must be a list of person ids")
+    for member in members:
+        if member not in ids:
+            raise ValueError(f"{where}: unknown person id {member!r}")
 
 
 class HumanRiskGraph:
@@ -261,7 +274,7 @@ class HumanRiskGraph:
         ]
 
         # Find articulation points
-        articulation_pts = list(find_articulation_points(self.graph))
+        articulation_pts = sorted(find_articulation_points(self.graph))
         score, grade = score_and_grade(composite)
 
         return {
@@ -291,14 +304,34 @@ class HumanRiskGraph:
                 - criticality: Node's criticality score
                 - is_articulation_point: Boolean
                 - betweenness_centrality: Centrality score
+                - node_risk_score: Weighted local risk heuristic in [0, 1]
                 - in_degree: Number of incoming edges
                 - out_degree: Number of outgoing edges
         """
         if node_id not in self.graph.nodes():
             raise ValueError(f"Node {node_id} not found in graph")
+        return self._node_analysis(
+            node_id,
+            find_articulation_points(self.graph),
+            compute_betweenness_centrality(self.graph),
+        )
 
+    def analyze_nodes(self) -> Dict[str, Dict]:
+        """
+        Analyze every node at once, as ``analyze_node`` does for one.
+
+        The graph-wide measures are computed once, so this is much faster than calling
+        ``analyze_node`` for each person.
+        """
         articulation_pts = find_articulation_points(self.graph)
         betweenness = compute_betweenness_centrality(self.graph)
+        return {
+            node: self._node_analysis(node, articulation_pts, betweenness) for node in self.graph
+        }
+
+    def _node_analysis(
+        self, node_id: str, articulation_pts: Set[str], betweenness: Dict[str, float]
+    ) -> Dict:
         criticality = self.criticality.get(node_id, 0.0)
         centrality = betweenness.get(node_id, 0.0)
 

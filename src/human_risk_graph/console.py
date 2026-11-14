@@ -111,19 +111,39 @@ def render_summary(
     def name(person_id: str) -> str:
         return names.get(person_id, person_id)
 
-    people, deps = len(data["people"]), len(data["dependencies"])
-    functions = data.get("functions") or []
-    unconfirmed = unconfirmed_text(
-        {
-            "dependencies_count": deps,
-            "unconfirmed_dependencies": sum(
-                1 for d in data["dependencies"] if d.get("confirmed") is False
-            ),
-            "functions_count": len(functions),
-            "unconfirmed_functions": sum(1 for f in functions if f.get("confirmed") is False),
-        }
-    )
     console.print()
+    _print_header(console, input_file, data, config_file)
+    _print_data_quality(console, data, confirmed_only)
+    console.print()
+    _print_score(console, results)
+    console.print()
+
+    metrics = Table.grid(padding=(0, 2))
+    metrics.add_column(style="bold", min_width=12)
+    metrics.add_column()
+    for label, value in _metric_rows(results, name):
+        metrics.add_row(f"  {label}", value)
+    console.print(metrics)
+
+    if fixes:
+        _print_fixes(console, fixes)
+    _print_findings(console, findings)
+
+    if generated:
+        console.print()
+        console.print(Text("  Reports", style="bold"))
+        for path in generated:
+            console.print(Text(f"   {path}", style="cyan"))
+    if breach:
+        console.print()
+        console.print(Text(f"  ✗ {breach}", style="bold red"))
+    console.print()
+
+
+def _print_header(
+    console: Console, input_file: str, data: Dict[str, Any], config_file: Optional[str]
+) -> None:
+    people, deps = len(data["people"]), len(data["dependencies"])
     console.print(
         Text.assemble(
             ("Human Risk Graph ", "bold"),
@@ -135,17 +155,33 @@ def render_summary(
             (f" · config {config_file}" if config_file else "", "dim"),
         )
     )
+
+
+def _print_data_quality(
+    console: Console, data: Dict[str, Any], confirmed_only: Optional[Dict[str, Any]]
+) -> None:
+    """Unconfirmed dependencies and functions, and what the scan could not see."""
+    functions = data.get("functions") or []
+    unconfirmed = unconfirmed_text(
+        {
+            "dependencies_count": len(data["dependencies"]),
+            "unconfirmed_dependencies": sum(
+                1 for d in data["dependencies"] if d.get("confirmed") is False
+            ),
+            "functions_count": len(functions),
+            "unconfirmed_functions": sum(1 for f in functions if f.get("confirmed") is False),
+        }
+    )
     if unconfirmed:
+        confirmed = (
+            f" On confirmed data only: {confirmed_only['score']}/100 ({confirmed_only['grade']})."
+            if confirmed_only
+            else ""
+        )
         console.print(
             Text(
-                f"  {unconfirmed} (from hrg scan): "
-                "review them before relying on the score."
-                + (
-                    f" On confirmed data only: {confirmed_only['score']}/100 "
-                    f"({confirmed_only['grade']})."
-                    if confirmed_only
-                    else ""
-                ),
+                f"  {unconfirmed} (from hrg scan): review them before relying on the score."
+                + confirmed,
                 style="yellow",
             )
         )
@@ -160,8 +196,9 @@ def render_summary(
         )
         for gap in gaps:
             console.print(Text(f"    · {gap}", style="dim"))
-    console.print()
 
+
+def _print_score(console: Console, results: Dict[str, Any]) -> None:
     grade_style = GRADE_STYLE.get(results["grade"], "bold")
     headline = Table.grid(padding=(0, 2))
     headline.add_column()
@@ -176,32 +213,27 @@ def render_summary(
         Text(f"model {results.get('model')}", style="dim"),
     )
     console.print(headline)
+
+
+def _print_fixes(console: Console, fixes: List[Dict[str, Any]]) -> None:
     console.print()
+    console.print(Text("  Top fixes", style="bold"))
+    table = Table.grid(padding=(0, 2))
+    table.add_column(justify="right", style="dim")
+    table.add_column()
+    table.add_column(justify="right", no_wrap=True)
+    table.add_column(justify="right", style="green", no_wrap=True)
+    for i, fix in enumerate(fixes, 1):
+        table.add_row(
+            f"  {i}",
+            fix["title"],
+            f"{fix['score_before']} → {fix['score_after']}",
+            f"+{fix['score_after'] - fix['score_before']}",
+        )
+    console.print(table)
 
-    metrics = Table.grid(padding=(0, 2))
-    metrics.add_column(style="bold", min_width=12)
-    metrics.add_column()
-    for label, value in _metric_rows(results, name):
-        metrics.add_row(f"  {label}", value)
-    console.print(metrics)
 
-    if fixes:
-        console.print()
-        console.print(Text("  Top fixes", style="bold"))
-        table = Table.grid(padding=(0, 2))
-        table.add_column(justify="right", style="dim")
-        table.add_column()
-        table.add_column(justify="right", no_wrap=True)
-        table.add_column(justify="right", style="green", no_wrap=True)
-        for i, fix in enumerate(fixes, 1):
-            table.add_row(
-                f"  {i}",
-                fix["title"],
-                f"{fix['score_before']} → {fix['score_after']}",
-                f"+{fix['score_after'] - fix['score_before']}",
-            )
-        console.print(table)
-
+def _print_findings(console: Console, findings: List[Finding]) -> None:
     accepted = [f for f in findings if f.accepted]
     findings = [f for f in findings if not f.accepted]
     errors = sum(1 for f in findings if f.level == "error")
@@ -232,13 +264,3 @@ def render_summary(
             Text(f"Accepted: {finding.message} ({acceptance_text(finding)})", style="dim"),
         )
     console.print(rows)
-
-    if generated:
-        console.print()
-        console.print(Text("  Reports", style="bold"))
-        for path in generated:
-            console.print(Text(f"   {path}", style="cyan"))
-    if breach:
-        console.print()
-        console.print(Text(f"  ✗ {breach}", style="bold red"))
-    console.print()
