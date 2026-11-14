@@ -631,13 +631,15 @@ def scan_github(
     """
     Draft an organization from a GitHub repository or a whole organization.
 
-    REPO is OWNER/NAME. Reads pull request reviews, CODEOWNERS, branch rules and merges
-    without review, and writes a YAML draft where every dependency has its source,
-    evidence and confirmed: false. Review the draft, then run hrg analyze on it.
+    REPO is OWNER/NAME. Reads pull request reviews, CODEOWNERS, branch rules, merges
+    without review, releases and deployment environments, and writes a YAML draft where
+    every dependency and function has its source, evidence and confirmed: false. Review
+    the draft, then run hrg analyze on it.
 
     With --org, the most recently pushed repositories of the organization are scanned and
-    merged into one draft: people appear once, and the merge, release and admin functions
-    are kept per repository, so a person who is the only releaser of many services shows up.
+    merged into one draft: people appear once, and the merge, release, admin and deploy
+    functions are kept per repository, so a person who is the only releaser of many
+    services shows up.
 
     Example:
         hrg scan github my-org/payments-api

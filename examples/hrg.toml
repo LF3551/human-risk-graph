@@ -5,6 +5,8 @@ model = "hrg-2"
 min-score = 20
 fixes = 3
 critical-threshold = 0.7
+# Model hrg-3: people with authority inactive for longer are reported (HRG007).
+# inactive-days = 90
 # Keyed pseudonyms instead of people in every report; set the key in HRG_PSEUDONYM_KEY.
 # See docs/privacy.md.
 # pseudonymize = true

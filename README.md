@@ -39,7 +39,9 @@ afford to lose, and tells you **which three changes raise your score the most**.
 - **A fix plan, not just a diagnosis**: deputies and second-person checks simulated on your
   data and ranked by score gain.
 - **No YAML to start**: `hrg scan github` drafts the organization from one repository or
-  a whole GitHub organization (who reviews, merges, releases and can bypass).
+  a whole GitHub organization (who reviews, merges, releases, deploys and can bypass).
+- **Stale authority**: people who can still merge, release or deploy but have not been
+  active for 90 days are reported, with what the two-person rule is really left with.
 - **Built for pipelines and audits**: SARIF for GitHub code scanning, JUnit, a `--min-score`
   gate, `hrg diff` between snapshots, findings mapped to ISO/IEC 27001, SOC 2 and DORA.
 - **Privacy by design**: `--pseudonymize` replaces people by keyed pseudonyms in every
@@ -170,8 +172,8 @@ hrg analyze my-org-org.yaml --model hrg-3
 
 People appear once, with the highest criticality any repository gave them. Dependencies
 between the same two people are merged (a bypass in any repository outranks approvals; the
-weight is the highest seen). The `merge`, `release` and `admin` functions stay per
-repository (`payments-api/release`), so hrg-3 shows everything one person's absence stops
+weight is the highest seen). The `merge`, `release`, `admin` and `deploy-*` functions stay
+per repository (`payments-api/release`), so hrg-3 shows everything one person's absence stops
 across the organization. Repositories that cannot be read are listed under
 `coverage.gaps`; `--max-prs` (default 30 with `--org`) bounds the API calls per repository.
 

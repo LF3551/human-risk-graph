@@ -42,7 +42,7 @@ DEMOS = [
         "file": ROOT / "examples" / "functions.yaml",
         "title": "Critical functions (model hrg-3)",
         "text": "Merge, release, database restore and key rotation: who can perform each, "
-        "what stops without one person, and who can complete it alone.",
+        "what stops without one person, who can complete it alone, and who has gone inactive.",
         "model": "hrg-3",
     },
 ]
@@ -166,6 +166,7 @@ Each report is a single offline HTML file: open the map, click a person, print i
 hrg analyze org.yaml                       # describe people and dependencies in YAML
 hrg scan github my-org/my-repo             # or draft them from a GitHub repository
 hrg scan github --org my-org               # or from a whole GitHub organization
+hrg analyze my-org-org.yaml --model hrg-3  # merge, release, deploy: two-person rule, inactive people
 hrg analyze org.yaml --pseudonymize        # reports without names (GDPR)</code></pre>
 <p>In CI, with findings in code scanning and a job summary on every pull request:</p>
 <pre><code>- uses: LF3551/human-risk-graph@v{escape(__version__)}
