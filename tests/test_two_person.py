@@ -1,0 +1,246 @@
+"""Tests for benchmark/two_person.py: definitions of the measures and the collection logic."""
+
+import importlib.util
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+import pytest
+
+SPEC = importlib.util.spec_from_file_location(
+    "benchmark_two_person", Path(__file__).resolve().parent.parent / "benchmark" / "two_person.py"
+)
+tp = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(tp)
+
+T0 = datetime(2026, 12, 1, tzinfo=timezone.utc)
+
+
+def _iso(days_before: int) -> str:
+    return (T0 - timedelta(days=days_before)).isoformat().replace("+00:00", "Z")
+
+
+def _env(name, users=(), teams=0, self_review=True, admin_bypass=True, rule=True):
+    reviewers = [{"type": "User", "reviewer": {"login": u}} for u in users]
+    reviewers += [{"type": "Team", "reviewer": {"slug": f"t{i}"}} for i in range(teams)]
+    rules = (
+        [{"type": "required_reviewers", "prevent_self_review": not self_review,
+          "reviewers": reviewers}]
+        if rule
+        else []
+    )  # fmt: skip
+    return {"name": name, "protection_rules": rules, "can_admins_bypass": admin_bypass}
+
+
+# Definitions
+
+
+@pytest.mark.parametrize(
+    "name, expected",
+    [("pypi", True), ("Production", True), ("release", True), ("github-pages", False),
+     ("copilot", False), ("docs", False)],
+)  # fmt: skip
+def test_publishing_environment_names(name, expected):
+    assert tp.is_publishing(name) is expected
+
+
+def test_environment_gate():
+    gate = tp.environment_gate(_env("pypi", ["a", "release-bot"], teams=1))
+    assert gate["gated"] and not gate["two_person"]
+    assert gate["user_reviewers"] == ["a"] and gate["team_reviewers"] == 1
+    strict = tp.environment_gate(_env("pypi", ["a"], self_review=False, admin_bypass=False))
+    assert strict["two_person"]
+    # Both conditions are needed: self-review or admin bypass alone breaks the rule.
+    assert not tp.environment_gate(_env("pypi", ["a"], self_review=False))["two_person"]
+    assert not tp.environment_gate(_env("pypi", ["a"], admin_bypass=False))["two_person"]
+    assert not tp.environment_gate(_env("pypi", rule=False))["gated"]
+    assert not tp.environment_gate(_env("pypi", []))["gated"]  # a rule with nobody in it
+
+
+def test_publish_gate_classes():
+    def gate(*envs, any_name=False):
+        return tp.publish_gate([tp.environment_gate(e) for e in envs], any_name)
+
+    assert gate() == "NE"
+    assert gate(_env("github-pages", rule=False)) == "NE"
+    assert gate(_env("pypi", rule=False)) == "G0"
+    assert gate(_env("pypi", rule=False), _env("release", ["a"])) == "G1"
+    two = _env("pypi", ["a"], self_review=False, admin_bypass=False)
+    assert gate(_env("release", ["a"]), two) == "G2"
+    # Sensitivity: a gated environment counts whatever its name.
+    assert gate(_env("ship-it", ["a"])) == "NE"
+    assert gate(_env("ship-it", ["a"]), any_name=True) == "G1"
+    assert gate(_env("ship-it", rule=False), any_name=True) == "NE"
+
+
+def test_human_publishers_window_and_bots():
+    def item(login, days):
+        return {"login": login, "when": T0 - timedelta(days=days)}
+
+    releases = [item("a", 10), item("b", 400), item("dependabot[bot]", 5), item(None, 5)]
+    deployments = [item("c", 364), item("a", 1), {"login": "d", "when": T0}]  # T0 excluded
+    assert tp.human_publishers(releases, deployments, T0) == {"a", "c"}
+
+
+def test_effective_approvers():
+    assert tp.effective_approvers({}) is None
+    assert tp.effective_approvers({"a": 10}) == 1
+    assert tp.effective_approvers({"a": 5, "b": 5}) == pytest.approx(2)
+    assert tp.effective_approvers({"a": 9, "b": 1}) == pytest.approx(1 / 0.82)
+
+
+def test_is_dormant():
+    assert tp.is_dormant(None, T0, 90)
+    assert tp.is_dormant(T0 - timedelta(days=91), T0, 90)
+    assert not tp.is_dormant(T0 - timedelta(days=90), T0, 90)
+
+
+@pytest.mark.parametrize(
+    "k, n, low, high",
+    [(5, 10, 0.2366, 0.7634), (0, 10, 0.0, 0.2775), (10, 10, 0.7225, 1.0), (1, 20, 0.0089, 0.2361)],
+)
+def test_wilson_interval(k, n, low, high):
+    result = tp.wilson(k, n)
+    assert result["low"] == pytest.approx(low, abs=1e-4)
+    assert result["high"] == pytest.approx(high, abs=1e-4)
+    assert tp.wilson(0, 0)["p"] is None
+
+
+# Collection and analysis
+
+
+class FakeClient:
+    def __init__(self, routes):
+        self.routes, self.calls, self.requested = routes, 0, []
+
+    def get(self, path, params=None, limit=0):
+        self.calls += 1
+        self.requested.append((path, dict(params or {})))
+        value = self.routes.get(path)
+        return value(params or {}) if callable(value) else value
+
+
+def _routes(**extra):
+    pulls = [
+        {"number": n, "merged_at": _iso(n), "user": {"login": "dev"}} for n in range(1, 13)
+    ] + [{"number": 99, "merged_at": None, "user": {"login": "dev"}}]
+    routes = {
+        "repos/acme/lib": {
+            "full_name": "acme/lib",
+            "default_branch": "main",
+            "archived": False,
+            "owner": {"type": "Organization"},
+        },
+        "repos/acme/lib/environments": {
+            "environments": [
+                _env("pypi", ["old", "lead"], teams=1),
+                _env("docs", ["x"]),
+            ]
+        },
+        "repos/acme/lib/deployments": [
+            {"creator": {"login": "lead"}, "created_at": _iso(3)},
+            {"creator": {"login": "github-actions[bot]"}, "created_at": _iso(2)},
+        ],
+        "repos/acme/lib/releases": [
+            {"author": {"login": "lead"}, "published_at": _iso(3)},
+            {"author": {"login": "ghost"}, "published_at": _iso(30), "draft": True},
+        ],
+        "repos/acme/lib/rules/branches/main": [
+            {"type": "pull_request", "parameters": {"required_approving_review_count": 1}}
+        ],
+        "repos/acme/lib/pulls": pulls,
+        "repos/acme/lib/commits": lambda params: (
+            [{"commit": {"committer": {"date": _iso(120)}}}] if params["author"] == "old" else []
+        ),
+    }
+    for n in range(1, 13):
+        routes[f"repos/acme/lib/pulls/{n}/reviews"] = [
+            {"user": {"login": "lead" if n < 11 else "rev"}, "state": "APPROVED",
+             "submitted_at": _iso(n)},
+            {"user": {"login": "dev"}, "state": "APPROVED", "submitted_at": _iso(n)},  # self
+        ]  # fmt: skip
+    routes.update(extra)
+    return routes
+
+
+def test_collect_repo(tmp_path):
+    client = FakeClient(_routes())
+    row = tp.collect_repo(client, tp.Cache(tmp_path), "acme/lib", T0)
+    assert row["gate"] == "G1" and row["gate_any_name"] == "G1"
+    assert row["publishing_environments"] == 1  # docs is not a publishing environment
+    assert row["publishers"] == 1  # lead; the bot deployment and the draft do not count
+    assert row["assessable_reviewers"] == 2  # old and lead; the team is not assessable
+    # old: last commit 120 days before T0 -> dormant at 90 days, not at 180.
+    assert (row["dormant_90"], row["dormant_180"]) == (1, 0)
+    assert row["dormant_solo_90"] and not row["dormant_solo_180"]
+    assert row["review_required_visible"]
+    assert (row["merged_pulls"], row["approved_pulls"]) == (12, 12)
+    assert row["effective_approvers"] == pytest.approx(
+        1 / ((10 / 12) ** 2 + (2 / 12) ** 2), abs=1e-3
+    )
+    assert row["unapproved_share"] == 0
+    # Commits are looked up only for reviewers of publishing environments, in the window.
+    looked_up = [p for path, p in client.requested if path == "repos/acme/lib/commits"]
+    assert sorted(p["author"] for p in looked_up) == ["lead", "old"]
+    assert looked_up[0]["until"] == T0.isoformat()
+
+
+def test_collect_repo_exclusions(tmp_path):
+    cache = tp.Cache(tmp_path)
+    assert tp.collect_repo(FakeClient({}), cache, "x/y", T0)["status"].endswith("not reachable")
+    archived = {"repos/a/b": {"full_name": "a/b", "default_branch": "main", "archived": True}}
+    assert tp.collect_repo(FakeClient(archived), cache, "a/b", T0)["status"] == "excluded: archived"
+
+
+def _row(**values):
+    row = {
+        "status": "included", "rank": 50, "owner_type": "Organization", "gate": "NE",
+        "gate_any_name": "NE", "publishers": 1, "assessable_reviewers": 0, "dormant_90": 0,
+        "dormant_180": 0, "dormant_solo_90": False, "dormant_solo_180": False,
+        "review_required_visible": False, "approved_pulls": 0, "effective_approvers": None,
+        "unapproved_share": None,
+    }  # fmt: skip
+    row.update(values)
+    return row
+
+
+def test_analyze():
+    rows = [
+        _row(gate="G2", gate_any_name="G2", publishers=2, assessable_reviewers=1),
+        _row(gate="G1", gate_any_name="G1", assessable_reviewers=2, dormant_90=1,
+             dormant_180=1, dormant_solo_90=True, dormant_solo_180=True, rank=150,
+             owner_type="User"),
+        _row(gate="G1", gate_any_name="G1", assessable_reviewers=0),  # teams only
+        _row(gate="G0", gate_any_name="G0", publishers=0, approved_pulls=12,
+             effective_approvers=1.2, review_required_visible=True, unapproved_share=0.25),
+        _row(approved_pulls=20, effective_approvers=3.0),
+        _row(status="excluded: archived"),
+    ]  # fmt: skip
+    a = tp.analyze(rows)
+    assert a["included"] == 5
+    assert a["rq1_publish_gate"]["primary_no_two_person_gate"]["k"] == 4
+    assert {g: v["k"] for g, v in a["rq1_publish_gate"]["distribution"].items()} == {
+        "G2": 1,
+        "G1": 2,
+        "G0": 1,
+        "NE": 1,
+    }
+    assert a["rq1_publish_gate"]["exploratory_by_group"]["user"]["n"] == 1
+    assert (
+        a["rq2_single_publisher"]["primary"]["k"],
+        a["rq2_single_publisher"]["primary"]["n"],
+    ) == (3, 4)
+    assert a["rq2_single_publisher"]["no_visible_publisher"] == 1
+    rq3 = a["rq3_dormant_authority"]
+    assert (
+        rq3["primary_gated_with_dormant_reviewer"]["k"],
+        rq3["primary_gated_with_dormant_reviewer"]["n"],
+    ) == (1, 2)
+    assert (
+        rq3["primary_dormant_solo_authority"]["k"],
+        rq3["primary_dormant_solo_authority"]["n"],
+    ) == (1, 5)
+    assert rq3["gated_with_team_reviewers_only"] == 1
+    rq4 = a["rq4_review_concentration"]
+    assert (rq4["primary_single_reviewer"]["k"], rq4["primary_single_reviewer"]["n"]) == (1, 2)
+    assert rq4["review_visibly_required"]["n"] == 1
+    assert rq4["exploratory_unapproved_merges_where_required"] == 0.25

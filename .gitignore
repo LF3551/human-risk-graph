@@ -75,3 +75,5 @@ _site/
 
 # Validation study API cache
 benchmark/.cache/
+# Per-repository rows of the two-person study: not published (docs/study-two-person.md)
+benchmark/.private/
