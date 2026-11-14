@@ -10,7 +10,7 @@ import json
 import math
 from html import escape
 from string import Template
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 
 import networkx as nx
 
@@ -421,33 +421,44 @@ def _person_rows(results, people, hrg, findings) -> Dict[str, Dict[str, Any]]:
             "links": [],
             "cut": [],
         }
-    if hrg is not None and results.get("model") != MODEL_V3:
-        for pid, cut in _cut_off(hrg, spof).items():
-            if pid in rows:
-                rows[pid]["cut"] = [c for c in cut if c in rows]
-        approvers: Dict[str, set] = {}
-        for (source, target), edge_type in hrg.edge_types.items():
-            if edge_type == "approval" and source != target:
-                approvers.setdefault(target, set()).add(source)
-        for pid, row in rows.items():
-            row["orphaned"] = sorted(
-                rows[t]["name"] for t, who in approvers.items() if who == {pid} and t in rows
-            )
-    if hrg is not None and results.get("model") == MODEL_V3:
-        names = {f["id"]: f["name"] for f in results.get("functions", [])}
-        for person in results.get("key_people", []):
-            if person["id"] in rows:
-                rows[person["id"]]["stops"] = [names.get(f, f) for f in person["functions"]]
-        for pid in sorted(set(results.get("articulation_points", [])))[:WHAT_IF_LIMIT]:
-            if pid in rows:
-                rows[pid]["without_score"] = _score_without_v3(hrg, results, pid)
-    if hrg is not None:
-        for (source, target), edge_type in sorted(hrg.edge_types.items()):
-            if source in rows and target in rows and source != target:
-                out_verb, in_verb = LINK_VERBS.get(edge_type, (f"{edge_type} →", f"{edge_type} ←"))
-                rows[source]["links"].append(f"{out_verb} {rows[target]['name']}")
-                rows[target]["links"].append(f"{in_verb} {rows[source]['name']}")
+    if hrg is None:
+        return rows
+    if results.get("model") == MODEL_V3:
+        _add_function_losses(rows, results, hrg)
+    else:
+        _add_connection_losses(rows, hrg, spof)
+    for (source, target), edge_type in sorted(hrg.edge_types.items()):
+        if source in rows and target in rows and source != target:
+            out_verb, in_verb = LINK_VERBS.get(edge_type, (f"{edge_type} →", f"{edge_type} ←"))
+            rows[source]["links"].append(f"{out_verb} {rows[target]['name']}")
+            rows[target]["links"].append(f"{in_verb} {rows[source]['name']}")
     return rows
+
+
+def _add_connection_losses(rows: Dict[str, Dict[str, Any]], hrg, spof: Set[str]) -> None:
+    """hrg-1/hrg-2: who is cut off, and whose only approver each person is."""
+    for pid, cut in _cut_off(hrg, spof).items():
+        if pid in rows:
+            rows[pid]["cut"] = [c for c in cut if c in rows]
+    approvers: Dict[str, set] = {}
+    for (source, target), edge_type in hrg.edge_types.items():
+        if edge_type == "approval" and source != target:
+            approvers.setdefault(target, set()).add(source)
+    for pid, row in rows.items():
+        row["orphaned"] = sorted(
+            rows[t]["name"] for t, who in approvers.items() if who == {pid} and t in rows
+        )
+
+
+def _add_function_losses(rows: Dict[str, Dict[str, Any]], results, hrg) -> None:
+    """hrg-3: the functions each key person's absence stops, and the score without them."""
+    names = {f["id"]: f["name"] for f in results.get("functions", [])}
+    for person in results.get("key_people", []):
+        if person["id"] in rows:
+            rows[person["id"]]["stops"] = [names.get(f, f) for f in person["functions"]]
+    for pid in sorted(set(results.get("articulation_points", [])))[:WHAT_IF_LIMIT]:
+        if pid in rows:
+            rows[pid]["without_score"] = _score_without_v3(hrg, results, pid)
 
 
 def _map_html(hrg, rows: Dict[str, Dict[str, Any]]) -> str:
@@ -633,9 +644,10 @@ def _accepted_html(accepted: List[Finding]) -> str:
         return ""
     rows = "".join(
         f'<tr><td><span class="rule">{f.rule_id}</span>{_e(f.message)}</td>'
-        f"<td>{_e(f.acceptance.reason)}</td><td>{_e(f.acceptance.ticket or '—')}</td>"
-        f"<td>{_e(f.acceptance.expires.isoformat() if f.acceptance.expires else '—')}</td></tr>"
+        f"<td>{_e(a.reason)}</td><td>{_e(a.ticket or '—')}</td>"
+        f"<td>{_e(a.expires.isoformat() if a.expires else '—')}</td></tr>"
         for f in accepted
+        if (a := f.acceptance) is not None
     )
     return f"""<h3 class="accepted-title">Accepted risks <span class="count">{len(accepted)}</span></h3>
 <table class="accepted"><thead><tr><th>Finding</th><th>Reason</th><th>Ticket</th><th>Expires</th></tr></thead>

@@ -159,7 +159,7 @@ def compute_betweenness_centrality(graph: nx.DiGraph) -> Dict[str, float]:
     return nx.betweenness_centrality(graph)
 
 
-def compute_degree_centrality(graph: nx.DiGraph) -> Dict[str, float]:
+def compute_degree_centrality(graph: nx.DiGraph) -> Dict[str, Dict[str, int]]:
     """
     Compute degree centrality (both in-degree and out-degree).
 
@@ -172,7 +172,7 @@ def compute_degree_centrality(graph: nx.DiGraph) -> Dict[str, float]:
     in_degree = dict(graph.in_degree())
     out_degree = dict(graph.out_degree())
 
-    result = {}
+    result: Dict[str, Dict[str, int]] = {}
     for node in graph.nodes():
         result[node] = {
             "in": in_degree.get(node, 0),

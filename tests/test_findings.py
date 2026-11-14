@@ -5,8 +5,8 @@ from pathlib import Path
 import pytest
 
 from human_risk_graph import HumanRiskGraph
-from human_risk_graph.ci_reports import generate_junit_report, generate_sarif_report
-from human_risk_graph.findings import FRAMEWORKS, RULES, collect_findings
+from human_risk_graph.ci_reports import _find_line, generate_junit_report, generate_sarif_report
+from human_risk_graph.findings import FRAMEWORKS, RULES, Finding, collect_findings
 from human_risk_graph.loader import load_organization
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -144,3 +144,36 @@ def test_compliance_doc_lists_every_rule_and_control():
         for refs in rule.controls.values():
             for ref, title in refs:
                 assert f"{ref} {title}" in rows[rule.id], (rule.id, ref)
+
+
+def test_find_line_yaml_blocks_and_fallbacks():
+    lines = [
+        "people:",
+        "  - id: a",
+        "  - id: b",
+        "dependencies:",
+        "  - from: a",
+        "    type: approval",
+        "  - from: b",
+        "    to: a",
+        "functions:",
+        "  - id: merge",
+    ]
+    # "to" belongs to the next item: the first "from: a" block does not match a->b.
+    assert _find_line(lines, Finding("HRG003", "error", "", dependency=("b", "a"))) == 7
+    # A dependency that is not in the file falls back to its person, then to line 1.
+    assert _find_line(lines, Finding("HRG003", "error", "", "b", ("a", "b"))) == 3
+    assert _find_line(lines, Finding("HRG003", "error", "", dependency=("a", "b"))) == 1
+    assert _find_line(lines, Finding("HRG006", "error", "", function="merge")) == 10
+    assert _find_line(lines, Finding("HRG006", "error", "", function="release")) == 1
+    # Only the next four lines of an item are searched for its "to".
+    long_item = [
+        "  - from: a",
+        "    type: bypass",
+        "    weight: 1",
+        "    review: after",
+        "    x: 1",
+    ]
+    assert (
+        _find_line(long_item + ["    to: b"], Finding("HRG003", "error", "", None, ("a", "b"))) == 1
+    )

@@ -2,9 +2,11 @@
 
 import json
 import re
-import xml.etree.ElementTree as ET
+
+# ElementTree only builds the JUnit report here; it never parses input.
+import xml.etree.ElementTree as ET  # nosec B405
 from dataclasses import replace
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from . import __version__
 from .findings import FRAMEWORKS, RULES, Finding, Rule, acceptance_text, rules_for_model
@@ -18,33 +20,48 @@ def _key_value(key: str, value: str) -> "re.Pattern[str]":
     return re.compile(rf"\b{key}[\"']?\s*:\s*[\"']?{re.escape(value)}[\"']?(?![\w.@-])")
 
 
+def _first_match(lines: List[str], pattern: "re.Pattern[str]", start: int = 0) -> Optional[int]:
+    """0-based index of the first line from ``start`` that matches, or None."""
+    return next((i for i in range(start, len(lines)) if pattern.search(lines[i])), None)
+
+
+def _dependency_line(lines: List[str], dependency: Tuple[str, str]) -> Optional[int]:
+    source = _key_value("from", dependency[0])
+    target = _key_value("to", dependency[1])
+    for i, line in enumerate(lines):
+        if source.search(line) and _item_mentions(lines, i, target):
+            return i
+    return None
+
+
+def _item_mentions(lines: List[str], i: int, target: "re.Pattern[str]") -> bool:
+    """Whether the list item starting at line ``i`` matches ``target`` on that line or after."""
+    if target.search(lines[i]):
+        return True
+    # YAML block style: "to" follows on the next lines of the same item.
+    for nxt in lines[i + 1 : i + 5]:
+        if re.match(r"\s*-\s", nxt) or "from" in nxt:
+            return False
+        if target.search(nxt):
+            return True
+    return False
+
+
 def _find_line(lines: List[str], finding: Finding) -> int:
     """Best-effort 1-based line of the person or dependency the finding is about."""
     if finding.dependency:
-        source = _key_value("from", finding.dependency[0])
-        target = _key_value("to", finding.dependency[1])
-        for i, line in enumerate(lines):
-            if not source.search(line):
-                continue
-            if target.search(line):
-                return i + 1
-            # YAML block style: "to" follows on the next lines of the same item.
-            for nxt in lines[i + 1 : i + 5]:
-                if re.match(r"\s*-\s", nxt) or "from" in nxt:
-                    break
-                if target.search(nxt):
-                    return i + 1
+        found = _dependency_line(lines, finding.dependency)
+        if found is not None:
+            return found + 1
     if finding.function:
-        function = _key_value("id", finding.function)
         start = next((i for i, line in enumerate(lines) if re.match(r'\s*"?functions', line)), 0)
-        for i, line in enumerate(lines[start:], start):
-            if function.search(line):
-                return i + 1
+        found = _first_match(lines, _key_value("id", finding.function), start)
+        if found is not None:
+            return found + 1
     if finding.person:
-        person = _key_value("id", finding.person)
-        for i, line in enumerate(lines):
-            if person.search(line):
-                return i + 1
+        found = _first_match(lines, _key_value("id", finding.person))
+        if found is not None:
+            return found + 1
     return 1
 
 
@@ -109,9 +126,13 @@ def generate_sarif_report(
     def in_file(f: Finding) -> Finding:
         if not ids_in_file:
             return f
-        real = lambda p: ids_in_file.get(p, p) if p else p  # noqa: E731
-        dependency = tuple(real(p) for p in f.dependency) if f.dependency else None
-        return replace(f, person=real(f.person), dependency=dependency)
+
+        def real(p: str) -> str:
+            return ids_in_file.get(p, p)
+
+        person = real(f.person) if f.person else f.person
+        dependency = (real(f.dependency[0]), real(f.dependency[1])) if f.dependency else None
+        return replace(f, person=person, dependency=dependency)
 
     results = []
     for f in findings:
@@ -210,7 +231,7 @@ def generate_junit_report(
         "errors": "0",
     }
     suite.attrib.update({**counts, "skipped": str(skipped)})
-    root = ET.Element("testsuites", name="human-risk-graph", **counts)
+    root = ET.Element("testsuites", {"name": "human-risk-graph", **counts})
     root.append(suite)
     ET.indent(root)
     return ET.tostring(root, encoding="unicode", xml_declaration=True) + "\n"

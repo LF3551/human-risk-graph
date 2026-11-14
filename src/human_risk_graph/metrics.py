@@ -74,7 +74,7 @@ def decision_concentration_score(
         1 = maximum concentration
     """
     # Collect approval weights per person
-    approval_weights = {}
+    approval_weights: Dict[str, float] = {}
 
     for edge, edge_type in edge_types.items():
         if edge_type == "approval":
@@ -122,7 +122,7 @@ def decision_concentration_entropy(
         Entropy-based concentration score in [0,1]
     """
     # Collect approval weights per person
-    approval_weights = {}
+    approval_weights: Dict[str, float] = {}
 
     for edge, edge_type in edge_types.items():
         if edge_type == "approval":

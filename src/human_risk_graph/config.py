@@ -143,49 +143,59 @@ def _acceptance(raw: Any, index: int, source: Path) -> Acceptance:
     )
 
 
+# Numeric settings: TOML key -> (Config attribute, type, lowest, highest)
+NUMERIC_SETTINGS = {
+    "min-score": ("min_score", int, 0, 100),
+    "fail-above": ("fail_above", float, 0, 1),
+    "fixes": ("fixes", int, 0, 10),
+    "critical-threshold": ("critical_threshold", float, 0, 1),
+}
+
+
 def parse_config(raw: Dict[str, Any], source: Path) -> Config:
     """Validate a parsed TOML table."""
     _unknown(raw, TOP_LEVEL_KEYS, str(source))
     config = Config(path=source)
-
-    if "model" in raw:
-        if raw["model"] not in MODELS:
-            raise ConfigError(f"{source}: model must be one of {', '.join(MODELS)}")
-        config.model = raw["model"]
-    if "min-score" in raw:
-        config.min_score = int(_number(raw["min-score"], f"{source}: min-score", 0, 100))
-    if "fail-above" in raw:
-        config.fail_above = float(_number(raw["fail-above"], f"{source}: fail-above", 0, 1))
-    if "fixes" in raw:
-        config.fixes = int(_number(raw["fixes"], f"{source}: fixes", 0, 10))
-    if "critical-threshold" in raw:
-        config.critical_threshold = float(
-            _number(raw["critical-threshold"], f"{source}: critical-threshold", 0, 1)
-        )
-    if "pseudonymize" in raw:
-        if not isinstance(raw["pseudonymize"], bool):
-            raise ConfigError(f"{source}: pseudonymize must be true or false")
-        config.pseudonymize = raw["pseudonymize"]
-
-    weights = raw.get("weights", {})
-    if not isinstance(weights, dict):
-        raise ConfigError(f"{source}: [weights] must be a table")
-    _unknown(weights, WEIGHT_KEYS, f"{source}: [weights]")
-    if weights:
-        if set(weights) != set(WEIGHT_KEYS):
-            raise ConfigError(f"{source}: [weights] needs all of {', '.join(WEIGHT_KEYS)}")
-        config.weights = {
-            WEIGHT_KEYS[k]: float(_number(v, f"{source}: weights.{k}", 0, 1))
-            for k, v in weights.items()
-        }
-        if abs(sum(config.weights.values()) - 1.0) > 1e-6:
-            raise ConfigError(f"{source}: [weights] must add up to 1")
+    _parse_settings(raw, source, config)
+    config.weights = _parse_weights(raw.get("weights", {}), source)
 
     accept = raw.get("accept", [])
     if not isinstance(accept, list):
         raise ConfigError(f"{source}: accept must be an array of tables ([[accept]])")
     config.accept = [_acceptance(a, i, source) for i, a in enumerate(accept)]
     return config
+
+
+def _parse_settings(raw: Dict[str, Any], source: Path, config: Config) -> None:
+    if "model" in raw:
+        if raw["model"] not in MODELS:
+            raise ConfigError(f"{source}: model must be one of {', '.join(MODELS)}")
+        config.model = raw["model"]
+    for key, (attribute, kind, low, high) in NUMERIC_SETTINGS.items():
+        if key in raw:
+            setattr(config, attribute, kind(_number(raw[key], f"{source}: {key}", low, high)))
+    if "pseudonymize" in raw:
+        if not isinstance(raw["pseudonymize"], bool):
+            raise ConfigError(f"{source}: pseudonymize must be true or false")
+        config.pseudonymize = raw["pseudonymize"]
+
+
+def _parse_weights(weights: Any, source: Path) -> Dict[str, float]:
+    """The [weights] table as ``calculate`` keyword arguments; empty when not set."""
+    if not isinstance(weights, dict):
+        raise ConfigError(f"{source}: [weights] must be a table")
+    _unknown(weights, WEIGHT_KEYS, f"{source}: [weights]")
+    if not weights:
+        return {}
+    if set(weights) != set(WEIGHT_KEYS):
+        raise ConfigError(f"{source}: [weights] needs all of {', '.join(WEIGHT_KEYS)}")
+    parsed = {
+        WEIGHT_KEYS[k]: float(_number(v, f"{source}: weights.{k}", 0, 1))
+        for k, v in weights.items()
+    }
+    if abs(sum(parsed.values()) - 1.0) > 1e-6:
+        raise ConfigError(f"{source}: [weights] must add up to 1")
+    return parsed
 
 
 def load_config(path: Optional[Path] = None, directory: Optional[Path] = None) -> Config:
