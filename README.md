@@ -204,8 +204,9 @@ re-identification process and a deployment checklist (purpose, works council, DP
 ## HTML report
 
 One self-contained file that works offline, in light and dark mode, on a phone and as a PDF:
-score and verdict, fix plan, interactive dependency map, people, findings with related
-controls, the exact formula, and an audit trail with the input file's SHA-256.
+score and verdict, fix plan, interactive dependency map (for up to 400 people; `hrg visualize`
+draws larger organizations), people, findings with related controls, the exact formula,
+and an audit trail with the input file's SHA-256.
 [Open a live example](https://lf3551.github.io/human-risk-graph/demo/platform-team.html).
 
 <p align="center">
