@@ -85,7 +85,7 @@ hrg analyze my-org.yaml
 ```
 
 ```
-Human Risk Graph 0.16.0 · organization.yaml · 5 people · 5 dependencies
+Human Risk Graph 0.17.0 · organization.yaml · 5 people · 5 dependencies
 
   Score  25/100  ██░░░░░░░░  F · Critical risk  model hrg-2
 
@@ -460,7 +460,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: LF3551/human-risk-graph@v0.16.0
+      - uses: LF3551/human-risk-graph@v0.17.0
         with:
           file: org/organization.yaml
           min-score: 70
@@ -470,7 +470,7 @@ Or draft the organization from the repository itself (approvals, CODEOWNERS, bra
 rules) and report on it, for example on a schedule:
 
 ```yaml
-      - uses: LF3551/human-risk-graph@v0.16.0
+      - uses: LF3551/human-risk-graph@v0.17.0
         with:
           scan: ${{ github.repository }}
 ```
@@ -479,7 +479,7 @@ Or the whole organization, with pseudonymized reports (the draft with real login
 not uploaded):
 
 ```yaml
-      - uses: LF3551/human-risk-graph@v0.16.0
+      - uses: LF3551/human-risk-graph@v0.17.0
         env:
           HRG_PSEUDONYM_KEY: ${{ secrets.HRG_PSEUDONYM_KEY }}
         with:
