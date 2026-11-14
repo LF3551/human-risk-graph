@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🔬 Research
+
+- Protocol of a second study, [docs/study-two-person.md](docs/study-two-person.md): two-person control and dormant authority over publishing in the 1,000 most downloaded PyPI packages, with its collection and analysis code (`benchmark/two_person.py`) and tests, fixed before any data in the sample is collected and to be registered on OSF.
+
 ### 📝 Documentation
 
 - The validation study is described as a retrospective study with the protocol committed before data collection, not as pre-registered: the protocol was committed to this repository, not to an independent registry, and the outcome data already existed (README, `CITATION.cff`, `.zenodo.json`, the 0.14.1 entry below).
