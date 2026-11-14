@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ✨ Added
 
+- **`hrg check PACKAGE`**: how a PyPI package is published and who could release it alone. From the PyPI provenance of every file of the latest release and the repository's deployment environments, releases, deployments and reviewers, it reports the release path (V2 two-person gate, V1 a gate one person can pass, V0 no gate, P partly attested, O another publisher, U not observable), the configured gate, a configured gate releases do not take, a single publisher, and inactive reviewers who can approve their own release, each with advice. People are not named unless `--show-people` is given. `--format json`, `--fail-on error|warning` (exit code 3), `--repo`, `--api-url`. Definitions shared with the two-person study (`publishing.py`). See [docs/check.md](docs/check.md).
 - Under hrg-1 and hrg-2, `hrg analyze` prints a note when people in the file have no activity seen for over `inactive-days` (`last_active`), pointing to `--model hrg-3` and HRG007 when the file has functions; HRG007 itself stays a hrg-3 rule.
 - **GitHub Enterprise Server:** `hrg scan github --api-url https://HOST/api/v3` (also `HRG_GITHUB_API_URL`, and `GITHUB_API_URL` as GitHub Actions sets it); the GitHub CLI token for that host is used. Action input `api-url`, by default the API of the GitHub the workflow runs on.
 

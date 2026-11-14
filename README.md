@@ -40,6 +40,9 @@ afford to lose, and tells you **which three changes raise your score the most**.
   data and ranked by score gain.
 - **No YAML to start**: `hrg scan github` drafts the organization from one repository or
   a whole GitHub organization (who reviews, merges, releases, deploys and can bypass).
+- **Check any PyPI package**: `hrg check requests` shows whether its latest release went
+  through a second person, whether one person publishes everything, and whether inactive
+  reviewers can still approve releases alone ([docs/check.md](docs/check.md)).
 - **Stale authority**: people who can still merge, release or deploy but have not been
   active for 90 days are reported, with what the two-person rule is really left with.
 - **Built for pipelines and audits**: SARIF for GitHub code scanning, JUnit, a `--min-score`
@@ -105,6 +108,24 @@ Human Risk Graph 0.16.0 · organization.yaml · 5 people · 5 dependencies
             50% of the connections between the others.
    ...
 ```
+
+## Check a PyPI package
+
+Who could release a package alone? `hrg check` reads the PyPI provenance of the latest
+release (which repository, workflow and GitHub environment published each file) and the
+repository's deployment environments, releases and reviewers:
+
+```bash
+hrg check requests
+hrg check my-package --show-people --fail-on error   # your own project, in CI
+```
+
+It reports whether the latest release went through a two-person gate (required
+reviewers, no self-approval, no administrator bypass), whether one person published every
+release in the last year, and whether reviewers with no activity seen for 90 days can
+still approve a release they start themselves, each with what to change. People are not
+named unless you pass `--show-people`, so that the output does not point anyone at an
+account to take over. Definitions and limits: [docs/check.md](docs/check.md).
 
 ## Scan a GitHub repository
 

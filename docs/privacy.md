@@ -17,6 +17,7 @@ and, where one exists, the works council before the first run on real data.
 | Functions: who can merge, release, administer, deploy | The file; the scan derives them from the same sources and from deployment environments | Model hrg-3 |
 | Last activity (one date, or `never`) of people with authority over a function | The file; the scan takes the latest date from the pull requests, releases and deployments it reads, or the person's last commit. `--no-activity` turns it off | Model hrg-3: the inactive-performer finding (HRG007), a periodic review of access rights |
 | Free-text evidence | Written by the scan or by hand | Review of the draft |
+| `hrg check`: logins of the publishers and environment reviewers of one public package, and when each was last seen | The public GitHub and PyPI APIs | Counts in the result; logins only with `--show-people`; nothing is stored |
 
 HRG does **not** read message contents, code, working hours or performance data, and it
 keeps no activity timelines: at most one date per person with authority, the last time
