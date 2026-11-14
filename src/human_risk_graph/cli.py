@@ -29,6 +29,7 @@ from . import diff as diff_module
 from .ci_reports import generate_junit_report, generate_sarif_report
 from .config import Acceptance, Config, ConfigError, apply_acceptances, load_config
 from .console import render_summary
+from .activity import DEFAULT_INACTIVE_DAYS
 from .findings import Finding, collect_findings, threshold_breach
 from .github_scan import (
     GitHubClient,
@@ -206,13 +207,20 @@ def cli():
     show_default=True,
     help="Number of remediations to simulate and rank (0 to skip).",
 )
+@click.option(
+    "--inactive-days",
+    type=click.IntRange(1, 3650),
+    default=DEFAULT_INACTIVE_DAYS,
+    show_default=True,
+    help="hrg-3: people whose last_active is older than this many days are inactive (HRG007).",
+)
 @click.option("--quiet", "-q", is_flag=True, help="Only print errors.")
 @privacy_options
 @CONFIG_OPTION
 @click.pass_context
 def analyze(
-    ctx, input_file, formats, output, visualize, fail_above, min_score, model, fix_steps, quiet,
-    pseudonymize, pseudonym_key_file, config_path,
+    ctx, input_file, formats, output, visualize, fail_above, min_score, model, fix_steps,
+    inactive_days, quiet, pseudonymize, pseudonym_key_file, config_path,
 ):  # fmt: skip
     """
     Analyze an organization's human risk graph.
@@ -233,12 +241,14 @@ def analyze(
     min_score = _setting(ctx, "min_score", min_score, config.min_score)
     fail_above = _setting(ctx, "fail_above", fail_above, config.fail_above)
     pseudonymize = _setting(ctx, "pseudonymize", pseudonymize, config.pseudonymize)
+    inactive_days = _setting(ctx, "inactive_days", inactive_days, config.inactive_days)
     calc = {"model": model, **config.calculate_kwargs()}
     thresholds = {"fail_above": fail_above, "min_score": min_score}
 
     run = _run_analysis(
-        input_file, config, calc, pseudonymize, pseudonym_key_file, fix_steps, **thresholds
-    )
+        input_file, config, calc, pseudonymize, pseudonym_key_file, fix_steps, inactive_days,
+        **thresholds,
+    )  # fmt: skip
     pz = run.pz
     input_path = Path(input_file)
     base_name = pz.scrub(input_path.stem) if pz else input_path.stem
@@ -297,8 +307,9 @@ class _Analysis:
 
 
 def _run_analysis(
-    input_file, config: Config, calc, pseudonymize, key_file, fix_steps, fail_above, min_score
-) -> _Analysis:
+    input_file, config: Config, calc, pseudonymize, key_file, fix_steps, inactive_days,
+    fail_above, min_score,
+) -> _Analysis:  # fmt: skip
     """Load, optionally pseudonymize, score, collect findings and plan fixes; exits on errors."""
     data, hrg = _load(input_file)
     pz = _pseudonymizer(pseudonymize, key_file)
@@ -311,7 +322,7 @@ def _run_analysis(
     except ValueError as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
-    findings = collect_findings(hrg, results, fail_above, min_score)
+    findings = collect_findings(hrg, results, fail_above, min_score, inactive_days)
     findings, unused = apply_acceptances(findings, accept)
     fixes = hrg.fix_plan(steps=fix_steps, **calc) if fix_steps else []
     breach = threshold_breach(results, fail_above, min_score)
@@ -602,13 +613,20 @@ def scan():
 )
 @click.option("--include-bots", is_flag=True, help="Keep bot accounts such as dependabot[bot].")
 @click.option(
+    "--activity/--no-activity",
+    default=True,
+    show_default=True,
+    help="Record when people with authority over a function were last active (last_active), "
+    "for the inactive-performer finding (HRG007).",
+)
+@click.option(
     "--token",
     envvar="HRG_GITHUB_TOKEN",
     help="GitHub token (default: GITHUB_TOKEN, GH_TOKEN or `gh auth token`).",
 )
 def scan_github(
     repo, org, max_repos, include_archived, include_forks, output, branch, max_prs, include_bots,
-    token,
+    activity, token,
 ):  # fmt: skip
     """
     Draft an organization from a GitHub repository or a whole organization.
@@ -656,6 +674,7 @@ def scan_github(
                     max_repos=max_repos,
                     max_prs=max_prs,
                     include_bots=include_bots,
+                    record_activity=activity,
                     include_archived=include_archived,
                     include_forks=include_forks,
                     progress=status.update,
@@ -667,6 +686,7 @@ def scan_github(
                     branch=branch,
                     max_prs=max_prs,
                     include_bots=include_bots,
+                    record_activity=activity,
                     progress=lambda message: status.update(f"{repo}: {message}"),
                 )
                 result = scanner.scan()

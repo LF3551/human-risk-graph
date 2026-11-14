@@ -6,8 +6,10 @@ finding is relevant to. They are not an assessment of compliance.
 """
 
 from dataclasses import dataclass
+from datetime import date
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
+from .activity import DEFAULT_INACTIVE_DAYS, activity_text, is_inactive
 from .hrg import HumanRiskGraph
 from .model_v2 import (
     CONCENTRATION_ERROR,
@@ -17,6 +19,7 @@ from .model_v2 import (
     approval_shares,
     key_person_impacts,
 )
+from .model_v3 import margin
 
 if TYPE_CHECKING:  # config imports this module
     from .config import Acceptance
@@ -263,6 +266,39 @@ RULES: Dict[str, Rule] = {
                 ),
             },
         ),
+        Rule(
+            id="HRG007",
+            name="inactive-performer",
+            title="Function relies on inactive people",
+            description=(
+                "Model hrg-3: people who can perform a function have shown no activity for "
+                "longer than inactive-days (default 90), according to their last_active date. "
+                "The function has less margin than it appears, or cannot be performed by "
+                "active people at all; an inactive account that can complete a critical "
+                "function alone is an easy target for takeover."
+            ),
+            remediation=(
+                "Confirm whether each inactive person still needs the authority. Remove it "
+                "from those who do not, and authorize an active person in their place; for "
+                "people who are away, document who stands in."
+            ),
+            controls={
+                "iso27001": (
+                    ("A.5.18", "Access rights"),
+                    ("A.8.2", "Privileged access rights"),
+                    ("A.5.30", "ICT readiness for business continuity"),
+                ),
+                "soc2": (
+                    ("CC6.2", "Removal of access that is no longer authorized"),
+                    ("CC6.3", "Role-based access, least privilege and segregation of duties"),
+                    ("CC9.1", "Mitigation of business disruption risk"),
+                ),
+                "dora": (
+                    ("Art. 9(4)(c)", "Access limited to approved functions"),
+                    ("Art. 11(2)(a)", "Continuity of critical or important functions"),
+                ),
+            },
+        ),
     )
 }
 
@@ -274,7 +310,7 @@ def rules_for_model(model: Optional[str]) -> List[Rule]:
 
 
 GRAPH_RULES = ("HRG001", "HRG002", "HRG003", "HRG004")
-V3_RULES = ("HRG002", "HRG004", "HRG005", "HRG006")
+V3_RULES = ("HRG002", "HRG004", "HRG005", "HRG006", "HRG007")
 
 
 def _label(hrg: HumanRiskGraph, person_id: str) -> str:
@@ -299,6 +335,15 @@ def acceptance_text(finding: Finding) -> str:
 
 def _people(count: int) -> str:
     return f"{count} {'person' if count == 1 else 'people'}"
+
+
+def _annotated(label: str, note: str) -> str:
+    """'Dan (dan)' + note -> 'Dan (dan, note)'; 'dan' + note -> 'dan (note)'."""
+    return f"{label[:-1]}, {note})" if label.endswith(")") else f"{label} ({note})"
+
+
+def _and(items: List[str]) -> str:
+    return items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1]
 
 
 def _labels(hrg: HumanRiskGraph, ids) -> str:
@@ -374,6 +419,56 @@ def _function_findings(hrg: HumanRiskGraph, results: Dict[str, Any]) -> List[Fin
     return findings
 
 
+def _inactivity_findings(
+    hrg: HumanRiskGraph, results: Dict[str, Any], days: int, today: Optional[date]
+) -> List[Finding]:
+    """HRG007: functions whose performers include people inactive for more than ``days``."""
+    last_active = {p["id"]: p.get("last_active") for p in hrg.people}
+    findings: List[Finding] = []
+    for f in results.get("functions", []):
+        inactive = sorted(
+            p for p in f["performers"] if is_inactive(last_active.get(p), days, today)
+        )
+        if not inactive:
+            continue
+        active = set(f["performers"]) - set(inactive)
+        active_margin = margin(
+            {"performers": active, "requires": f["requires"], "alone": set(f["alone"]) & active}
+        )
+        separated = f.get("separation", "required") == "required"
+        dormant_solo = sorted(set(inactive) & set(f["alone"])) if separated else []
+        who = _and([_annotated(_label(hrg, p), activity_text(last_active[p])) for p in inactive])
+        parts = [
+            f"{f['name']}: {who} {'has' if len(inactive) == 1 else 'have'} been inactive "
+            f"for over {days} days"
+        ]
+        if active_margin == 0:
+            parts.append(
+                f"; it needs {_people(f['requires'])} and "
+                f"{'nobody' if not active else 'only ' + _people(len(active))} active can "
+                "perform it"
+            )
+        elif active_margin < f["margin"]:
+            parts.append(f"; its margin drops from {f['margin']} to {active_margin}")
+        if dormant_solo:
+            parts.append(
+                f". {_labels(hrg, dormant_solo)} can still complete it alone, which makes "
+                f"{'that account' if len(dormant_solo) == 1 else 'those accounts'} an easy "
+                "target"
+            )
+        severe = (active_margin == 0 and f["margin"] > 0) or bool(dormant_solo)
+        findings.append(
+            Finding(
+                rule_id="HRG007",
+                level="error" if severe and f["critical"] else "warning",
+                message="".join(parts) + ".",
+                person=inactive[0] if len(inactive) == 1 else None,
+                function=f["id"],
+            )
+        )
+    return findings
+
+
 def threshold_breach(
     results: Dict[str, Any], fail_above: Optional[float] = None, min_score: Optional[int] = None
 ) -> Optional[str]:
@@ -391,6 +486,8 @@ def collect_findings(
     results: Dict[str, Any],
     fail_above: Optional[float] = None,
     min_score: Optional[int] = None,
+    inactive_days: int = DEFAULT_INACTIVE_DAYS,
+    today: Optional[date] = None,
 ) -> List[Finding]:
     """
     Turn analysis results into findings.
@@ -400,6 +497,8 @@ def collect_findings(
         results: Output of ``hrg.calculate()``.
         fail_above: Optional composite risk threshold (0-1).
         min_score: Optional minimum score (0-100). Breaking either adds an HRG004 finding.
+        inactive_days: hrg-3: people whose ``last_active`` is older than this are inactive.
+        today: Reference date for inactivity (default: today).
 
     Returns:
         Findings ordered by rule, then by person.
@@ -407,6 +506,7 @@ def collect_findings(
     findings: List[Finding] = []
     if results.get("model") == MODEL_V3:
         findings = _function_findings(hrg, results)
+        findings += _inactivity_findings(hrg, results, inactive_days, today)
         breach = threshold_breach(results, fail_above, min_score)
         if breach:
             findings.append(Finding(rule_id="HRG004", level="error", message=breach))

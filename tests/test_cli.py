@@ -99,7 +99,7 @@ def test_model_v3_end_to_end(tmp_path):
 
     report = json.loads((tmp_path / "functions_report.json").read_text())
     assert report["results"]["model"] == "hrg-3"
-    assert {f["rule_id"] for f in report["findings"]} == {"HRG002", "HRG005", "HRG006"}
+    assert {f["rule_id"] for f in report["findings"]} == {"HRG002", "HRG005", "HRG006", "HRG007"}
     assert "(by policy)" in (tmp_path / "functions_report.md").read_text()
     assert "## 🔑 Critical Functions" in (tmp_path / "functions_report.md").read_text()
     html = (tmp_path / "functions_report.html").read_text()
@@ -113,7 +113,7 @@ def test_model_v3_end_to_end(tmp_path):
             line = lines[res["locations"][0]["physicalLocation"]["region"]["startLine"] - 1]
             assert line.strip().startswith("- id:"), line
     junit = (tmp_path / "functions_report.junit.xml").read_text()
-    assert 'tests="4"' in junit and "HRG006" in junit and "HRG001" not in junit
+    assert 'tests="5"' in junit and "HRG006" in junit and "HRG001" not in junit
 
 
 def test_model_v3_needs_functions(org):

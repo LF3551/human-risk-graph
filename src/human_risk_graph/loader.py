@@ -1,6 +1,7 @@
 """Load organization data from JSON or YAML files."""
 
 import json
+from datetime import date
 from importlib import resources
 from pathlib import Path
 from typing import Any, Dict, Union
@@ -34,6 +35,10 @@ def load_organization(path: Union[str, Path]) -> Dict[str, Any]:
 
     if not isinstance(data, dict) or "people" not in data or "dependencies" not in data:
         raise ValueError(f"{path}: expected an object with 'people' and 'dependencies' keys")
+    # YAML reads an unquoted 2026-03-01 as a date; keep it as text like JSON does.
+    for person in data["people"] if isinstance(data["people"], list) else []:
+        if isinstance(person, dict) and isinstance(person.get("last_active"), date):
+            person["last_active"] = person["last_active"].isoformat()
     return data
 
 

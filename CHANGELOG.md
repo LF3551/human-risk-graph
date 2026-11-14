@@ -5,6 +5,19 @@ All notable changes to Human Risk Graph will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.0] - 2026-11-14
+
+### ✨ Added
+
+- **Deploy functions from GitHub Environments** (model hrg-3): `hrg scan github` drafts `deploy-<environment>` for every deployment environment with required reviewers, as a two-person rule (`requires: 2`): one person starts the deployment, a reviewer approves it. Performers are the reviewers (teams expanded when visible) and the people who created the last 30 deployments; `alone` holds the reviewers unless *Prevent self-review* is on, and the admins when they can bypass the environment's rules. Environments without reviewers are drafted when their name looks like a production or publishing target (`production`, `pypi`, `release`, ...), as a function anyone who deploys completes alone. Deployments by bots are not counted.
+- **Inactive people with authority** (`HRG007`, model hrg-3): people can carry `last_active` (a date, or `never`), and performers inactive for more than `inactive-days` (default 90; `--inactive-days`, `inactive-days` in `hrg.toml`, action input `inactive-days`) are reported with how the function's margin drops without them. A critical function active people cannot perform, or that an inactive account can still complete alone, is an error. The score does not change. Mapped to ISO/IEC 27001 A.5.18, A.8.2, A.5.30; SOC 2 CC6.2, CC6.3, CC9.1; DORA Art. 9(4)(c), 11(2)(a).
+- The scan records `last_active` for people who can perform a function: the latest pull request, approval, release or deployment it read, or their last commit on the branch (at most 30 lookups per repository). `--no-activity` records nothing. Organization scans and re-scans keep the latest date.
+- GitHub Action inputs `model` and `inactive-days`.
+
+### 📝 Documentation
+
+- [docs/model-hrg3.md](docs/model-hrg3.md): deploy functions, last activity and HRG007; [docs/compliance.md](docs/compliance.md): HRG007 and access reviews; [docs/privacy.md](docs/privacy.md): the activity date that is processed, why, and how to turn it off; schema: `people.last_active`.
+
 ## [0.15.3] - 2026-11-14
 
 ### 🐛 Fixed

@@ -14,11 +14,14 @@ and, where one exists, the works council before the first run on real data.
 | Person id (for example a GitHub login), name, role | The organization file; `hrg scan github` takes logins from the GitHub API | Identifying nodes in the graph and in reports |
 | Criticality (0-1) | Set by whoever maintains the file; the scan drafts a value | Weighting the risk |
 | Dependencies: who approves, escalates to or can bypass whom | The file; the scan derives them from pull request reviews, CODEOWNERS and branch rules | All metrics |
-| Functions: who can merge, release, administer | The file; the scan derives them from the same sources | Model hrg-3 |
+| Functions: who can merge, release, administer, deploy | The file; the scan derives them from the same sources and from deployment environments | Model hrg-3 |
+| Last activity (one date, or `never`) of people with authority over a function | The file; the scan takes the latest date from the pull requests, releases and deployments it reads, or the person's last commit. `--no-activity` turns it off | Model hrg-3: the inactive-performer finding (HRG007), a periodic review of access rights |
 | Free-text evidence | Written by the scan or by hand | Review of the draft |
 
-HRG does **not** read message contents, code, working hours, activity timelines or
-performance data, and it does not send any data anywhere: it runs locally or in your CI, has
+HRG does **not** read message contents, code, working hours or performance data, and it
+keeps no activity timelines: at most one date per person with authority, the last time
+they were seen active, so that authority nobody uses any more can be found and removed.
+It does not send any data anywhere: it runs locally or in your CI, has
 no telemetry and makes no network calls except the GitHub API calls of `hrg scan github`,
 with your token.
 
@@ -46,7 +49,7 @@ hrg analyze org.yaml --pseudonymize
   HMAC-SHA256(key, id). GitHub logins and e-mail addresses are easy to guess, so an unkeyed
   hash could be reversed by trying candidates; with a secret key it cannot. The same key
   gives the same pseudonyms on every run, so snapshots stay comparable and `hrg diff` works.
-- **Allow-listed fields.** Only id, criticality, source and confirmation of people; from,
+- **Allow-listed fields.** Only id, criticality, last activity, source and confirmation of people; from,
   to, type, weight and review of dependencies; and id, name, criticality, requires,
   separation, performers, alone, source and confirmation of functions reach the analysis.
   Names, roles, e-mail addresses, evidence and any other field are dropped.
@@ -79,7 +82,7 @@ requested and logged through a ticket.
 ### In GitHub Actions
 
 ```yaml
-- uses: LF3551/human-risk-graph@v0.15.3
+- uses: LF3551/human-risk-graph@v0.16.0
   env:
     HRG_PSEUDONYM_KEY: ${{ secrets.HRG_PSEUDONYM_KEY }}
   with:
@@ -107,7 +110,9 @@ the artifact and the SARIF messages are pseudonymized.
    (Art. 30).
 5. **Minimize.** Use `--pseudonymize` for anything shared beyond the people who must act on
    findings; scan only the repositories in scope (`--max-repos`, or one repository at a
-   time); delete drafts and reports you no longer need.
+   time); delete drafts and reports you no longer need. If the inactive-performer finding
+   is not part of the agreed purpose, scan with `--no-activity` so that no activity date
+   is recorded.
 6. **Inform.** Tell the people concerned what is analysed and why (Art. 13/14), for example
    in the engineering handbook.
 7. **Access.** Keep the pseudonym key, the drafts with real names and the named reports

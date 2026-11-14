@@ -80,12 +80,17 @@ jobs:
         with:
           scan: ${{ github.repository }}
           max-prs: "20"
+          model: hrg-3
+          inactive-days: "60"
           artifact-name: hrg-report-scan
-      - name: Check outputs
+      - name: Check outputs and the hrg-3 draft
         shell: bash
         env:
           SCORE: ${{ steps.hrg.outputs.score }}
-        run: test -n "$SCORE"
+          REPORT_DIR: ${{ steps.hrg.outputs.report-dir }}
+        run: |
+          test -n "$SCORE"
+          grep -q '"model": "hrg-3"' "$REPORT_DIR"/*_report.json
 
   scan-org:
     name: Scan an organization, pseudonymized

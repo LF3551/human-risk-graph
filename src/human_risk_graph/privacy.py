@@ -27,7 +27,7 @@ LENGTH = 8  # hex digits; colliding pseudonyms in one organization get more
 KEY_ENV = "HRG_PSEUDONYM_KEY"
 MIN_KEY_LENGTH = 16
 
-PERSON_KEYS = ("id", "criticality", "source", "confirmed")
+PERSON_KEYS = ("id", "criticality", "last_active", "source", "confirmed")
 DEPENDENCY_KEYS = ("from", "to", "type", "weight", "review", "source", "confirmed")
 FUNCTION_KEYS = (
     "id", "name", "criticality", "requires", "separation", "performers", "alone", "source",

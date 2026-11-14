@@ -7,7 +7,8 @@ people:
   - {id: alice, name: Alice, role: Head of Platform, criticality: 0.9}
   - {id: bob, name: Bob, role: SRE, criticality: 0.7}
   - {id: carol, name: Carol, role: Security Engineer, criticality: 0.7}
-  - {id: dan, name: Dan, role: Developer, criticality: 0.4}
+  - {id: dan, name: Dan, role: Developer, criticality: 0.4,
+     last_active: never}   # or a date such as 2026-03-01; inactive people are HRG007
 
 # The hrg-2 graph still drives the dependency map in the HTML report.
 dependencies:

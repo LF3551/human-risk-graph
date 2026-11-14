@@ -19,6 +19,7 @@ from .graph_analysis import (
     find_articulation_points,
     compute_betweenness_centrality,
 )
+from .activity import parse_activity
 from .model_v2 import (
     MODEL_V1,
     MODEL_V2,
@@ -58,6 +59,10 @@ def _validate_person(person, i: int, ids: Set[str]) -> None:
         raise ValueError(f"people[{i}]: duplicate id {person['id']!r}")
     if "criticality" in person:
         _check_unit_interval(person["criticality"], f"people[{i}].criticality")
+    try:
+        parse_activity(person.get("last_active"))
+    except ValueError as e:
+        raise ValueError(f"people[{i}].last_active {e}") from None
 
 
 def _validate_dependency(dep, i: int, ids: Set[str]) -> None:
