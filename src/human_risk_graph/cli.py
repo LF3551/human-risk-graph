@@ -6,13 +6,16 @@ Usage:
     hrg analyze org.yaml --format sarif --format junit --min-score 70
     hrg diff old.json new.json --format markdown
     hrg schema > organization.schema.json
+    hrg check requests
 
 Exit codes: 0 success, 1 invalid input or error, 2 usage error, 3 score below
---min-score, risk above --fail-above, or risk increased with --fail-on-increase.
+--min-score, risk above --fail-above, risk increased with --fail-on-increase, or a
+finding at the --fail-on level of hrg check.
 """
 
 import click
 import csv
+import json
 import hashlib
 import sys
 from collections import Counter
@@ -28,7 +31,7 @@ from . import __version__
 from . import diff as diff_module
 from .ci_reports import generate_junit_report, generate_sarif_report
 from .config import Acceptance, Config, ConfigError, apply_acceptances, load_config
-from .console import render_summary
+from .console import render_check, render_summary
 from .activity import DEFAULT_INACTIVE_DAYS, is_inactive
 from .findings import Finding, collect_findings, threshold_breach
 from .github_scan import (
@@ -44,6 +47,7 @@ from .github_scan import (
 from .hrg import HumanRiskGraph
 from .loader import load_organization, organization_schema
 from .model_v2 import MODEL_V2, MODEL_V3, MODELS
+from .package_check import LEVELS, CheckError, check_package, worst_level
 from .privacy import KEY_ENV, PseudonymKeyError, Pseudonymizer, load_key
 from .reports import (
     generate_html_report,
@@ -763,6 +767,74 @@ def _print_scan_summary(console: Console, label, result, notes, output: Path, is
         console.print(f"  [yellow]Gap:[/] {gap}")
     console.print(f"\n  Draft written to [cyan]{output}[/]")
     console.print(f"  Next: review it, set confirmed: true, then [bold]hrg analyze {output}[/]\n")
+
+
+@cli.command()
+@click.argument("package")
+@click.option("--repo", help="GitHub repository OWNER/NAME, when PyPI does not link to it.")
+@click.option(
+    "--show-people",
+    is_flag=True,
+    help="Name the people behind the findings. Meant for your own project.",
+)
+@click.option(
+    "--format", "fmt", type=click.Choice(["text", "json"]), default="text", show_default=True
+)
+@click.option(
+    "--inactive-days",
+    type=click.IntRange(1, 3650),
+    default=DEFAULT_INACTIVE_DAYS,
+    show_default=True,
+    help="Reviewers with no activity seen for longer are inactive.",
+)
+@click.option(
+    "--fail-on",
+    type=click.Choice(["error", "warning"]),
+    help=f"Exit with code {EXIT_RISK} when a finding has this level or worse.",
+)
+@click.option(
+    "--token",
+    envvar="HRG_GITHUB_TOKEN",
+    help="GitHub token (default: GITHUB_TOKEN, GH_TOKEN or `gh auth token`).",
+)
+@click.option(
+    "--api-url",
+    envvar=["HRG_GITHUB_API_URL", "GITHUB_API_URL"],
+    default=API,
+    show_default=True,
+    help="GitHub API, for GitHub Enterprise Server.",
+)
+def check(package, repo, show_people, fmt, inactive_days, fail_on, token, api_url):
+    """
+    Check how a PyPI package is published and who could release it alone.
+
+    Reads public data: the PyPI provenance of the latest release (which repository,
+    workflow and environment published each file) and the repository's deployment
+    environments, releases, deployments and reviewers. Reports whether the latest release
+    went through a two-person gate, whether one person publishes everything, and whether
+    inactive reviewers can still approve releases, each with what to change.
+
+    People are not named unless --show-people is given.
+
+    Example:
+        hrg check requests
+        hrg check my-package --show-people --fail-on error
+    """
+    client = _github_client(token, api_url)
+    try:
+        result = check_package(
+            package, client, repo=repo, inactive_days=inactive_days,
+            show_people=show_people, read_reviews=bool(client.token),
+        )  # fmt: skip
+    except (CheckError, GitHubError) as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+    if fmt == "json":
+        click.echo(json.dumps(result, indent=2, ensure_ascii=False))
+    else:
+        render_check(Console(highlight=False), result)
+    if fail_on and LEVELS.index(worst_level(result)) >= LEVELS.index(fail_on):
+        sys.exit(EXIT_RISK)
 
 
 def _tolerate_encoding(streams=None):
