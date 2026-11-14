@@ -115,6 +115,10 @@ hrg scan github my-org/payments-api        # uses GITHUB_TOKEN, GH_TOKEN or `gh 
 hrg analyze payments-api-org.yaml
 ```
 
+On GitHub Enterprise Server, add `--api-url https://github.example.com/api/v3` (the
+GitHub CLI token for that host is used, and in GitHub Actions `GITHUB_API_URL` is picked up
+automatically).
+
 The scan reads the most recent merged pull requests (`--max-prs`, default 100) and turns
 evidence into dependencies:
 
@@ -492,6 +496,7 @@ not uploaded):
 | `model` | config, else `hrg-2` | `hrg-3` scores critical functions: merge, release, admin, deploy |
 | `inactive-days` | config, else `90` | With `hrg-3`: report people with authority inactive for longer (HRG007) |
 | `token` | `github.token` | Token for `scan` and `scan-org` |
+| `api-url` | `github.api_url` | GitHub API for `scan` and `scan-org`; GitHub Enterprise Server works without setting it |
 | `config` | auto | `hrg.toml`, `.hrg.toml` or `[tool.hrg]` in `pyproject.toml` |
 | `min-score` / `fail-above` | | Fail below this score (0-100) / above this risk (0-1) |
 | `upload-sarif` | `true` | Upload findings to code scanning (with `file`) |

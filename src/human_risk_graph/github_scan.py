@@ -143,15 +143,22 @@ class GitHubClient:
         return items[:limit]
 
 
-def default_token() -> Optional[str]:
-    """GITHUB_TOKEN, GH_TOKEN, or the token of a logged-in GitHub CLI."""
+def default_token(api: str = API) -> Optional[str]:
+    """
+    GITHUB_TOKEN, GH_TOKEN, or the token of a logged-in GitHub CLI; for GitHub Enterprise
+    Server (``api`` other than api.github.com), the CLI's token for that host.
+    """
     for name in ("GITHUB_TOKEN", "GH_TOKEN"):
         if os.environ.get(name):
             return os.environ[name]
     if shutil.which("gh"):
+        command = ["gh", "auth", "token"]
+        host = urllib.parse.urlsplit(api).hostname
+        if host and api.rstrip("/") != API:
+            command += ["--hostname", host]
         try:
             out = subprocess.run(  # nosec B603 B607
-                ["gh", "auth", "token"], capture_output=True, text=True, timeout=10, check=False
+                command, capture_output=True, text=True, timeout=10, check=False
             )
             return out.stdout.strip() or None
         except (OSError, subprocess.SubprocessError):
