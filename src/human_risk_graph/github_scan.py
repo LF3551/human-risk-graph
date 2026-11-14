@@ -157,7 +157,7 @@ def default_token(api: str = API) -> Optional[str]:
         if host and api.rstrip("/") != API:
             command += ["--hostname", host]
         try:
-            out = subprocess.run(  # nosec B603 B607
+            out = subprocess.run(  # nosec B603
                 command, capture_output=True, text=True, timeout=10, check=False
             )
             return out.stdout.strip() or None
