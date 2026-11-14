@@ -79,7 +79,7 @@ requested and logged through a ticket.
 ### In GitHub Actions
 
 ```yaml
-- uses: LF3551/human-risk-graph@v0.15.2
+- uses: LF3551/human-risk-graph@v0.15.3
   env:
     HRG_PSEUDONYM_KEY: ${{ secrets.HRG_PSEUDONYM_KEY }}
   with:
