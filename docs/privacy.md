@@ -82,7 +82,7 @@ requested and logged through a ticket.
 ### In GitHub Actions
 
 ```yaml
-- uses: LF3551/human-risk-graph@v0.16.0
+- uses: LF3551/human-risk-graph@v0.17.0
   env:
     HRG_PSEUDONYM_KEY: ${{ secrets.HRG_PSEUDONYM_KEY }}
   with:
