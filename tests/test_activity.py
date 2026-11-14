@@ -228,3 +228,32 @@ def test_cli_inactive_days_from_option_and_config(tmp_path, monkeypatch):
     junit_args = ["analyze", "org.yaml", "--model", "hrg-3", "--format", "junit", "--no-visualize"]
     result = CliRunner().invoke(cli, junit_args)
     assert 'tests="5"' in (tmp_path / "org_report.junit.xml").read_text(), result.output
+
+
+# Hint outside hrg-3
+
+
+def test_inactivity_hint():
+    from human_risk_graph.cli import inactivity_hint
+
+    data = {"people": [{"id": "a", "last_active": "2020-01-01"}, {"id": "b"}], "dependencies": []}
+    assert inactivity_hint(data, "hrg-2", 90) == (
+        "Note: 1 person has no activity seen for over 90 days (last_active)."
+    )
+    data["functions"] = [{"id": "release", "performers": ["a"]}]
+    assert "run with --model hrg-3 to see which functions rely on them (HRG007)" in (
+        inactivity_hint(data, "hrg-1", 90)
+    )
+    assert inactivity_hint(data, "hrg-3", 90) is None  # HRG007 reports it there
+    assert inactivity_hint({"people": [{"id": "b"}]}, "hrg-2", 90) is None
+
+
+def test_cli_shows_the_hint_under_the_default_model(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "org.yaml").write_text(ORG)
+    args = ["analyze", "org.yaml", "--format", "json", "--no-visualize"]
+    output = CliRunner().invoke(cli, args).output
+    assert "Note: 1 person has no activity seen for over 90 days" in output
+    assert "--model hrg-3" in output
+    assert "Note:" not in CliRunner().invoke(cli, [*args, "-q"]).output
+    assert "Note:" not in CliRunner().invoke(cli, [*args, "--model", "hrg-3"]).output
