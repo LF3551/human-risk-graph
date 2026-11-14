@@ -233,7 +233,7 @@ class ScanResult:
     # Approving reviews given per person, and code owners seen, before dependencies are merged.
     approvals_given: Dict[str, int] = field(default_factory=dict)
     code_owners: List[str] = field(default_factory=list)
-    # Critical functions for model hrg-3: merge, release, admin.
+    # Critical functions for model hrg-3: merge, release, admin, deploy-<environment>.
     functions: List[Dict[str, Any]] = field(default_factory=list)
     # Repositories an organization scan covered; empty for a single repository.
     repositories: List[str] = field(default_factory=list)

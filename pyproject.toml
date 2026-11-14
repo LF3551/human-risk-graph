@@ -25,6 +25,7 @@ keywords = [
     "iso27001",
     "gdpr",
     "segregation-of-duties",
+    "access-review",
     "github",
 ]
 classifiers = [
