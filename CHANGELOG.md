@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🔧 Changed
 
 - black, flake8 (with the complexity limit) and mypy (now with `check_untyped_defs`) report no findings.
+- CI: black, flake8 and mypy run in a separate job with the versions pinned in `requirements.txt` and fail the build; before, they were advisory. `bandit` and `pip-audit` (on the hashed lock) fail the build too; the previous `safety check` step needed an account and its failures were ignored. The test matrix no longer installs the linters.
 - Refactored the 15 functions above the complexity limit (`hrg analyze`, `hrg scan github`, the GitHub scanner, report generation, configuration and input validation) into smaller functions, and fixed all type errors. Apart from the fixes above, reports and drafts are unchanged: compared byte for byte on the examples and on every GitHub scan scenario of the test suite.
 
 ## [0.15.2] - 2026-11-13

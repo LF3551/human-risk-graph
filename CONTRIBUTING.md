@@ -30,8 +30,8 @@ All pull requests must pass the CI pipeline (tests, linting, security checks) be
 - Security checks: `bandit -c pyproject.toml -r src/` and
   `pip-audit -r requirements.txt --require-hashes --disable-pip`
 
-The tool versions are pinned in `requirements.txt` (compiled for Python 3.11). To use
-the same versions locally:
+CI runs all of these with the tool versions pinned in `requirements.txt` (compiled for
+Python 3.11) and fails on any finding. To use the same versions locally:
 
 ```bash
 pip install --require-hashes -r requirements.txt   # Python 3.11
