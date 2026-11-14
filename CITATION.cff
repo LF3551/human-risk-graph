@@ -52,7 +52,7 @@ references:
       name: Zenodo
     doi: 10.5281/zenodo.20260930
   - type: report
-    title: "Does a single releaser predict a release stall? A pre-registered predictive check of hrg-3"
+    title: "Does a single releaser predict a release stall? A predictive check of hrg-3"
     authors:
       - family-names: "Aleinikov"
         given-names: "Aleksei"

@@ -5,6 +5,12 @@ All notable changes to Human Risk Graph will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 📝 Documentation
+
+- The validation study is described as a retrospective study with the protocol committed before data collection, not as pre-registered: the protocol was committed to this repository, not to an independent registry, and the outcome data already existed (README, `CITATION.cff`, `.zenodo.json`, the 0.14.1 entry below).
+
 ## [0.16.0] - 2026-11-14
 
 ### ✨ Added
@@ -78,7 +84,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🔬 Validation
 
-- [Pre-registered predictive study](docs/validation-hrg3.md) of the hrg-3 release function on 284 popular PyPI projects: a single releaser before 2024-11-01 went with a 4.8 times higher rate of no release in the following year (95% CI 1.5–15.3; commit truck factor: 1.9, 0.9–4.3). Adjusted for release activity: 2.7 (0.8–9.2). Protocol committed before data collection; data and code in `benchmark/validation/` and `benchmark/validate.py`.
+- [Retrospective predictive study](docs/validation-hrg3.md) of the hrg-3 release function on 284 popular PyPI projects: a single releaser before 2024-11-01 went with a 4.8 times higher rate of no release in the following year (95% CI 1.5–15.3; commit truck factor: 1.9, 0.9–4.3). Adjusted for release activity: 2.7 (0.8–9.2). Protocol committed before data collection; data and code in `benchmark/validation/` and `benchmark/validate.py`.
 
 ### 🔒 Security
 

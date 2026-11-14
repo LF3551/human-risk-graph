@@ -46,8 +46,9 @@ afford to lose, and tells you **which three changes raise your score the most**.
   gate, `hrg diff` between snapshots, findings mapped to ISO/IEC 27001, SOC 2 and DORA.
 - **Privacy by design**: `--pseudonymize` replaces people by keyed pseudonyms in every
   report, for GDPR and works-council requirements; nothing leaves your machine.
-- **Tested against outcomes**: in a [pre-registered study](docs/validation-hrg3.md), a single
-  releaser predicted which popular PyPI projects stopped releasing (4.8 times the rate).
+- **Tested against outcomes**: in a [retrospective study](docs/validation-hrg3.md), with the
+  protocol committed before data collection, a single releaser predicted which popular PyPI
+  projects stopped releasing (4.8 times the rate).
 - **A report you can hand over**: one offline HTML file with an interactive dependency map,
   readable on a phone and printable as PDF.
 
@@ -142,10 +143,11 @@ finds come from the approvers the projects declare in MAINTAINERS or OWNERS, and
 active approver is a declared one in every repository; see the reproducible
 [benchmark](docs/benchmark.md) and its limits.
 
-Does the score predict anything? In a [pre-registered study](docs/validation-hrg3.md) of
-284 popular PyPI projects, those whose releases were published by a single person before
-November 2024 stopped releasing in the following year 4.8 times as often (95% CI 1.5–15.3)
-as those with two or more release authors; a commit-based truck factor gave 1.9 (0.9–4.3).
+Does the score predict anything? In a [retrospective study](docs/validation-hrg3.md) of 284
+popular PyPI projects, with the protocol committed before data collection, those whose
+releases were published by a single person before November 2024 stopped releasing in the
+following year 4.8 times as often (95% CI 1.5–15.3) as those with two or more release
+authors; a commit-based truck factor gave 1.9 (0.9–4.3).
 Adjusted for release activity the ratio is 2.7 with an interval that includes 1, so part
 of the effect is project activity.
 
