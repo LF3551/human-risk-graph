@@ -18,8 +18,12 @@ import argparse
 import csv
 import json
 import math
+import random
 import sys
 import time
+import urllib.error
+import urllib.parse
+import urllib.request
 from collections import Counter
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -59,8 +63,22 @@ CLOSED_PULLS = 300  # closed pull requests read to find them (bots and unmerged 
 MIN_APPROVED_PULLS = 10
 EFFECTIVE_APPROVERS_SINGLE = 2.0  # below this, review rests on one person (HRG002 error)
 TOP_RANK = 100  # exploratory split by popularity
+CHECK_SIZE = 40  # included projects checked by hand against their workflows (measurement check)
+CHECK_SEED = 20261114
 
 GATES = ("G2", "G1", "G0", "NE")
+# Path of the latest release, from PyPI provenance (PEP 740), weakest first.
+PATHS = ("U", "P", "O", "V0", "V1", "V2")
+PATH_NAMES = {
+    "V2": "every file published through a two-person gate",
+    "V1": "every file through a gated environment that allows self-approval or admin bypass",
+    "V0": "every file attested, at least one through an ungated environment or none",
+    "O": "attested by another publisher than this GitHub repository",
+    "P": "only some files attested",
+    "U": "no file attested: path not observable",
+}
+MAX_FILES = 30  # files of the latest release whose provenance is read
+INTEGRITY = "https://pypi.org/integrity/{project}/{version}/{filename}/provenance"
 GATE_NAMES = {
     "G2": "two-person gate",
     "G1": "self-approvable gate",
@@ -121,6 +139,51 @@ def publish_gate(gates: Iterable[Dict[str, Any]], any_name: bool = False) -> str
     if any(g["gated"] for g in publishing):
         return "G1"
     return "G0"
+
+
+def latest_release(
+    releases: Dict[str, List[Dict[str, Any]]], t0: datetime
+) -> Tuple[Optional[str], List[str]]:
+    """The version whose last non-yanked upload before t0 is the most recent, and its files."""
+    best: Tuple[Optional[datetime], Optional[str]] = (None, None)
+    for version, files in releases.items():
+        times = [parse_time(f.get("upload_time_iso_8601")) for f in files if not f.get("yanked")]
+        before = [t for t in times if t and t < t0]
+        if before and (best[0] is None or max(before) > best[0]):
+            best = (max(before), version)
+    latest = best[1]
+    if latest is None:
+        return None, []
+    names = sorted(
+        f["filename"]
+        for f in releases[latest]
+        if not f.get("yanked") and (parse_time(f.get("upload_time_iso_8601")) or t0) < t0
+    )
+    return latest, names[:MAX_FILES]
+
+
+def release_path(
+    publishers: List[Optional[Dict[str, Any]]], repo: str, gates: List[Dict[str, Any]]
+) -> str:
+    """
+    Class of the path the latest release took, from the publisher of each file's
+    provenance (None: no provenance). The weakest file decides.
+    """
+    attested = [p for p in publishers if p]
+    if not attested:
+        return "U"
+    if len(attested) < len(publishers):
+        return "P"
+    by_name = {g["name"].lower(): g for g in gates}
+    classes = []
+    for p in attested:
+        if p.get("kind") != "GitHub" or (p.get("repository") or "").lower() != repo.lower():
+            return "O"
+        gate = by_name.get((p.get("environment") or "").lower())
+        classes.append(
+            "V2" if gate and gate["two_person"] else "V1" if gate and gate["gated"] else "V0"
+        )
+    return min(classes, key=PATHS.index)
 
 
 def human_publishers(
@@ -191,10 +254,15 @@ def analyze(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
     return {
         "included": len(rows),
         "rq1_publish_gate": {
-            "primary_no_two_person_gate": _share(rows, no_two_person),
+            "primary_no_observed_two_person_path": _share(rows, lambda r: r["path"] != "V2"),
+            "latest_release_path": _shares(rows, "path", PATHS),
+            "configured_gate_by_path": {
+                g: _shares([r for r in rows if r["gate"] == g], "path", PATHS) for g in GATES
+            },
+            "secondary_no_configured_two_person_gate": _share(rows, no_two_person),
             "distribution": _gate_shares(rows, "gate"),
             "sensitivity_any_environment_name": _gate_shares(rows, "gate_any_name"),
-            "exploratory_by_group": by_group(no_two_person, rows),
+            "exploratory_by_group": by_group(lambda r: r["path"] != "V2", rows),
         },
         "rq2_single_publisher": {
             "primary": _share(publishers, single),
@@ -226,9 +294,19 @@ def analyze(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
-def _gate_shares(rows: Sequence[Dict[str, Any]], key: str) -> Dict[str, Any]:
+def _shares(rows: Sequence[Dict[str, Any]], key: str, classes: Sequence[str]) -> Dict[str, Any]:
     counts = Counter(r[key] for r in rows)
-    return {g: wilson(counts[g], len(rows)) for g in GATES}
+    return {c: wilson(counts[c], len(rows)) for c in classes}
+
+
+def _gate_shares(rows: Sequence[Dict[str, Any]], key: str) -> Dict[str, Any]:
+    return _shares(rows, key, GATES)
+
+
+def measurement_sample(rows: List[Dict[str, Any]], size: int = CHECK_SIZE) -> List[str]:
+    """Repositories for the manual measurement check: a seeded random draw of included rows."""
+    included = sorted(r["repo"] for r in rows if r["status"] == "included")
+    return sorted(random.Random(CHECK_SEED).sample(included, min(size, len(included))))
 
 
 def _median(values: List[float]) -> Optional[float]:
@@ -240,6 +318,44 @@ def _median(values: List[float]) -> Optional[float]:
 
 
 # Collection
+
+
+def _get_json(url: str, accept: str = "application/json") -> Optional[Any]:
+    request = urllib.request.Request(
+        url, headers={"Accept": accept, "User-Agent": "human-risk-graph-study"}
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=60) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            return None
+        raise
+
+
+def _release_path(cache: Cache, package: str, repo: str, gates, t0: datetime) -> Dict[str, Any]:
+    """Provenance of the latest PyPI release before t0 and the path class it gives."""
+    data = cache.get(
+        f"tp:pypi-releases:{package}",
+        lambda: (_get_json(f"https://pypi.org/pypi/{urllib.parse.quote(package)}/json") or {}).get(
+            "releases", {}
+        ),
+    )
+    version, files = latest_release(data, t0)
+    publishers: List[Optional[Dict[str, Any]]] = []
+    for filename in files:
+        url = INTEGRITY.format(project=package, version=version, filename=filename)
+        bundle = cache.get(
+            f"tp:provenance:{package}:{version}:{filename}",
+            lambda url=url: _get_json(url, "application/vnd.pypi.integrity.v1+json"),
+        )
+        bundles = (bundle or {}).get("attestation_bundles") or []
+        publishers.append(bundles[0].get("publisher") if bundles else None)
+    return {
+        "latest_version": version,
+        "release_files": len(files),
+        "path": release_path(publishers, repo, gates) if files else "U",
+    }
 
 
 def _items(client, cache: Cache, key: str, path: str, params=None, limit: int = 0) -> List[Any]:
@@ -364,7 +480,7 @@ def _review(pulls: List[Dict[str, Any]], rules: List[Dict[str, Any]]) -> Dict[st
     }
 
 
-def collect_repo(client, cache, repo: str, t0: datetime) -> Dict[str, Any]:
+def collect_repo(client, cache, repo: str, t0: datetime, package: str) -> Dict[str, Any]:
     meta = cache.get(f"tp:repo:{repo}", lambda: client.get(f"repos/{repo}"))
     if not meta:
         return {"status": "excluded: repository not reachable"}
@@ -389,6 +505,7 @@ def collect_repo(client, cache, repo: str, t0: datetime) -> Dict[str, Any]:
         "owner_type": (meta.get("owner") or {}).get("type"),
         "gate": publish_gate(gates),
         "gate_any_name": publish_gate(gates, any_name=True),
+        **_release_path(cache, package, repo, gates, t0),
         "publishing_environments": sum(1 for g in gates if g["publishing"]),
         "publishers": len(human_publishers(releases, deployments, t0)),
         **_dormancy(gates, reviewers, activity, t0),
@@ -419,7 +536,7 @@ def collect(client, cache: Cache, t0: datetime, offset: int, limit: int, log) ->
             continue
         for attempt in range(5):
             try:
-                row = collect_repo(client, cache, repo, t0)
+                row = collect_repo(client, cache, repo, t0, package)
                 break
             except GitHubError as e:
                 if "rate limit" not in str(e) or attempt == 4:
@@ -438,7 +555,8 @@ def collect(client, cache: Cache, t0: datetime, offset: int, limit: int, log) ->
 
 
 COLUMNS = (
-    "rank package repo status owner_type gate gate_any_name publishing_environments "
+    "rank package repo status owner_type gate gate_any_name path latest_version release_files "
+    "publishing_environments "
     "publishers assessable_reviewers dormant_90 dormant_180 dormant_solo_90 dormant_solo_180 "
     "review_required_visible merged_pulls approved_pulls effective_approvers unapproved_share"
 ).split()
@@ -467,6 +585,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     )  # fmt: skip
 
     args.private_dir.mkdir(parents=True, exist_ok=True)
+    (args.private_dir / "measurement-check.txt").write_text(
+        "\n".join(measurement_sample(rows)) + "\n", encoding="utf-8"
+    )
     with open(args.private_dir / "two-person-rows.csv", "w", newline="", encoding="utf-8") as fh:
         writer = csv.DictWriter(fh, COLUMNS, extrasaction="ignore")
         writer.writeheader()

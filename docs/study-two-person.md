@@ -27,11 +27,12 @@ the most downloaded Python packages use them, using the same definitions as
 
 ## Research questions
 
-- **RQ1 (two-person gate).** What share of projects publish through a GitHub environment
-  that enforces a two-person rule: required reviewers, no self-approval, no administrator
-  bypass?
+- **RQ1 (two-person gate).** What share of projects published their latest release, as far
+  as PyPI provenance shows, through a GitHub environment that enforces a two-person rule:
+  required reviewers, no self-approval, no administrator bypass? And how does the path
+  releases actually take compare with the environments projects have configured?
 - **RQ2 (single publisher).** What share of projects had a single person publishing
-  releases in the year before T0?
+  releases in the year before T0, among the publishing events visible on GitHub?
 - **RQ3 (dormant authority).** Among projects whose publishing environment names
   reviewers, what share name a reviewer with no activity in the repository in the 90 days
   before T0? What share of all projects have such a dormant reviewer who could approve
@@ -85,7 +86,31 @@ contains `prod`, `live`, `release`, `publish`, `pypi`, `npm`, `crates`, `rubygem
 rule naming at least one user or team (bots are not counted); a *two-person gate* when it
 is gated, prevents self-review, and does not allow administrators to bypass its rules.
 
-**RQ1, publish gate of a project** (`publish_gate`), one of four classes:
+**RQ1, path of the latest release** (`latest_release`, `release_path`). The latest
+release is the PyPI version whose last non-yanked upload before T0 is the most recent.
+For each of its files (up to 30, by name) the study reads the PyPI provenance
+([PEP 740](https://peps.python.org/pep-0740/), `https://pypi.org/integrity/...`), which
+exists for files uploaded through Trusted Publishing with attestations and names the
+publisher: kind, repository, workflow and environment. The release gets the class of its
+weakest file:
+
+| Class | Meaning |
+|---|---|
+| V2 | every file attested by this repository through an environment with a two-person gate |
+| V1 | every file attested through gated environments, at least one allowing self-approval or administrator bypass |
+| V0 | every file attested, at least one through an ungated environment or without one |
+| O | attested by another publisher (another repository, or not GitHub) |
+| P | only some files attested |
+| U | no file attested: the path is not observable |
+
+**Primary outcome: the share of projects whose latest release was not observed passing
+through a two-person gate (not V2).** It is a statement about what can be observed, not
+that publishing is unprotected: P and U releases can be uploaded under controls this
+study cannot see, and a V2 release shows that the latest release took a gated path, not
+that no other path (an API token, another workflow) exists.
+
+**RQ1, configured gate** (`publish_gate`), from the environments alone, one of four
+classes:
 
 | Class | Meaning |
 |---|---|
@@ -94,16 +119,17 @@ is gated, prevents self-review, and does not allow administrators to bypass its 
 | G0 | publishing environments, none gated |
 | NE | no publishing environment visible |
 
-Primary outcome: share of projects not in G2. NE does not mean that publishing is
-unprotected: it can happen from a maintainer's machine, from CI without an environment,
-or through controls this study cannot see.
+Secondary outcomes: the share of projects not in G2, and the cross-tabulation of the
+configured gate by the path of the latest release, which shows projects that configure a
+gate their releases do not take.
 
-**RQ2, human publishers** (`human_publishers`): the people, not bots, who published a
+**RQ2, human publishers seen on GitHub** (`human_publishers`): the people, not bots, who published a
 non-draft GitHub release (among the 100 most recent) or created a deployment to a
 publishing environment (among its 100 most recent) in the 365 days before T0. Primary
 outcome: share of projects with exactly one human publisher, among projects with at least
-one. PyPI does not publish who uploaded a file, so uploads outside these two channels are
-not seen.
+one. PyPI does not publish who uploaded a file, and the person who creates a GitHub
+release or deployment is not necessarily the one whose credentials upload it; the outcome
+is about publishing events visible on GitHub only.
 
 **RQ3, dormant reviewers.** For each user (not team) named as a required reviewer of a
 gated publishing environment, the last activity seen in the repository before T0: the
@@ -133,7 +159,8 @@ share among those whose default branch visibly requires an approving review (a r
 ### Analyses
 
 1. Each primary outcome as a proportion with a Wilson score 95% interval (`wilson`).
-2. RQ1: the distribution over G2, G1, G0 and NE.
+2. RQ1: the distribution over the path classes, the distribution over G2, G1, G0 and NE,
+   and the configured gate by path.
 3. Sensitivity, labelled as such: RQ1 with every gated environment counted as publishing
    whatever its name (`publish_gate(any_name=True)`); RQ3 with a 180-day threshold.
 4. Exploratory, labelled as such: RQ1 and RQ2 by owner type (organization or user account)
@@ -144,12 +171,26 @@ share among those whose default branch visibly requires an approving review (a r
 There is no hypothesis test and no correction for multiplicity. With about 750 included
 projects, an interval is at most about ±3.6 percentage points wide.
 
+**Interpreting the intervals.** The frame is the fixed, non-random set of the most
+downloaded packages, not a sample from a defined population. The intervals describe the
+sampling variability the proportions would have if these projects were a sample from a
+population of similar packages; they do not account for measurement or classification
+error, nor for how far the results generalize beyond the frame.
+
+**Measurement check.** To estimate classification error, 40 included projects drawn at
+random with a fixed seed (`measurement_sample`, seed 20261114) are checked by hand after
+collection: their release workflows, environment settings and the PyPI provenance of the
+latest release are read and compared with the recorded publish path, configured gate and
+reviewer status. The report gives the share of projects whose classes agree, and describes
+every disagreement. The data are not corrected after the check.
+
 ### Expectations
 
 Stated before the data, from experience rather than evidence, to be compared with the
-results and not tested: G2 under 10% of projects; NE the largest class; a single human
-publisher in more than a third of the projects with any; dormant solo authority in fewer
-than 5% of projects. Results are reported in full whether or not they match.
+results and not tested: V2 for under 5% of projects; U the largest path class; G2 under
+10% of projects and NE the largest configured class; a single human publisher in more
+than a third of the projects with any; dormant solo authority in fewer than 5% of
+projects. Results are reported in full whether or not they match.
 
 ### What the author saw before registration
 
@@ -159,7 +200,9 @@ others), some of which are in the frame. A pilot of the code ran on frame positi
 1001-1010, outside the sample, to check that it works and to measure the API cost
 (about 55 calls per repository). It showed that one page of 100 closed pull requests can
 hold only a few merged pull requests by people, and the code was changed to read up to
-300 before the protocol was fixed. No data from positions 1-1000 was collected.
+300. After a review of a draft of this protocol, the path of the latest release
+from PyPI provenance, the measurement check and the wording rules were added, and the
+pilot was run again on the same positions. No data from positions 1-1000 was collected.
 
 ### Data collection
 
@@ -181,10 +224,23 @@ during collection; the cached responses are the data the results are computed fr
   repository, not that the account is abandoned.
 - **Publishers.** PyPI does not publish uploader identities; RQ2 sees GitHub releases and
   deployments only.
+- **Provenance.** Attestations exist only for files uploaded through Trusted Publishing
+  with attestations; older uploads and uploads with API tokens have none (class U), and
+  provenance says nothing about other paths a project could use.
 - **Mapping.** Packages whose PyPI metadata do not link to GitHub are excluded, and a
   link can point to a different repository than the one that publishes.
 - **Sample.** The most downloaded PyPI packages are not a random sample of open-source
   software, and T0 is one point in time.
+
+## Reporting rules
+
+The report uses the operational definitions, not stronger words:
+
+- "not observed passing through a two-person gate", not "unprotected";
+- "publishers seen on GitHub", not "the people who upload to PyPI";
+- a reviewer "with no activity seen in this repository for 90 days", not an "abandoned"
+  or "compromised" account; "dormant" is always given with that definition;
+- intervals with the caveats under Analyses.
 
 ## Publication and disclosure
 

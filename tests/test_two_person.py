@@ -72,6 +72,44 @@ def test_publish_gate_classes():
     assert gate(_env("ship-it", rule=False), any_name=True) == "NE"
 
 
+def _file(name, days, yanked=False):
+    return {"filename": name, "upload_time_iso_8601": _iso(days), "yanked": yanked}
+
+
+def test_latest_release():
+    releases = {
+        "1.0": [_file("a-1.0.tar.gz", 100)],
+        "2.0": [_file("a-2.0.tar.gz", 10), _file("a-2.0-py3-none-any.whl", 10)],
+        "2.1": [_file("a-2.1.tar.gz", 5, yanked=True)],  # yanked: ignored
+        "3.0": [_file("a-3.0.tar.gz", -1)],  # after T0: ignored
+    }
+    assert tp.latest_release(releases, T0) == ("2.0", ["a-2.0-py3-none-any.whl", "a-2.0.tar.gz"])
+    assert tp.latest_release({}, T0) == (None, [])
+
+
+def test_release_path():
+    gates = [
+        tp.environment_gate(_env("PyPI", ["a"], self_review=False, admin_bypass=False)),
+        tp.environment_gate(_env("release", ["a"])),
+        tp.environment_gate(_env("build", rule=False)),
+    ]
+
+    def publisher(env, repo="acme/lib", kind="GitHub"):
+        return {"kind": kind, "repository": repo, "environment": env, "workflow": "r.yml"}
+
+    def path(*publishers):
+        return tp.release_path(list(publishers), "Acme/Lib", gates)
+
+    assert path(publisher("pypi"), publisher("pypi")) == "V2"  # names are case-insensitive
+    assert path(publisher("pypi"), publisher("release")) == "V1"  # the weakest file decides
+    assert path(publisher("pypi"), publisher(None)) == "V0"  # no environment
+    assert path(publisher("build")) == "V0"
+    assert path(publisher("pypi"), None) == "P"
+    assert path(None, None) == "U"
+    assert path(publisher("pypi", repo="other/repo")) == "O"
+    assert path(publisher("pypi", kind="GitLab")) == "O"
+
+
 def test_human_publishers_window_and_bots():
     def item(login, days):
         return {"login": login, "when": T0 - timedelta(days=days)}
@@ -162,10 +200,26 @@ def _routes(**extra):
     return routes
 
 
-def test_collect_repo(tmp_path):
+@pytest.fixture
+def pypi(monkeypatch):
+    """PyPI JSON and provenance: release 1.0 of acme-lib, attested through environment pypi."""
+
+    def get_json(url, accept="application/json"):
+        if url.endswith("/acme-lib/json"):
+            return {"releases": {"1.0": [_file("acme_lib-1.0.tar.gz", 3)]}}
+        if "/integrity/acme-lib/1.0/acme_lib-1.0.tar.gz/" in url:
+            publisher = {"kind": "GitHub", "repository": "acme/lib", "environment": "pypi"}
+            return {"attestation_bundles": [{"publisher": publisher}]}
+        return None
+
+    monkeypatch.setattr(tp, "_get_json", get_json)
+
+
+def test_collect_repo(tmp_path, pypi):
     client = FakeClient(_routes())
-    row = tp.collect_repo(client, tp.Cache(tmp_path), "acme/lib", T0)
+    row = tp.collect_repo(client, tp.Cache(tmp_path), "acme/lib", T0, "acme-lib")
     assert row["gate"] == "G1" and row["gate_any_name"] == "G1"
+    assert (row["latest_version"], row["release_files"], row["path"]) == ("1.0", 1, "V1")
     assert row["publishing_environments"] == 1  # docs is not a publishing environment
     assert row["publishers"] == 1  # lead; the bot deployment and the draft do not count
     assert row["assessable_reviewers"] == 2  # old and lead; the team is not assessable
@@ -184,16 +238,31 @@ def test_collect_repo(tmp_path):
     assert looked_up[0]["until"] == T0.isoformat()
 
 
-def test_collect_repo_exclusions(tmp_path):
+def test_collect_repo_exclusions(tmp_path, pypi):
     cache = tp.Cache(tmp_path)
-    assert tp.collect_repo(FakeClient({}), cache, "x/y", T0)["status"].endswith("not reachable")
+    missing = tp.collect_repo(FakeClient({}), cache, "x/y", T0, "y")
+    assert missing["status"].endswith("not reachable")
     archived = {"repos/a/b": {"full_name": "a/b", "default_branch": "main", "archived": True}}
-    assert tp.collect_repo(FakeClient(archived), cache, "a/b", T0)["status"] == "excluded: archived"
+    assert tp.collect_repo(FakeClient(archived), cache, "a/b", T0, "b")["status"] == (
+        "excluded: archived"
+    )
+
+
+def test_unattested_release_is_not_observable(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        tp, "_get_json",
+        lambda url, accept="application/json": (
+            {"releases": {"1.0": [_file("acme_lib-1.0.tar.gz", 3)]}} if url.endswith("/json")
+            else None
+        ),
+    )  # fmt: skip
+    row = tp.collect_repo(FakeClient(_routes()), tp.Cache(tmp_path), "acme/lib", T0, "acme-lib")
+    assert row["path"] == "U"
 
 
 def _row(**values):
     row = {
-        "status": "included", "rank": 50, "owner_type": "Organization", "gate": "NE",
+        "status": "included", "rank": 50, "owner_type": "Organization", "gate": "NE", "path": "U",
         "gate_any_name": "NE", "publishers": 1, "assessable_reviewers": 0, "dormant_90": 0,
         "dormant_180": 0, "dormant_solo_90": False, "dormant_solo_180": False,
         "review_required_visible": False, "approved_pulls": 0, "effective_approvers": None,
@@ -205,7 +274,7 @@ def _row(**values):
 
 def test_analyze():
     rows = [
-        _row(gate="G2", gate_any_name="G2", publishers=2, assessable_reviewers=1),
+        _row(gate="G2", gate_any_name="G2", publishers=2, assessable_reviewers=1, path="V2"),
         _row(gate="G1", gate_any_name="G1", assessable_reviewers=2, dormant_90=1,
              dormant_180=1, dormant_solo_90=True, dormant_solo_180=True, rank=150,
              owner_type="User"),
@@ -217,7 +286,11 @@ def test_analyze():
     ]  # fmt: skip
     a = tp.analyze(rows)
     assert a["included"] == 5
-    assert a["rq1_publish_gate"]["primary_no_two_person_gate"]["k"] == 4
+    rq1 = a["rq1_publish_gate"]
+    assert rq1["primary_no_observed_two_person_path"]["k"] == 4
+    assert rq1["secondary_no_configured_two_person_gate"]["k"] == 4
+    assert (rq1["latest_release_path"]["V2"]["k"], rq1["latest_release_path"]["U"]["k"]) == (1, 4)
+    assert rq1["configured_gate_by_path"]["G2"]["V2"]["k"] == 1
     assert {g: v["k"] for g, v in a["rq1_publish_gate"]["distribution"].items()} == {
         "G2": 1,
         "G1": 2,
@@ -244,3 +317,13 @@ def test_analyze():
     assert (rq4["primary_single_reviewer"]["k"], rq4["primary_single_reviewer"]["n"]) == (1, 2)
     assert rq4["review_visibly_required"]["n"] == 1
     assert rq4["exploratory_unapproved_merges_where_required"] == 0.25
+
+
+def test_measurement_sample_is_seeded():
+    rows = [_row(repo=f"o/r{i}") for i in range(100)] + [
+        _row(repo="o/x", status="excluded: archived")
+    ]
+    first = tp.measurement_sample(rows)
+    assert len(first) == 40 and first == tp.measurement_sample(list(reversed(rows)))
+    assert "o/x" not in first
+    assert tp.measurement_sample(rows[:5]) == sorted(r["repo"] for r in rows[:5])
