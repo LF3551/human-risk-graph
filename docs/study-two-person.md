@@ -285,4 +285,9 @@ results.
 
 ## Results
 
-Added after the run.
+Registered on OSF on 2026-11-14 at 11:09 UTC, before data collection:
+[doi:10.17605/OSF.IO/J8ZFG](https://doi.org/10.17605/OSF.IO/J8ZFG), with this protocol
+(SHA-256 `b432b2cb…3ccfb`) and the code at tag `two-person-protocol`. Data collection
+started on 2026-11-14 (T0 = 2026-11-14).
+
+Results are added here after the run.

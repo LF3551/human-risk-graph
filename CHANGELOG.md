@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🔬 Research
 
-- Protocol of a second study, [docs/study-two-person.md](docs/study-two-person.md): two-person control and dormant authority over publishing in the 1,000 most downloaded PyPI packages, with its collection and analysis code (`benchmark/two_person.py`) and tests, fixed before any data in the sample is collected and to be registered on OSF.
+- Protocol of a second study, [docs/study-two-person.md](docs/study-two-person.md): two-person control and dormant authority over publishing in the 1,000 most downloaded PyPI packages, with its collection and analysis code (`benchmark/two_person.py`) and tests, fixed before any data in the sample was collected and registered on OSF ([doi:10.17605/OSF.IO/J8ZFG](https://doi.org/10.17605/OSF.IO/J8ZFG)).
 
 ### 📝 Documentation
 
