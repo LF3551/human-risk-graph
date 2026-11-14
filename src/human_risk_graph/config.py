@@ -45,6 +45,7 @@ TOP_LEVEL_KEYS = {
     "fail-above",
     "fixes",
     "critical-threshold",
+    "inactive-days",
     "pseudonymize",
     "weights",
     "accept",
@@ -89,6 +90,7 @@ class Config:
     fail_above: Optional[float] = None
     fixes: Optional[int] = None
     critical_threshold: Optional[float] = None
+    inactive_days: Optional[int] = None
     pseudonymize: Optional[bool] = None
     weights: Dict[str, float] = field(default_factory=dict)
     accept: List[Acceptance] = field(default_factory=list)
@@ -149,6 +151,7 @@ NUMERIC_SETTINGS = {
     "fail-above": ("fail_above", float, 0, 1),
     "fixes": ("fixes", int, 0, 10),
     "critical-threshold": ("critical_threshold", float, 0, 1),
+    "inactive-days": ("inactive_days", int, 1, 3650),
 }
 
 

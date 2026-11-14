@@ -38,7 +38,8 @@ class FakeClient:
     def get(self, path, params=None, limit=0):
         self.calls += 1
         self.requested.append(path)
-        return self.routes.get(path)
+        response = self.routes.get(path)
+        return response(params or {}) if callable(response) else response
 
 
 def _codeowners(text):
@@ -56,6 +57,7 @@ def _review(login, state="APPROVED"):
 def _routes(**extra):
     routes = {
         "repos/acme/api": {"default_branch": "main"},
+        "repos/acme/api/environments": {"total_count": 0, "environments": []},
         "repos/acme/api/pulls": [
             _pr(1, "dev"),
             _pr(2, "dev"),
@@ -555,6 +557,195 @@ def test_client_keeps_the_token_inside_the_api(monkeypatch):
     assert calls == []
 
 
+# Deployment environments and activity
+
+
+def _env(name, reviewers=None, self_review=True, admins_bypass=True, branch_policy=False):
+    rules = []
+    if reviewers is not None:
+        rules.append(
+            {
+                "type": "required_reviewers",
+                "prevent_self_review": not self_review,
+                "reviewers": reviewers,
+            }
+        )
+    if branch_policy:
+        rules.append({"type": "branch_policy"})
+    return {"name": name, "protection_rules": rules, "can_admins_bypass": admins_bypass}
+
+
+def _user(login):
+    return {"type": "User", "reviewer": {"login": login}}
+
+
+def _deployment(login, when="2026-11-01T09:00:00Z"):
+    return {"creator": {"login": login}, "created_at": when}
+
+
+def _environments(*envs):
+    return {"total_count": len(envs), "environments": list(envs)}
+
+
+def _functions(result):
+    return {f["id"]: f for f in result.functions}
+
+
+def test_deploy_with_reviewers_who_can_approve_themselves():
+    routes = _routes(
+        **{
+            "repos/acme/api/environments": _environments(
+                _env(
+                    "Production",
+                    [_user("ops"), {"type": "Team", "reviewer": {"slug": "sre"}}],
+                    branch_policy=True,
+                ),
+                _env("copilot"),  # no reviewers, not production-like: ignored
+            ),
+            "orgs/acme/teams/sre/members": [{"login": "sre1"}, {"login": "sre-bot"}],
+            "repos/acme/api/deployments": [
+                _deployment("dev"),
+                _deployment("dev", "2026-11-05T00:00:00Z"),
+                _deployment("github-actions[bot]"),
+            ],
+            "repos/acme/api/collaborators": [{"login": "root"}],
+        }
+    )
+    result = GitHubScanner(FakeClient(routes), "acme/api").scan()
+
+    deploy = _functions(result)["deploy-production"]
+    assert deploy["name"] == "Deploy to Production" and deploy["criticality"] == 0.9
+    assert deploy["requires"] == 2
+    assert deploy["performers"] == ["dev", "ops", "root", "sre1"]
+    assert deploy["alone"] == ["ops", "root", "sre1"]  # self-approval and admin bypass
+    assert deploy["evidence"] == (
+        "one of the required reviewers approves each deployment: ops, sre1; "
+        "reviewers can approve their own deployments; "
+        "admins can bypass the environment's protection rules; "
+        "recent deployments by dev (2); deployments are limited to selected branches"
+    )
+    assert "deploy-copilot" not in _functions(result)
+    people = {p["id"]: p for p in result.people}
+    assert "approves deployments to Production" in people["ops"]["role"]
+    assert people["dev"]["last_active"] == "2026-11-05"
+    HumanRiskGraph(result.people, result.dependencies, result.functions)  # a valid draft
+
+
+def test_deploy_two_person_rule_without_admin_bypass():
+    routes = _routes(
+        **{
+            "repos/acme/api/environments": _environments(
+                _env("staging", [_user("ops")], self_review=False, admins_bypass=False)
+            ),
+            "repos/acme/api/collaborators": [{"login": "root"}],
+        }
+    )
+    deploy = _functions(GitHubScanner(FakeClient(routes), "acme/api").scan())["deploy-staging"]
+    assert deploy["criticality"] == 0.7  # protected, but not production-like
+    assert (deploy["requires"], deploy["performers"], deploy["alone"]) == (2, ["ops"], [])
+    assert "reviewers cannot approve their own deployments" in deploy["evidence"]
+
+
+def test_production_environment_without_reviewers():
+    routes = _routes(
+        **{
+            "repos/acme/api/environments": _environments(_env("pypi"), _env("release")),
+            "repos/acme/api/deployments": lambda params: (
+                [_deployment("lead")] if params.get("environment") == "pypi" else []
+            ),
+        }
+    )
+    result = GitHubScanner(FakeClient(routes), "acme/api").scan()
+    deploy = _functions(result)["deploy-pypi"]
+    assert (deploy["requires"], deploy["performers"], deploy["alone"]) == (1, ["lead"], [])
+    assert deploy["evidence"].startswith("no required reviewers: whoever can run")
+    assert "deploy-release" not in _functions(result)
+    assert any("Environment release has no required reviewers" in n for n in result.notes)
+
+
+def test_invisible_environments_are_a_gap():
+    routes = _routes()
+    del routes["repos/acme/api/environments"]
+    result = GitHubScanner(FakeClient(routes), "acme/api").scan()
+    assert "Deployment environments are not visible" in " ".join(result.gaps)
+
+
+def _activity_routes(commits):
+    return _routes(
+        **REVIEW_RULE,
+        **{
+            "repos/acme/api/collaborators": [{"login": "root"}, {"login": "lead"}],
+            "repos/acme/api/commits": commits,
+        },
+    )
+
+
+def test_last_active_of_people_with_authority():
+    def commits(params):
+        return {
+            "root": [{"commit": {"committer": {"date": "2025-01-02T00:00:00Z"}}}],
+            "dev": [],
+            "lead": [{"commit": {"author": {"date": "2026-03-04T00:00:00Z"}}}],
+        }.get(params["author"])
+
+    client = FakeClient(_activity_routes(commits))
+    result = GitHubScanner(client, "acme/api").scan()
+    people = {p["id"]: p for p in result.people}
+    # Pull requests from 2026-01-01 are older than RECENT_DAYS, so commits are looked up.
+    assert people["root"]["last_active"] == "2025-01-02"  # admin seen only in commits
+    assert people["lead"]["last_active"] == "2026-03-04"  # the later of PRs and commits
+    assert people["dev"]["last_active"] == "2026-01-01"  # PRs; no commits
+    assert list(people["lead"])[:5] == ["id", "name", "role", "criticality", "last_active"]
+
+
+def test_no_activity_seen_and_not_visible():
+    client = FakeClient(_activity_routes(lambda params: [] if params["author"] == "root" else None))
+    people = {p["id"]: p for p in GitHubScanner(client, "acme/api").scan().people}
+    assert people["root"]["last_active"] == "never"
+    assert people["lead"]["last_active"] == "2026-01-01"  # commits not visible: PRs only
+
+
+def test_activity_is_not_recorded_on_request():
+    client = FakeClient(_activity_routes(lambda params: []))
+    result = GitHubScanner(client, "acme/api", record_activity=False).scan()
+    assert all("last_active" not in p for p in result.people)
+    assert "repos/acme/api/commits" not in client.requested
+
+
+def test_activity_lookups_are_bounded(monkeypatch):
+    from human_risk_graph import github_scan
+
+    monkeypatch.setattr(github_scan, "MAX_ACTIVITY_LOOKUPS", 1)
+    client = FakeClient(_activity_routes(lambda params: []))
+    result = GitHubScanner(client, "acme/api").scan()
+    assert client.requested.count("repos/acme/api/commits") == 1
+    assert any("Last activity was looked up for 1 of" in gap for gap in result.gaps)
+
+
+def test_merges_keep_the_latest_activity():
+    def scan(repo, criticality, last_active):
+        result = _scan(repo, [("x", criticality)], [])
+        result.people[0]["last_active"] = last_active
+        return result
+
+    merged = merge_scans("acme", [scan("acme/a", 0.9, "never"), scan("acme/b", 0.5, "2026-02-01")])
+    assert merged.people[0]["last_active"] == "2026-02-01"  # from the less critical copy
+
+    again = scan("acme/a", 0.3, "2026-01-01")
+    merge_with_existing(again, {"people": [{"id": "x", "last_active": "2026-05-01"}]})
+    assert again.people[0]["last_active"] == "2026-05-01"
+
+
+def test_cli_scan_no_activity(tmp_path, fake_github):
+    fake_github(_activity_routes(lambda params: []))
+    output = tmp_path / "draft.yaml"
+    result = CliRunner().invoke(
+        cli, ["scan", "github", "acme/api", "-o", str(output), "--no-activity"]
+    )
+    assert result.exit_code == 0, result.output
+    assert "last_active" not in output.read_text()
+
+
 # Organization scan
 
 
@@ -573,6 +764,7 @@ def _org_routes(**extra):
             ],
             "repos/acme/api/releases": [_release("lead")],
             "repos/acme/web": {"default_branch": "main"},
+            "repos/acme/web/environments": {"total_count": 0, "environments": []},
             "repos/acme/web/pulls": [_pr(10, "dev")],
             "repos/acme/web/pulls/10/reviews": [_review("lead")],
             "repos/acme/web/releases": [_release("lead"), _release("lead")],

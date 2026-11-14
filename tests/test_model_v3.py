@@ -159,6 +159,7 @@ def test_example_file():
         "HRG002:bob",
         "HRG006:merge",
         "HRG006:release",
+        "HRG007:merge",  # dan: last_active never
     ]
     plan = hrg.fix_plan(model="hrg-3")
     assert [p["action"] for p in plan] == ["two-person", "backup", "backup"]

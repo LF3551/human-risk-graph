@@ -8,6 +8,10 @@ Evidence used, all readable with a token that can read the repository:
 - Pull requests merged without an approving review from someone else, when the branch
   visibly requires reviews (``bypass`` from the person who merged to the approvers).
 - Branch rules and ruleset bypass actors, when the token can see them (``bypass``).
+- Deployment environments: required reviewers, self-review and admin bypass settings, and
+  who created recent deployments (the ``deploy-*`` functions of model hrg-3).
+- For people with authority over a function, the date they were last seen active
+  (``last_active``), unless the scan runs with ``record_activity=False``.
 
 Technical permissions and history do not prove real authority, so every dependency is
 written with ``source``, ``evidence`` and ``confirmed: false`` for a person to review, and
@@ -30,13 +34,23 @@ import urllib.request
 from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, timedelta
 from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple
+
+from .activity import NEVER, latest
 
 API = "https://api.github.com"
 CODEOWNERS_PATHS = (".github/CODEOWNERS", "CODEOWNERS", "docs/CODEOWNERS")
 ADMIN_ROLE_ID = 5  # built-in "admin" repository role in ruleset bypass actors
 TRANSIENT = (500, 502, 503, 504)  # GitHub server errors worth retrying
+# Environments drafted as a deploy function even without required reviewers.
+PRODUCTION_LIKE = re.compile(
+    r"prod|live|release|publish|pypi|npm|crates|rubygems|maven|nuget|docker|registry",
+    re.IGNORECASE,
+)
+MAX_DEPLOYMENTS = 30  # most recent deployments read per environment
+MAX_ACTIVITY_LOOKUPS = 30  # people per repository whose last commit is looked up
+RECENT_DAYS = 30  # activity seen in pull requests more recent than this needs no lookup
 
 
 class GitHubError(RuntimeError):
@@ -246,6 +260,8 @@ class _PullRequest:
     approved_by: Set[str]
     files: Optional[List[Dict[str, Any]]]
     merger: Optional[str]
+    merged_at: Optional[str] = None
+    approved_at: Dict[str, str] = field(default_factory=dict)  # approver -> latest approval
 
 
 @dataclass
@@ -256,6 +272,25 @@ class _Tally:
     unreviewed_merges: Dict[str, List[int]] = field(default_factory=lambda: defaultdict(list))
     approvers_seen: Counter = field(default_factory=Counter)
     owners_seen: Set[str] = field(default_factory=set)
+
+
+def _function(fid, name, criticality, requires, performers, alone, evidence) -> Dict[str, Any]:
+    """A drafted function for model hrg-3, to be confirmed by a person."""
+    return {
+        "id": fid,
+        "name": name,
+        "criticality": criticality,
+        "requires": requires,
+        "performers": sorted(performers),
+        "alone": sorted(alone),
+        "source": "github",
+        "evidence": "; ".join(evidence),
+        "confirmed": False,
+    }
+
+
+def _slug(name: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-") or "default"
 
 
 def _is_bot(login: str) -> bool:
@@ -273,6 +308,7 @@ class GitHubScanner:
         max_prs: int = 100,
         include_bots: bool = False,
         progress: Optional[Callable[[str], None]] = None,
+        record_activity: bool = True,
     ):
         if not re.fullmatch(r"[\w.-]+/[\w.-]+", repo):
             raise ValueError(f"expected OWNER/REPO, got {repo!r}")
@@ -287,6 +323,8 @@ class GitHubScanner:
         self.gaps: List[str] = []
         self.team_members: Dict[str, Optional[List[str]]] = {}
         self._admin_cache: Optional[Set[str]] = None
+        self.record_activity = record_activity
+        self.seen: Dict[str, str] = {}  # login -> latest activity date seen (YYYY-MM-DD)
 
     # Helpers
 
@@ -294,6 +332,12 @@ class GitHubScanner:
         if not login:
             return False
         return self.include_bots or not _is_bot(login)
+
+    def _saw(self, login: Optional[str], timestamp: Optional[str]) -> None:
+        """Record that ``login`` was active at ``timestamp`` (an API date-time)."""
+        if login and timestamp:
+            day = timestamp[:10]
+            self.seen[login] = max(self.seen.get(login, day), day)
 
     def _expand(self, owner: str) -> List[str]:
         """@user -> [user]; @org/team -> members if visible, else the team handle."""
@@ -411,6 +455,7 @@ class GitHubScanner:
             login = (release.get("author") or {}).get("login")
             if login and not release.get("draft"):
                 authors[login] += 1
+                self._saw(login, release.get("published_at"))
         return authors
 
     def _functions(
@@ -422,17 +467,7 @@ class GitHubScanner:
 
         def add(fid, name, criticality, requires, performers, alone, evidence):
             functions.append(
-                {
-                    "id": fid,
-                    "name": name,
-                    "criticality": criticality,
-                    "requires": requires,
-                    "performers": sorted(performers),
-                    "alone": sorted(alone),
-                    "source": "github",
-                    "evidence": "; ".join(evidence),
-                    "confirmed": False,
-                }
+                _function(fid, name, criticality, requires, performers, alone, evidence)
             )
 
         trusted = {p for p in set(approvers_seen) | owners_seen if not p.startswith("@")}
@@ -475,6 +510,132 @@ class GitHubScanner:
             add("admin", "Change repository settings and branch protection", 0.9, 1, admins,
                 set(), ["repository admins"])  # fmt: skip
         return functions
+
+    def _deploy_functions(
+        self, admins: Set[str]
+    ) -> Tuple[List[Dict[str, Any]], List[Tuple[str, str]]]:
+        """A deploy function per protected or production-like environment, and people's roles."""
+        data = self.client.get(f"repos/{self.repo}/environments", {"per_page": 100})
+        if data is None:
+            self.gaps.append(
+                "Deployment environments are not visible; no deploy function was drafted."
+            )
+            return [], []
+        functions, roles = [], []
+        for env in sorted(data.get("environments") or [], key=lambda e: e.get("name") or ""):
+            drafted = self._deploy_function(env, admins)
+            if drafted:
+                functions.append(drafted[0])
+                roles += drafted[1]
+        return functions, roles
+
+    def _deploy_function(
+        self, env: Dict[str, Any], admins: Set[str]
+    ) -> Optional[Tuple[Dict[str, Any], List[Tuple[str, str]]]]:
+        name = env.get("name") or ""
+        rule = next(
+            (r for r in env.get("protection_rules") or [] if r.get("type") == "required_reviewers"),
+            None,
+        )
+        production = bool(PRODUCTION_LIKE.search(name))
+        if rule is None and not production:
+            return None
+        deployers = self._deployers(name)
+        roles = [(login, f"deployed to {name}") for login in deployers]
+        if rule is None:
+            if not deployers:
+                self.notes.append(
+                    f"Environment {name} has no required reviewers and no deployments by "
+                    "people were seen; no deploy function was drafted."
+                )
+                return None
+            evidence = ["no required reviewers: whoever can run the deployment deploys alone"]
+            requires, performers, alone = 1, set(deployers), set()
+        else:
+            reviewers = self._environment_reviewers(rule)
+            roles += [(login, f"approves deployments to {name}") for login in reviewers]
+            self_review = not rule.get("prevent_self_review")
+            admin_bypass = env.get("can_admins_bypass", True) and bool(admins)
+            alone = (set(reviewers) if self_review else set()) | (admins if admin_bypass else set())
+            requires, performers = 2, set(reviewers) | set(deployers) | alone
+            evidence = [
+                "one of the required reviewers approves each deployment: "
+                + (", ".join(sorted(reviewers)) or "none visible"),
+                (
+                    "reviewers can approve their own deployments"
+                    if self_review
+                    else "reviewers cannot approve their own deployments"
+                ),
+            ]
+            if admin_bypass:
+                evidence.append("admins can bypass the environment's protection rules")
+        if deployers:
+            evidence.append(
+                "recent deployments by "
+                + ", ".join(f"{login} ({n})" for login, n in deployers.most_common())
+            )
+        if any(r.get("type") == "branch_policy" for r in env.get("protection_rules") or []):
+            evidence.append("deployments are limited to selected branches")
+        function = _function(
+            f"deploy-{_slug(name)}", f"Deploy to {name}", 0.9 if production else 0.7,
+            requires, performers, alone, evidence,
+        )  # fmt: skip
+        return function, roles
+
+    def _environment_reviewers(self, rule: Dict[str, Any]) -> Set[str]:
+        people: Set[str] = set()
+        for entry in rule.get("reviewers") or []:
+            reviewer = entry.get("reviewer") or {}
+            if entry.get("type") == "Team" and reviewer.get("slug"):
+                people |= set(self._expand(f"@{self.org}/{reviewer['slug']}"))
+            elif reviewer.get("login"):
+                people.add(reviewer["login"])
+        return {p for p in people if self._keep(p)}
+
+    def _deployers(self, environment: str) -> Counter:
+        """People who created the recent deployments to an environment (not bots)."""
+        deployments = (
+            self.client.get(
+                f"repos/{self.repo}/deployments",
+                {"environment": environment, "per_page": MAX_DEPLOYMENTS},
+            )
+            or []
+        )
+        counts: Counter = Counter()
+        for deployment in deployments:
+            login = (deployment.get("creator") or {}).get("login")
+            if self._keep(login):
+                counts[login] += 1
+                self._saw(login, deployment.get("created_at"))
+        return counts
+
+    def _activity(self, people: Set[str]) -> Dict[str, str]:
+        """
+        Last activity of people with authority: the latest date seen in pull requests,
+        reviews, releases and deployments, or their last commit to the default branch.
+        """
+        recent = (date.today() - timedelta(days=RECENT_DAYS)).isoformat()
+        logins = sorted(p for p in people if not p.startswith("@"))
+        to_look_up = [p for p in logins if self.seen.get(p, "") < recent]
+        for login in to_look_up[:MAX_ACTIVITY_LOOKUPS]:
+            commits = self.client.get(
+                f"repos/{self.repo}/commits",
+                {"sha": self.branch, "author": login, "per_page": 1},
+            )
+            if commits is None:
+                continue  # not visible: activity stays unknown
+            commit = (commits[0].get("commit") or {}) if commits else {}
+            when = (commit.get("committer") or commit.get("author") or {}).get("date")
+            if when:
+                self._saw(login, when)
+            elif login not in self.seen:
+                self.seen[login] = NEVER
+        if len(to_look_up) > MAX_ACTIVITY_LOOKUPS:
+            self.gaps.append(
+                f"Last activity was looked up for {MAX_ACTIVITY_LOOKUPS} of "
+                f"{len(to_look_up)} people; the others only from pull requests and releases."
+            )
+        return {p: self.seen[p] for p in logins if p in self.seen}
 
     def _actor_logins(self, actor: Dict[str, Any]) -> Set[str]:
         kind = actor.get("actor_type")
@@ -524,13 +685,21 @@ class GitHubScanner:
             review_required, bypassers, tally.unreviewed_merges, tally.approvers_seen,
             tally.owners_seen, releases, admins,
         )  # fmt: skip
-        roles = {
-            login: f"published {n} releases" for login, n in releases.items() if self._keep(login)
-        }
-        for login in admins:
-            roles[login] = ", ".join(filter(None, [roles.get(login), "repository admin"]))
+        self.progress("Reading deployment environments")
+        deploys, deploy_roles = self._deploy_functions(admins)
+        functions += deploys
+        labels = [(login, f"published {n} releases") for login, n in releases.items()]
+        labels += [(login, "repository admin") for login in sorted(admins)] + deploy_roles
+        roles: Dict[str, str] = {}
+        for login, label in labels:
+            if self._keep(login):
+                roles[login] = ", ".join(filter(None, [roles.get(login), label]))
 
-        result = self._build(merged, tally, bypassers, roles)
+        activity: Dict[str, str] = {}
+        if self.record_activity:
+            self.progress("Looking up when people with authority were last active")
+            activity = self._activity({p for f in functions for p in f["performers"]})
+        result = self._build(merged, tally, bypassers, roles, activity)
         result.review_required = review_required
         result.gaps = self.gaps
         result.functions = functions
@@ -561,12 +730,15 @@ class GitHubScanner:
             reviews = self.client.get(
                 f"repos/{self.repo}/pulls/{number}/reviews", {"per_page": 100}, 300
             ) or []  # fmt: skip
-            approved_by = {
-                r["user"]["login"]
-                for r in reviews
-                if r.get("state") == "APPROVED" and r.get("user") and r["user"]["login"] != author
-            }
-            approved_by = {a for a in approved_by if self._keep(a)}
+            approved_at: Dict[str, str] = {}
+            for r in reviews:
+                login = (r.get("user") or {}).get("login")
+                if r.get("state") != "APPROVED" or not login or login == author:
+                    continue
+                if self._keep(login):
+                    at = r.get("submitted_at") or ""
+                    approved_at[login] = max(approved_at.get(login, ""), at)
+            approved_by = set(approved_at)
             files = None
             if fetch_files:
                 files = self.client.get(
@@ -576,7 +748,9 @@ class GitHubScanner:
             if not approved_by:
                 detail = self.client.get(f"repos/{self.repo}/pulls/{number}") or {}
                 merger = (detail.get("merged_by") or {}).get("login")
-            return _PullRequest(author, number, approved_by, files, merger)
+            return _PullRequest(
+                author, number, approved_by, files, merger, pr.get("merged_at"), approved_at
+            )
 
         fetched = []
         with ThreadPoolExecutor(max_workers=8) as pool:
@@ -591,6 +765,11 @@ class GitHubScanner:
         tally = _Tally()
         for pr in fetched:
             tally.authored[pr.author] += 1
+            self._saw(pr.author, pr.merged_at)
+            if pr.merger:
+                self._saw(pr.merger, pr.merged_at)
+            for approver, at in pr.approved_at.items():
+                self._saw(approver, at)
             for approver in pr.approved_by:
                 tally.approvals[(approver, pr.author)] += 1
                 tally.approvers_seen[approver] += 1
@@ -635,8 +814,9 @@ class GitHubScanner:
         (self.notes if review_required is False else self.gaps).append(message)
         unreviewed_merges.clear()
 
-    def _build(self, merged, tally: _Tally, bypassers, roles=None) -> ScanResult:
+    def _build(self, merged, tally: _Tally, bypassers, roles=None, activity=None) -> ScanResult:
         roles = roles or {}
+        activity = activity or {}
         edges = _edges(tally, bypassers)
         approvers = set(tally.approvers_seen) | tally.owners_seen
         logins = (
@@ -647,7 +827,10 @@ class GitHubScanner:
             | set(roles)
         )
         total_approvals = sum(tally.approvers_seen.values()) or 1
-        people = [_person(login, tally, bypassers, roles, total_approvals) for login in logins]
+        people = [
+            _person(login, tally, bypassers, roles, total_approvals, activity.get(login))
+            for login in logins
+        ]
         people.sort(key=lambda p: (-p["criticality"], p["id"]))
         return ScanResult(
             repo=self.repo,
@@ -693,7 +876,9 @@ def _edges(tally: _Tally, bypassers) -> Dict[Tuple[str, str, str], Edge]:
     return edges
 
 
-def _person(login: str, tally: _Tally, bypassers, roles, total_approvals: int) -> Dict[str, Any]:
+def _person(
+    login: str, tally: _Tally, bypassers, roles, total_approvals: int, last_active=None
+) -> Dict[str, Any]:
     """A person of the draft, with a criticality estimated from what the scan saw."""
     crit, reasons = 0.3, []
     if login in tally.owners_seen:
@@ -711,14 +896,15 @@ def _person(login: str, tally: _Tally, bypassers, roles, total_approvals: int) -
         reasons.append(f"gave {share:.0%} of approvals")
     if tally.authored[login]:
         reasons.append(f"authored {tally.authored[login]} merged PRs")
-    return {
+    person = {
         "id": login,
         "name": login,
         "role": ", ".join(reasons[:2]) or "contributor",
         "criticality": round(min(1.0, crit), 2),
-        "source": "github",
-        "evidence": "; ".join(reasons),
     }
+    if last_active:
+        person["last_active"] = last_active
+    return {**person, "source": "github", "evidence": "; ".join(reasons)}
 
 
 def _strongest_dependencies(edges: Dict[Tuple[str, str, str], Edge]) -> List[Dict[str, Any]]:
@@ -780,6 +966,30 @@ def _joined(items: List[str]) -> str:
     return shown + (f"; and {more} more" if more > 0 else "")
 
 
+def _merged_people(results: List[ScanResult]) -> Dict[str, Dict[str, Any]]:
+    """Everyone once: the highest criticality, the latest activity, evidence per repository."""
+    people: Dict[str, Dict[str, Any]] = {}
+    evidence: Dict[str, List[str]] = defaultdict(list)
+    activity: Dict[str, List[Any]] = defaultdict(list)
+    for result in results:
+        short = result.repo.split("/")[-1]
+        for person in result.people:
+            known = people.get(person["id"])
+            if known is None or person["criticality"] > known["criticality"]:
+                people[person["id"]] = dict(person)
+            activity[person["id"]].append(person.get("last_active"))
+            if person.get("evidence"):
+                evidence[person["id"]].append(f"{short}: {person['evidence']}")
+    for pid, person in people.items():
+        last_active = latest(activity[pid])
+        if last_active:
+            person["last_active"] = last_active
+        person["evidence"] = _joined(evidence[pid])
+        if len(evidence[pid]) > 1:
+            person["role"] = f"{person['role']} (in {len(evidence[pid])} repositories)"
+    return people
+
+
 def merge_scans(scope: str, results: List[ScanResult]) -> ScanResult:
     """
     One organization from the scans of several repositories.
@@ -789,8 +999,6 @@ def merge_scans(scope: str, results: List[ScanResult]) -> ScanResult:
     weight is the highest seen. Functions stay per repository (``REPO/merge``), because who
     can merge or release differs between repositories.
     """
-    people: Dict[str, Dict[str, Any]] = {}
-    evidence: Dict[str, List[str]] = defaultdict(list)
     deps: Dict[Tuple[str, str], List[Tuple[str, Dict[str, Any]]]] = defaultdict(list)
     functions: List[Dict[str, Any]] = []
     gaps: List[str] = []
@@ -798,12 +1006,6 @@ def merge_scans(scope: str, results: List[ScanResult]) -> ScanResult:
     owners: Set[str] = set()
     for result in results:
         short = result.repo.split("/")[-1]
-        for person in result.people:
-            known = people.get(person["id"])
-            if known is None or person["criticality"] > known["criticality"]:
-                people[person["id"]] = dict(person)
-            if person.get("evidence"):
-                evidence[person["id"]].append(f"{short}: {person['evidence']}")
         for dep in result.dependencies:
             deps[(dep["from"], dep["to"])].append((short, dep))
         for f in result.functions:
@@ -811,11 +1013,7 @@ def merge_scans(scope: str, results: List[ScanResult]) -> ScanResult:
         gaps += [f"{short}: {gap}" for gap in result.gaps]
         approvals.update(result.approvals_given)
         owners.update(result.code_owners)
-
-    for pid, person in people.items():
-        person["evidence"] = _joined(evidence[pid])
-        if len(evidence[pid]) > 1:
-            person["role"] = f"{person['role']} (in {len(evidence[pid])} repositories)"
+    people = _merged_people(results)
 
     dependencies = []
     for (source, target), found in sorted(deps.items()):
@@ -861,6 +1059,7 @@ def scan_organization(
     include_archived: bool = False,
     include_forks: bool = False,
     progress: Optional[Callable[[str], None]] = None,
+    record_activity: bool = True,
 ) -> ScanResult:
     """Scan the most recently pushed repositories of an organization and merge the results."""
     if not re.fullmatch(r"[\w.-]+", org):
@@ -882,6 +1081,7 @@ def scan_organization(
             max_prs=max_prs,
             include_bots=include_bots,
             progress=prefixed(f"{i}/{len(selected)} {repo}: "),
+            record_activity=record_activity,
         )
         try:
             results.append(scanner.scan())
@@ -935,6 +1135,9 @@ def _keep_people(result: ScanResult, old_people: List[Dict[str, Any]]) -> None:
     for person in result.people:
         old = old_by_id.get(person["id"], {})
         person.update({attr: old[attr] for attr in ("criticality", "name", "role") if attr in old})
+        last_active = latest([person.get("last_active"), old.get("last_active")])
+        if last_active:
+            person["last_active"] = last_active
     known = {p["id"] for p in result.people}
     for pid, old in old_by_id.items():
         if pid not in known:
