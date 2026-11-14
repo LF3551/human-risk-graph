@@ -32,6 +32,7 @@ from .console import render_summary
 from .activity import DEFAULT_INACTIVE_DAYS
 from .findings import Finding, collect_findings, threshold_breach
 from .github_scan import (
+    API,
     GitHubClient,
     GitHubError,
     GitHubScanner,
@@ -624,9 +625,17 @@ def scan():
     envvar="HRG_GITHUB_TOKEN",
     help="GitHub token (default: GITHUB_TOKEN, GH_TOKEN or `gh auth token`).",
 )
+@click.option(
+    "--api-url",
+    envvar=["HRG_GITHUB_API_URL", "GITHUB_API_URL"],
+    default=API,
+    show_default=True,
+    help="GitHub API, e.g. https://github.example.com/api/v3 for GitHub Enterprise Server "
+    "(GITHUB_API_URL, set in GitHub Actions, is used when present).",
+)
 def scan_github(
     repo, org, max_repos, include_archived, include_forks, output, branch, max_prs, include_bots,
-    activity, token,
+    activity, token, api_url,
 ):  # fmt: skip
     """
     Draft an organization from a GitHub repository or a whole organization.
@@ -656,15 +665,8 @@ def scan_github(
     label = org or repo
     console = Console(stderr=True, highlight=False)
     output = output or Path(f"{(org or repo.split('/')[-1])}-org.yaml")
-    existing = None
-    if output.exists():
-        try:
-            existing = load_organization(output)
-        except ValueError as e:
-            click.echo(f"Error: {e}", err=True)
-            sys.exit(1)
-
-    client = GitHubClient(token or default_token())
+    existing = _existing_draft(output)
+    client = _github_client(token, api_url)
     if not client.token:
         console.print("[yellow]No GitHub token: limited to 60 requests per hour.[/]")
     try:
@@ -699,6 +701,24 @@ def scan_github(
     notes = merge_with_existing(result, existing)
     output.write_text(draft_yaml(result, notes), encoding="utf-8")
     _print_scan_summary(console, label, result, notes, output, is_org=bool(org))
+
+
+def _existing_draft(output: Path) -> Optional[Dict[str, Any]]:
+    """The draft a re-scan updates, or None; exits if it cannot be read."""
+    if not output.exists():
+        return None
+    try:
+        return load_organization(output)
+    except ValueError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
+def _github_client(token: Optional[str], api_url: str) -> GitHubClient:
+    try:
+        return GitHubClient(token or default_token(api_url), api=api_url)
+    except ValueError as e:
+        raise click.BadParameter(str(e), param_hint="--api-url") from None
 
 
 def _print_scan_summary(console: Console, label, result, notes, output: Path, is_org) -> None:

@@ -303,3 +303,49 @@ def test_fix_plan_only_improves(people, deps):
 
 def test_fix_plan_on_clean_organization_is_empty():
     assert HumanRiskGraph([{"id": "a"}, {"id": "b"}], [{"from": "a", "to": "b"}]).fix_plan() == []
+
+
+# Separations in one DFS (Tarjan) must match one search per articulation point.
+
+
+def _reference_separations(graph):
+    import networkx as nx
+
+    component = {node: comp for comp in nx.connected_components(graph) for node in comp}
+    return {
+        v: sorted(
+            (len(c) for c in nx.connected_components(graph.subgraph(component[v] - {v}))),
+            reverse=True,
+        )
+        for v in nx.articulation_points(graph)
+    }
+
+
+def test_separations_match_the_reference_on_random_graphs():
+    import random
+
+    import networkx as nx
+
+    from human_risk_graph.model_v2 import separations
+
+    rnd = random.Random(0)
+    for _ in range(1000):
+        n = rnd.randint(1, 30)
+        graph = nx.Graph()
+        graph.add_nodes_from(range(n))
+        graph.add_edges_from(
+            (rnd.randrange(n), rnd.randrange(n)) for _ in range(rnd.randint(0, 2 * n))
+        )  # includes self-loops, isolated people and several components
+        assert separations(graph) == _reference_separations(graph)
+
+
+def test_separations_on_known_shapes():
+    import networkx as nx
+
+    from human_risk_graph.model_v2 import separations
+
+    assert separations(nx.path_graph(5)) == {1: [3, 1], 2: [2, 2], 3: [3, 1]}
+    assert separations(nx.star_graph(3)) == {0: [1, 1, 1]}
+    assert separations(nx.cycle_graph(5)) == {}
+    deep = nx.path_graph(5000)  # no recursion limit: the search is iterative
+    assert separations(deep)[2500] == [2500, 2499]

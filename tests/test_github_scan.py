@@ -402,9 +402,15 @@ def test_merge_without_existing():
 @pytest.fixture
 def fake_github(monkeypatch):
     def install(routes):
-        monkeypatch.setattr(cli_module, "GitHubClient", lambda token: FakeClient(routes))
-        monkeypatch.setattr(cli_module, "default_token", lambda: None)
+        def client(token, api="https://api.github.com"):
+            fake = FakeClient(routes)
+            install.apis.append(api)
+            return fake
 
+        monkeypatch.setattr(cli_module, "GitHubClient", client)
+        monkeypatch.setattr(cli_module, "default_token", lambda api=None: None)
+
+    install.apis = []
     return install
 
 
@@ -927,3 +933,59 @@ def test_cli_scan_org_usage(args, message, fake_github):
     fake_github(_org_routes())
     result = CliRunner().invoke(cli, ["scan", "github", *args])
     assert result.exit_code == 2 and message in result.output
+
+
+# GitHub Enterprise Server
+
+
+def test_cli_scan_uses_the_api_url(tmp_path, fake_github, monkeypatch):
+    fake_github(_routes())
+    out = tmp_path / "draft.yaml"
+    ghes = "https://github.example.com/api/v3"
+    result = CliRunner().invoke(
+        cli, ["scan", "github", "acme/api", "-o", str(out), "--api-url", ghes]
+    )
+    assert result.exit_code == 0, result.output
+    # In GitHub Actions, GITHUB_API_URL points at the server the workflow runs on.
+    monkeypatch.setenv("GITHUB_API_URL", ghes + "/")
+    CliRunner().invoke(cli, ["scan", "github", "acme/api", "-o", str(out)])
+    assert fake_github.apis == [ghes, ghes + "/"]
+
+
+def test_cli_scan_rejects_a_plain_http_api(tmp_path, monkeypatch):
+    monkeypatch.setattr(cli_module, "default_token", lambda api=None: None)
+    result = CliRunner().invoke(
+        cli, ["scan", "github", "acme/api", "-o", str(tmp_path / "d.yaml"), "--api-url",
+              "http://github.example.com/api/v3"],
+    )  # fmt: skip
+    assert result.exit_code == 2 and "must use https" in result.output
+
+
+def test_default_token_asks_gh_for_the_enterprise_host(monkeypatch):
+    from human_risk_graph import github_scan
+
+    calls = []
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.delenv("GH_TOKEN", raising=False)
+    monkeypatch.setattr(github_scan.shutil, "which", lambda name: "/usr/bin/gh")
+
+    def run(command, **kwargs):
+        calls.append(command)
+        return type("Done", (), {"stdout": "t0ken\n"})()
+
+    monkeypatch.setattr(github_scan.subprocess, "run", run)
+    assert github_scan.default_token() == "t0ken"
+    assert github_scan.default_token("https://github.example.com/api/v3") == "t0ken"
+    assert calls == [
+        ["gh", "auth", "token"],
+        ["gh", "auth", "token", "--hostname", "github.example.com"],
+    ]
+
+
+def test_client_keeps_the_token_inside_an_enterprise_api(monkeypatch):
+    calls = _flaky(monkeypatch, [{"ok": 1}])
+    client = GitHubClient("t", api="https://github.example.com/api/v3")
+    assert client.get("repos/acme/api") == {"ok": 1}
+    assert calls == ["https://github.example.com/api/v3/repos/acme/api"]
+    with pytest.raises(GitHubError, match="Refusing"):
+        client._request("https://github.example.com/api/graphql")

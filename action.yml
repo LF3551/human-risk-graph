@@ -34,6 +34,10 @@ inputs:
     description: GitHub token used by `scan`.
     required: false
     default: ${{ github.token }}
+  api-url:
+    description: GitHub API used by `scan` and `scan-org`; the default is the API of the GitHub the workflow runs on, so GitHub Enterprise Server works without setting it.
+    required: false
+    default: ${{ github.api_url }}
   config:
     description: Config file (default hrg.toml, .hrg.toml or [tool.hrg] in pyproject.toml in the working directory).
     required: false
@@ -143,6 +147,7 @@ runs:
         HRG_MAX_PRS: ${{ inputs.max-prs }}
         HRG_PSEUDONYMIZE: ${{ inputs.pseudonymize }}
         HRG_GITHUB_TOKEN: ${{ inputs.token }}
+        HRG_GITHUB_API_URL: ${{ inputs.api-url }}
         HRG_CONFIG: ${{ inputs.config }}
         HRG_MODEL: ${{ inputs.model }}
         HRG_INACTIVE_DAYS: ${{ inputs.inactive-days }}

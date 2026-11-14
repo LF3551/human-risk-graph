@@ -248,3 +248,14 @@ def test_html_displays_human_friendly_critical_people():
     report = generate_html_report(results, _metadata())
     assert "Ivan Petrov" in report
     assert "Site Reliability Engineer" in report
+
+
+def test_map_is_not_drawn_for_large_organizations():
+    from human_risk_graph import HumanRiskGraph
+    from human_risk_graph.html_report import MAP_LIMIT, _map_html
+
+    n = MAP_LIMIT + 1
+    people = [{"id": f"p{i}"} for i in range(n)]
+    deps = [{"from": f"p{i - 1}", "to": f"p{i}", "type": "approval"} for i in range(1, n)]
+    html = _map_html(HumanRiskGraph(people, deps), {})
+    assert f"has {n}" in html and "<svg" not in html

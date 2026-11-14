@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ✨ Added
+
+- **GitHub Enterprise Server:** `hrg scan github --api-url https://HOST/api/v3` (also `HRG_GITHUB_API_URL`, and `GITHUB_API_URL` as GitHub Actions sets it); the GitHub CLI token for that host is used. Action input `api-url`, by default the API of the GitHub the workflow runs on.
+
+### ⚡ Performance
+
+- Key-person impacts (hrg-1/hrg-2) come from one depth-first search (Tarjan's low-link) instead of a search per articulation point: the fix plan for 3,000 people takes under a second instead of about five minutes. Results are identical (checked against the previous implementation on random graphs and on the example reports).
+- The HTML report draws the dependency map for up to 400 people and says so above that; `hrg analyze` with every report for 3,000 people takes seconds instead of minutes. `hrg visualize` still draws everyone.
+
 ### 🔬 Research
 
 - Protocol of a second study, [docs/study-two-person.md](docs/study-two-person.md): two-person control and dormant authority over publishing in the 1,000 most downloaded PyPI packages, with its collection and analysis code (`benchmark/two_person.py`) and tests, fixed before any data in the sample was collected and registered on OSF ([doi:10.17605/OSF.IO/J8ZFG](https://doi.org/10.17605/OSF.IO/J8ZFG)).
