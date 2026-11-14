@@ -278,7 +278,9 @@ a function was last active (`last_active`: their latest merged pull request, app
 release, deployment or commit). hrg-3 then reports people inactive for more than 90 days
 (`--inactive-days`) as `HRG007`: the merge rule needs two reviewers but one of them left in
 spring, or a dormant account can still publish releases alone. The score itself does not
-change. `--no-activity` records no dates ([docs/privacy.md](docs/privacy.md)).
+change. Under the other models `hrg analyze` prints a one-line note when the file has
+inactive people, pointing to `--model hrg-3`. `--no-activity` records no dates
+([docs/privacy.md](docs/privacy.md)).
 
 ### What HRG is not
 

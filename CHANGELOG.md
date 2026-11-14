@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ✨ Added
 
+- Under hrg-1 and hrg-2, `hrg analyze` prints a note when people in the file have no activity seen for over `inactive-days` (`last_active`), pointing to `--model hrg-3` and HRG007 when the file has functions; HRG007 itself stays a hrg-3 rule.
 - **GitHub Enterprise Server:** `hrg scan github --api-url https://HOST/api/v3` (also `HRG_GITHUB_API_URL`, and `GITHUB_API_URL` as GitHub Actions sets it); the GitHub CLI token for that host is used. Action input `api-url`, by default the API of the GitHub the workflow runs on.
 
 ### ⚡ Performance

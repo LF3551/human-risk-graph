@@ -29,7 +29,7 @@ from . import diff as diff_module
 from .ci_reports import generate_junit_report, generate_sarif_report
 from .config import Acceptance, Config, ConfigError, apply_acceptances, load_config
 from .console import render_summary
-from .activity import DEFAULT_INACTIVE_DAYS
+from .activity import DEFAULT_INACTIVE_DAYS, is_inactive
 from .findings import Finding, collect_findings, threshold_breach
 from .github_scan import (
     API,
@@ -43,7 +43,7 @@ from .github_scan import (
 )
 from .hrg import HumanRiskGraph
 from .loader import load_organization, organization_schema
-from .model_v2 import MODEL_V2, MODELS
+from .model_v2 import MODEL_V2, MODEL_V3, MODELS
 from .privacy import KEY_ENV, PseudonymKeyError, Pseudonymizer, load_key
 from .reports import (
     generate_html_report,
@@ -283,6 +283,9 @@ def analyze(
         )
         if pz:
             click.echo(f"Privacy: {privacy_text(metadata)}")
+        hint = inactivity_hint(run.data, run.results.get("model"), inactive_days)
+        if hint:
+            click.echo(hint)
     _warn_acceptances(run.unused, run.findings)
 
     if failed:
@@ -429,6 +432,25 @@ def _write_visualization(run: _Analysis, viz_file: Path) -> List[str]:
         click.echo(f"Warning: failed to generate visualization: {e}", err=True)
         return []
     return [str(viz_file)]
+
+
+def inactivity_hint(data: Dict[str, Any], model: Optional[str], days: int) -> Optional[str]:
+    """
+    Outside hrg-3, a pointer to the people the data mark as inactive: HRG007 only runs on
+    functions, and without this they would go unnoticed under the default model.
+    """
+    if model == MODEL_V3:
+        return None
+    inactive = sum(1 for p in data["people"] if is_inactive(p.get("last_active"), days))
+    if not inactive:
+        return None
+    people = f"{inactive} {'person has' if inactive == 1 else 'people have'}"
+    if data.get("functions"):
+        return (
+            f"Note: {people} no activity seen for over {days} days (last_active); "
+            "run with --model hrg-3 to see which functions rely on them (HRG007)."
+        )
+    return f"Note: {people} no activity seen for over {days} days (last_active)."
 
 
 def _warn_acceptances(unused: List[Acceptance], findings: List[Finding]) -> None:
