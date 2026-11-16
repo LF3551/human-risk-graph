@@ -264,3 +264,58 @@ def _print_findings(console: Console, findings: List[Finding]) -> None:
             Text(f"Accepted: {finding.message} ({acceptance_text(finding)})", style="dim"),
         )
     console.print(rows)
+
+
+CHECK_STYLE = {"error": ("▲", "bold red"), "warning": ("△", "yellow"), "note": ("·", "cyan"),
+               "ok": ("✓", "green")}  # fmt: skip
+
+
+def render_check(console: Console, result: Dict[str, Any]) -> None:
+    """``hrg check``: the release path, the configured gate, people, then findings."""
+    console.print()
+    console.print(
+        Text.assemble(
+            ("hrg check ", "bold"),
+            (result["package"], "cyan"),
+            f" {result['version'] or '(no release)'}",
+            f" · {result['repository'] or 'no GitHub repository'}",
+        )
+    )
+    console.print()
+    rows = Table.grid(padding=(0, 2))
+    rows.add_column(style="bold", min_width=14)
+    rows.add_column()
+    rows.add_row("  Release path", f"{result['path']}  {result['path_meaning']}")
+    rows.add_row(
+        "  Configured", f"{result['configured_gate']}  {result['configured_gate_meaning']}"
+    )
+    rows.add_row("  Publishers", f"{result['publishers_seen']} seen on GitHub in the last year")
+    rows.add_row(
+        "  Reviewers",
+        f"{result['reviewers']} on publishing environments, {result['dormant_reviewers']} "
+        f"inactive for over {result['inactive_days']} days",
+    )
+    console.print(rows)
+    console.print()
+    for finding in result["findings"]:
+        mark, style = CHECK_STYLE[finding["level"]]
+        console.print(Text(f"  {mark} {finding['title']}", style=style))
+        if finding["advice"]:
+            console.print(Text(f"    → {finding['advice']}", style="dim"))
+    for note in result["notes"]:
+        console.print(Text(f"  Note: {note}", style="dim"))
+    people = result.get("people")
+    if people:
+        console.print()
+        for d in people["dormant_reviewers"]:
+            alone = ", can approve alone" if d["can_approve_alone"] else ""
+            console.print(
+                f"  Inactive reviewer: {d['login']} (last seen {d['last_seen'] or 'not in 180 days'}{alone})"
+            )
+        if people["publishers_seen"]:
+            console.print(f"  Publishers seen: {', '.join(people['publishers_seen'])}")
+    elif result["reviewers"] or result["publishers_seen"]:
+        console.print(
+            Text("  People are not named; use --show-people on your own project.", style="dim")
+        )
+    console.print()

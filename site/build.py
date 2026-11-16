@@ -161,6 +161,16 @@ Each report is a single offline HTML file: open the map, click a person, print i
 {cards}
 </div>
 
+<h2>Check a PyPI package</h2>
+<p>Who could release it alone? <code>hrg check</code> reads the PyPI provenance of the latest
+  release and the repository's deployment environments: did the release go through a second
+  person, does one person publish everything, can inactive reviewers still approve releases
+  alone. Public data only; people are not named unless you ask for your own project
+  (<a href="{REPO}/blob/main/docs/check.md">how it works</a>).</p>
+<pre><code>pip install human-risk-graph
+hrg check requests
+hrg check my-package --show-people --fail-on error</code></pre>
+
 <h2>Try it on your organization</h2>
 <pre><code>pip install human-risk-graph
 hrg analyze org.yaml                       # describe people and dependencies in YAML
