@@ -6,6 +6,7 @@
   <a href="https://pypi.org/project/human-risk-graph/"><img src="https://img.shields.io/pypi/v/human-risk-graph?cacheSeconds=3600" alt="PyPI"></a>
   <a href="https://pypi.org/project/human-risk-graph/"><img src="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue" alt="Python 3.10-3.14"></a>
   <a href="https://pypistats.org/packages/human-risk-graph"><img src="https://img.shields.io/pypi/dm/human-risk-graph?cacheSeconds=3600" alt="Downloads"></a>
+  <a href="https://pepy.tech/projects/human-risk-graph"><img src="https://static.pepy.tech/personalized-badge/human-risk-graph?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads" alt="PyPI Downloads"></a>
   <a href="https://github.com/LF3551/human-risk-graph/actions/workflows/ci.yml"><img src="https://github.com/LF3551/human-risk-graph/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://codecov.io/gh/LF3551/human-risk-graph"><img src="https://codecov.io/gh/LF3551/human-risk-graph/branch/main/graph/badge.svg" alt="Coverage"></a>
   <a href="https://github.com/marketplace/actions/human-risk-graph"><img src="https://img.shields.io/badge/Marketplace-Human%20Risk%20Graph-2ea44f?logo=github" alt="GitHub Marketplace"></a>
